@@ -1,6 +1,10 @@
 #!/usr/bin/env just --justfile
 set dotenv-load := true
 
+# Clean Build
+clean:
+    cargo clean --verbose
+
 # Output this list.
 list:
     @just --list
