@@ -24,11 +24,13 @@ envy = "0.4"
 once_cell = "1"
 libreda-db = { version = "0.0.10", features = ["serde"] }
 llhd = "0.16.0"
-flecs = { version = "0.1.5" }
+# flecs = { version = "0.1.5" }
+flecs = {git = "https://github.com/pbonh/flecs-rs.git"}
 itertools = "0.12.1"
 
 [dev-dependencies]
 criterion = "0.4"
+indoc = "2.0.4"
 pretty_assertions = "1"
 
 [package.metadata.cargo-udeps.ignore]

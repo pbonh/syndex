@@ -308,8 +308,7 @@ dependencies = [
 [[package]]
 name = "flecs"
 version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c3086ea3aa0fb588c48eff487cef8109554bcc140f3ffb586635e2152f86291"
+source = "git+https://github.com/pbonh/flecs-rs.git#1a03fba31cdc61e361cd98758da4bbcd24459bcc"
 dependencies = [
  "flecs-sys",
  "once_cell",
@@ -318,8 +317,7 @@ dependencies = [
 [[package]]
 name = "flecs-sys"
 version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5b15b9f5e38ab986558a2080b47eb330bbb3bb68caa8a3160f2338c6e8b0a2b"
+source = "git+https://github.com/pbonh/flecs-rs.git#1a03fba31cdc61e361cd98758da4bbcd24459bcc"
 dependencies = [
  "bindgen",
  "cc",
@@ -400,6 +398,12 @@ dependencies = [
  "autocfg",
  "hashbrown",
 ]
+
+[[package]]
+name = "indoc"
+version = "2.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e186cfbae8084e513daff4240b4797e342f988cecda4fb6c939150f96315fd8"
 
 [[package]]
 name = "iron-shapes"
@@ -930,6 +934,7 @@ dependencies = [
  "criterion",
  "envy",
  "flecs",
+ "indoc",
  "itertools 0.12.1",
  "libreda-db",
  "llhd",

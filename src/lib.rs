@@ -53,7 +53,6 @@
     clippy::rc_mutex,
     clippy::rest_pat_in_fully_bound_structs,
     clippy::same_name_method,
-    clippy::self_named_module_files,
     clippy::separated_literal_suffix,
     clippy::shadow_unrelated,
     clippy::str_to_string,
@@ -66,6 +65,15 @@
 )]
 
 mod config;
+
+/// Index/Database for Design
+mod index;
+
+/// Types & Utilities for Managing LLHD Modules
+mod llhd;
+
+/// Types & Utilities for Managing FLECS Worlds
+mod world;
 
 pub use config::CONFIG;
 
