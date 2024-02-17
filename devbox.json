@@ -6,7 +6,13 @@
     "rust-analyzer@latest",
     "rustup@latest",
     "bacon@latest",
-    "cargo-generate@latest"
+    "cargo-generate@latest",
+    "pkg-config@latest",
+    "llvmPackages.libclang@latest",
+    "clang@latest",
+    "llvm@latest",
+    "cargo-nextest@latest",
+    "cargo-llvm-cov@latest"
   ],
   "env": {
     "PROJECT_DIR": "$PWD"

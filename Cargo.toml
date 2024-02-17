@@ -22,6 +22,9 @@ full = []
 serde = { version = "1", default-features = false, features = ["serde_derive"] }
 envy = "0.4"
 once_cell = "1"
+libreda-db = { version = "0.0.10", features = ["serde"] }
+llhd = "0.16.0"
+flecs = { version = "0.1.5" }
 
 [dev-dependencies]
 criterion = "0.4"

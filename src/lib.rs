@@ -19,10 +19,12 @@
     clippy::unimplemented,
     clippy::unreachable
 )]
+#![allow(clippy::multiple_crate_versions)]
+
 // clippy WARN level lints, that can be upgraded to DENY if preferred
 #![warn(
     clippy::float_arithmetic,
-    clippy::integer_arithmetic,
+    clippy::arithmetic_side_effects,
     clippy::modulo_arithmetic,
     clippy::as_conversions,
     clippy::assertions_on_result_states,
