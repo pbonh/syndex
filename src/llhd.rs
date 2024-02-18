@@ -5,20 +5,20 @@ use std::fmt;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 
-/// LLHD Inst ENode Type
-pub(crate) mod enode;
+/// LLHD Inst `ENode` Type
+pub mod enode;
 
 /// Helper Functions for LLHD Types
-pub(crate) mod common;
+pub mod common;
 
 /// `Net` Identifier within LLHD `Unit`
-pub(crate) type LLHDNet = (UnitId, Value, Opcode);
+pub type LLHDNet = (UnitId, Value, Opcode);
 
-/// NewType Wrapper for an LLHD Module
-pub(crate) struct LModule(Module);
+/// `NewType` Wrapper for an LLHD Module
+pub struct LModule(Module);
 
 impl LModule {
-    pub(crate) fn new(module: Module) -> Self {
+    pub(crate) const fn new(module: Module) -> Self {
         Self(module)
     }
 

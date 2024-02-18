@@ -4,10 +4,10 @@ use llhd::ty::{Type, TypeKind};
 use std::fmt;
 use std::sync::Arc;
 
-/// `Net` ENode Data within LLHD `Unit`
+/// `Net` `ENode` Data within LLHD `Unit`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde-1", derive(serde::Serialize, serde::Deserialize))]
-pub(crate) struct LLHDENode {
+pub struct LLHDENode {
     pub(crate) id: Value,
     pub(crate) ty: Type,
     pub(crate) data: InstData,
@@ -30,7 +30,7 @@ impl Default for LLHDENode {
 }
 
 impl LLHDENode {
-    /// Create LLHD ENode Op from `Value`
+    /// Create LLHD `ENode` Op from `Value`
     pub(crate) fn new(unit: &Unit, value: Value) -> Self {
         let (ty, data) = match &unit[value] {
             ValueData::Arg { ty, .. } => (ty.clone(), InstData::default()),

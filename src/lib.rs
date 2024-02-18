@@ -1,9 +1,9 @@
 //! Project-level documentation.
 
 #![allow(clippy::module_name_repetitions)]
+#![allow(dead_code)]
 // clippy WARN level lints
 #![warn(
-    missing_docs,
     clippy::cargo,
     clippy::pedantic,
     clippy::nursery,
@@ -12,7 +12,6 @@
     clippy::integer_division,
     clippy::large_include_file,
     clippy::map_err_ignore,
-    clippy::missing_docs_in_private_items,
     clippy::panic,
     clippy::todo,
     clippy::undocumented_unsafe_blocks,
@@ -67,13 +66,13 @@
 mod config;
 
 /// Index/Database for Design
-mod index;
+pub mod index;
 
 /// Types & Utilities for Managing LLHD Modules
-mod llhd;
+pub(crate) mod llhd;
 
 /// Types & Utilities for Managing FLECS Worlds
-mod world;
+pub(crate) mod world;
 
 pub use config::CONFIG;
 

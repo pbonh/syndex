@@ -27,6 +27,7 @@ llhd = "0.16.0"
 # flecs = { version = "0.1.5" }
 flecs = {git = "https://github.com/pbonh/flecs-rs.git"}
 itertools = "0.12.1"
+rayon = "1.8.1"
 
 [dev-dependencies]
 criterion = "0.4"

@@ -940,6 +940,7 @@ dependencies = [
  "llhd",
  "once_cell",
  "pretty_assertions",
+ "rayon",
  "serde",
 ]
 

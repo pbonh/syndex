@@ -1,15 +1,9 @@
 use flecs::World;
 use std::ops::{Deref, DerefMut};
 
-/// NewType Wrapper for an LLHD Module
+/// New-Type Wrapper for an LLHD Module
 #[derive(Debug)]
-pub(crate) struct LWorld(World);
-
-impl LWorld {
-    pub(crate) fn new(world: World) -> Self {
-        Self(world)
-    }
-}
+pub struct LWorld(World);
 
 impl Default for LWorld {
     fn default() -> Self {
