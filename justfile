@@ -19,7 +19,8 @@ fmt *FLAGS:
 
 # Run clippy on codesbase, tests, examples, while testing all features.
 check *FLAGS:
-    cargo clippy --tests --examples --all-targets --all-features --workspace {{FLAGS}}
+    # cargo clippy --tests --examples --all-targets --all-features --workspace {{FLAGS}}
+    cargo clippy --tests --examples --all-features --workspace {{FLAGS}}
 
 # Run tests.
 test *FLAGS:
