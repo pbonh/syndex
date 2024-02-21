@@ -187,7 +187,15 @@ mod tests {
 
         let mut index = create_index!(());
         let ent_id = index.add_unit(ent);
-        let _unit_component_data = &index[ent_id];
+        let unit_component_data = &index[ent_id];
+        assert_eq!(
+            "@top", unit_component_data.name.to_string(),
+            "Unit name should be 'top'."
+        );
+        assert_eq!(
+            UnitKind::Entity, unit_component_data.kind,
+            "Unit type should be 'Entity'."
+        );
     }
 
     #[derive(Default, Debug, PartialEq)]
@@ -215,13 +223,8 @@ mod tests {
         assert_eq!(
             3,
             index.types().len(),
-            "There should be 2 Component Types present in World."
+            "There should be 3 Component Types present in World."
         );
-        // assert_eq!(
-        //     2,
-        //     index.world().count_component::<TimingNode>(),
-        //     "There should be 2 TimingNodes present in World."
-        // );
         let _: Vec<_> = index
             .module()
             .units()
@@ -245,6 +248,11 @@ mod tests {
                 });
             })
             .collect();
+        assert_eq!(
+            2,
+            index.world().count_component::<TimingNode>(),
+            "There should be 2 TimingNodes present in World."
+        );
         // for unit in index.module().units() {
         //     let unit_id = unit.id();
         //     for block in unit.blocks() {
