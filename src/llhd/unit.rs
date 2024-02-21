@@ -15,14 +15,14 @@ impl From<&UnitData> for UnitComponent {
     }
 }
 
-impl Default for UnitComponent {
-    fn default() -> Self {
-        Self {
-            name: UnitName::anonymous(0),
-            kind: llhd::ir::UnitKind::Entity,
-        }
-    }
-}
+// impl Default for UnitComponent {
+//     fn default() -> Self {
+//         Self {
+//             name: UnitName::anonymous(0),
+//             kind: llhd::ir::UnitKind::Entity,
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
