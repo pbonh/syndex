@@ -7,7 +7,7 @@ struct Position {
 }
 
 #[derive(Default, Debug, PartialEq)]
-struct Walking { }
+struct Walking {}
 
 #[test]
 fn flecs_example() {
@@ -18,8 +18,10 @@ fn flecs_example() {
     world.component::<Walking>();
 
     // Create an entity with name Bob
-    let bob = world.entity().named("Bob")
-        .set(Position { x: 10.0, y: 20.0 }) 
+    let bob = world
+        .entity()
+        .named("Bob")
+        .set(Position { x: 10.0, y: 20.0 })
         .add::<Walking>();
 
     // Get the value for the Position component
@@ -31,7 +33,9 @@ fn flecs_example() {
     println!("Bob position: {}, {}", pos.x, pos.y);
 
     // Create another named entity
-    let alice = world.entity().named("Alice")
+    let alice = world
+        .entity()
+        .named("Alice")
         .set(Position { x: 10.0, y: 20.0 });
 
     // Add a tag after entity is created

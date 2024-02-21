@@ -1,8 +1,9 @@
+use std::fmt;
+use std::sync::Arc;
+
 use llhd::ir::{InstData, Unit, Value, ValueData};
 use llhd::table::TableKey;
 use llhd::ty::{Type, TypeKind};
-use std::fmt;
-use std::sync::Arc;
 
 /// `Net` `ENode` Data within LLHD `Unit`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -48,7 +49,7 @@ impl LLHDENode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::llhd::LModule;
+    use crate::llhd::module::LModule;
 
     #[test]
     fn llhd_enode_construction_default() {

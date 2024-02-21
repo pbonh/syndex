@@ -32,6 +32,7 @@ rayon = "1.8.1"
 [dev-dependencies]
 criterion = "0.4"
 indoc = "2.0.4"
+petgraph = "0.6.4"
 pretty_assertions = "1"
 
 [package.metadata.cargo-udeps.ignore]

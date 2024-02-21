@@ -1,5 +1,6 @@
-use flecs::World;
 use std::ops::{Deref, DerefMut};
+
+use flecs::World;
 
 /// New-Type Wrapper for an LLHD Module
 #[derive(Debug)]

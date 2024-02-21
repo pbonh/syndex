@@ -41,9 +41,10 @@ pub(crate) fn build_enodes<'u>(unit: &'u Unit) -> impl Iterator<Item = LLHDENode
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use llhd::ir::{Opcode, Value};
     use llhd::table::TableKey;
+
+    use super::*;
 
     #[test]
     fn filter_nullary_from_unit() {

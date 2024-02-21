@@ -19,7 +19,6 @@
     clippy::unreachable
 )]
 #![allow(clippy::multiple_crate_versions)]
-
 // clippy WARN level lints, that can be upgraded to DENY if preferred
 #![warn(
     clippy::float_arithmetic,

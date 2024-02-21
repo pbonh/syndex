@@ -1,5 +1,5 @@
-use syndex::CONFIG;
 use pretty_assertions::assert_eq;
+use syndex::CONFIG;
 
 /// TODO: Example integration test, feel free to replace it with something meaningful.
 #[test]
