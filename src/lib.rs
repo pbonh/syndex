@@ -5,7 +5,6 @@
 // clippy WARN level lints
 #![warn(
     clippy::cargo,
-    clippy::pedantic,
     clippy::nursery,
     clippy::dbg_macro,
     clippy::unwrap_used,
