@@ -189,11 +189,13 @@ mod tests {
         let ent_id = index.add_unit(ent);
         let unit_component_data = &index[ent_id];
         assert_eq!(
-            "@top", unit_component_data.name.to_string(),
+            "@top",
+            unit_component_data.name.to_string(),
             "Unit name should be 'top'."
         );
         assert_eq!(
-            UnitKind::Entity, unit_component_data.kind,
+            UnitKind::Entity,
+            unit_component_data.kind,
             "Unit type should be 'Entity'."
         );
     }
@@ -235,8 +237,7 @@ mod tests {
                         .filter(|inst| filter_nullary(&unit, inst))
                         .for_each(|inst| {
                             let inst_value = unit.get_inst_result(inst).unwrap();
-                            let opcode = unit[inst].opcode();
-                            let llhd_net = (unit_id, inst_value, opcode);
+                            let llhd_net = (unit_id, inst_value);
                             index.add::<TimingNode>(llhd_net);
                             // index.set::<TimingNode>(llhd_net, TimingNode::default());
                             let inst_component = index.get::<TimingNode>(llhd_net);

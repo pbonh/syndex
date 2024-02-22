@@ -13,7 +13,10 @@ pub mod inst;
 /// LLHD Module Type Wrapper
 pub mod module;
 
-use llhd::ir::{Opcode, UnitId, Value};
+use llhd::ir::{Inst, UnitId, Value};
 
-/// `Net` Identifier within LLHD `Unit`
-pub type LLHDNet = (UnitId, Value, Opcode);
+/// `Net/Value` Identifier within LLHD `Unit`
+pub type LLHDNet = (UnitId, Value);
+
+/// `Inst` Identifier within LLHD `Unit`
+pub type LLHDInst = (UnitId, Inst);

@@ -73,6 +73,9 @@ pub(crate) mod llhd;
 /// Types & Utilities for Managing FLECS Worlds
 pub(crate) mod world;
 
+/// `LibrEDA` Trait Implementations
+mod libreda;
+
 pub use config::CONFIG;
 
 #[cfg(test)]
