@@ -2,8 +2,8 @@ use llhd::ir::{Inst, InstData, Signature, Unit, UnitBuilder, UnitData, UnitName}
 
 use super::enode::LLHDENode;
 
-pub(crate) fn filter_nullary(unit: &Unit, instruction: &Inst) -> bool {
-    let inst_data = &unit[*instruction];
+pub(crate) fn filter_nullary(unit: &Unit, instruction: Inst) -> bool {
+    let inst_data = &unit[instruction];
     !matches!(inst_data, InstData::Nullary { .. })
 }
 
@@ -30,7 +30,7 @@ pub(crate) fn build_enodes<'u>(unit: &'u Unit) -> impl Iterator<Item = LLHDENode
         })
         .chain(
             unit.all_insts()
-                .filter(|inst| filter_nullary(unit, inst))
+                .filter(|inst| filter_nullary(unit, *inst))
                 .map(|inst| LLHDENode {
                     id: unit.inst_result(inst),
                     ty: unit.inst_type(inst),
@@ -56,7 +56,7 @@ mod tests {
         "};
         let module = llhd::assembly::parse_module(input).unwrap();
         let unit = module.units().next().unwrap();
-        let unit_insts = unit.all_insts().filter(|inst| filter_nullary(&unit, inst));
+        let unit_insts = unit.all_insts().filter(|inst| filter_nullary(&unit, *inst));
         assert_eq!(
             2,
             unit_insts.count(),
@@ -125,7 +125,7 @@ mod tests {
         );
         let final_insts: Vec<Inst> = unit
             .all_insts()
-            .filter(|inst| filter_nullary(&unit, inst))
+            .filter(|inst| filter_nullary(&unit, *inst))
             .collect();
         assert_eq!(
             2,

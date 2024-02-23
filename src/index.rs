@@ -234,7 +234,7 @@ mod tests {
                 let unit_id = unit.id();
                 unit.blocks().for_each(|block| {
                     unit.insts(block)
-                        .filter(|inst| filter_nullary(&unit, inst))
+                        .filter(|inst| filter_nullary(&unit, *inst))
                         .for_each(|inst| {
                             let inst_value = unit.get_inst_result(inst).unwrap();
                             let llhd_net = (unit_id, inst_value);
