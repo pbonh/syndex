@@ -35,7 +35,7 @@ pub(crate) fn get_inst_name(module: &Module, scope_unit: &Unit, inst_id: Inst) -
         inst_name.push_str(
             &scope_unit
                 .get_inst_result(inst_id)
-                .unwrap_or_else(|| Value::new(0))
+                .unwrap_or_else(|| Value::new(usize::max_value()))
                 .to_string(),
         );
         inst_name

@@ -37,7 +37,7 @@ impl LModule {
             init.all_insts(unit_id).into_iter().for_each(|inst| {
                 let net_name = unit
                     .get_inst_result(inst)
-                    .unwrap_or_else(|| Value::new(0))
+                    .unwrap_or_else(|| Value::new(usize::max_value()))
                     .to_string();
                 name_inst_map.insert((unit_id, net_name), inst);
             });
@@ -131,7 +131,7 @@ impl LModule {
         unit.all_insts()
             .filter(|inst| filter_nullary(&unit, *inst))
             .map(|inst| LLHDENode {
-                id: unit.get_inst_result(inst).unwrap_or_else(|| Value::new(0)),
+                id: unit.get_inst_result(inst).unwrap_or_else(|| Value::new(usize::max_value())),
                 ty: unit.inst_type(inst),
                 data: unit[inst].clone(),
             })
@@ -146,7 +146,7 @@ impl LModule {
                 .map(move |inst| {
                     (
                         unit.id(),
-                        unit.get_inst_result(inst).unwrap_or_else(|| Value::new(0)),
+                        unit.get_inst_result(inst).unwrap_or_else(|| Value::new(usize::max_value())),
                     )
                 }),
         )
