@@ -32,13 +32,10 @@ impl LModule {
         let mut name_unit_map = NameUnitMap::default();
         init.module.units().for_each(|unit| {
             let unit_id = unit.id();
-            let unit_name = unit.name().to_string();
+            let unit_name = get_unit_name(&unit);
             name_unit_map.insert(unit_name, unit_id);
             init.all_insts(unit_id).into_iter().for_each(|inst| {
-                let net_name = unit
-                    .get_inst_result(inst)
-                    .unwrap_or_else(|| Value::new(usize::max_value()))
-                    .to_string();
+                let net_name = get_inst_name(&init.module, &unit, inst);
                 name_inst_map.insert((unit_id, net_name), inst);
             });
         });
@@ -397,7 +394,7 @@ mod tests {
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
         let unit_id = llhd_module.units().next().unwrap().id();
-        let inst_id = llhd_module.get_inst(unit_id, "v3");
+        let inst_id = llhd_module.get_inst(unit_id, "and.v3");
         let and_inst_id = (unit_id, Inst::new(1));
         assert_eq!(and_inst_id.1, inst_id, "Inst Id's do not match");
     }
