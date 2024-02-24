@@ -128,7 +128,9 @@ impl LModule {
         unit.all_insts()
             .filter(|inst| filter_nullary(&unit, *inst))
             .map(|inst| LLHDENode {
-                id: unit.get_inst_result(inst).unwrap_or_else(|| Value::new(usize::max_value())),
+                id: unit
+                    .get_inst_result(inst)
+                    .unwrap_or_else(|| Value::new(usize::max_value())),
                 ty: unit.inst_type(inst),
                 data: unit[inst].clone(),
             })
@@ -143,7 +145,8 @@ impl LModule {
                 .map(move |inst| {
                     (
                         unit.id(),
-                        unit.get_inst_result(inst).unwrap_or_else(|| Value::new(usize::max_value())),
+                        unit.get_inst_result(inst)
+                            .unwrap_or_else(|| Value::new(usize::max_value())),
                     )
                 }),
         )
@@ -324,7 +327,7 @@ mod tests {
         let unit_id = llhd_module.units().next().unwrap().id();
         let inst_id = (unit_id, Inst::new(1));
         let inst_name = llhd_module.get_inst_name(inst_id);
-        assert_eq!("and.v3", inst_name, "Inst name does not match");
+        assert_eq!("@ent2.and.v3", inst_name, "Inst name does not match");
     }
 
     #[test]
@@ -380,7 +383,7 @@ mod tests {
             .collect::<Vec<(UnitId, Inst, ExtUnit)>>();
         let (and_inst_parent_unit_id, and_inst_id) = (inst_info[0].0, inst_info[0].1);
         let and_inst_name = llhd_module.get_inst_name((and_inst_parent_unit_id, and_inst_id));
-        assert_eq!("%top.and.i7", and_inst_name, "Inst name does not match");
+        assert_eq!("@top.%top.and.i7", and_inst_name, "Inst name does not match");
     }
 
     #[test]
@@ -394,7 +397,7 @@ mod tests {
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
         let unit_id = llhd_module.units().next().unwrap().id();
-        let inst_id = llhd_module.get_inst(unit_id, "and.v3");
+        let inst_id = llhd_module.get_inst(unit_id, "@ent2.and.v3");
         let and_inst_id = (unit_id, Inst::new(1));
         assert_eq!(and_inst_id.1, inst_id, "Inst Id's do not match");
     }

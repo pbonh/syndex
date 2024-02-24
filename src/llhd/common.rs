@@ -20,7 +20,9 @@ pub(crate) fn get_inst_name(module: &Module, scope_unit: &Unit, inst_id: Inst) -
             .expect("ExtUnit does not exist in Module.")
         {
             llhd::ir::LinkedUnit::Def(ext_unit_id) => {
-                let mut unit_name = get_unit_name(&module.unit(ext_unit_id));
+                let mut unit_name = get_unit_name(&module.unit(scope_unit_id));
+                unit_name.push('.');
+                unit_name.push_str(&get_unit_name(&module.unit(ext_unit_id)));
                 unit_name.push('.');
                 unit_name.push_str(&inst_id.to_string());
                 unit_name
@@ -30,7 +32,9 @@ pub(crate) fn get_inst_name(module: &Module, scope_unit: &Unit, inst_id: Inst) -
             }
         }
     } else {
-        let mut inst_name = scope_unit[inst_id].opcode().to_string();
+        let mut inst_name = get_unit_name(&module.unit(scope_unit_id));
+        inst_name.push('.');
+        inst_name.push_str(&scope_unit[inst_id].opcode().to_string());
         inst_name.push('.');
         inst_name.push_str(
             &scope_unit
@@ -206,7 +210,7 @@ mod tests {
         let and_inst = unit.all_insts().next().unwrap();
         let and_inst_name = get_inst_name(&module, &unit, and_inst);
         assert_eq!(
-            "and.v3", and_inst_name,
+            "@ent2.and.v3", and_inst_name,
             "And instruction name does not match."
         );
     }
@@ -265,7 +269,7 @@ mod tests {
         let and_inst = inst_info[0].1;
         let and_inst_name = get_inst_name(&module, &top_unit, and_inst);
         assert_eq!(
-            "%top.and.i7", and_inst_name,
+            "@top.%top.and.i7", and_inst_name,
             "And instantiation name does not match."
         );
     }
