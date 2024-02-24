@@ -1,10 +1,45 @@
-use llhd::ir::{Inst, InstData, Signature, Unit, UnitBuilder, UnitData, UnitName};
+use llhd::ir::{Inst, InstData, Module, Signature, Unit, UnitBuilder, UnitData, UnitName, Value};
+use llhd::table::TableKey;
 
 use super::enode::LLHDENode;
 
-pub(crate) fn filter_nullary(unit: &Unit, instruction: Inst) -> bool {
-    let inst_data = &unit[instruction];
+pub(crate) fn filter_nullary(unit: &Unit, inst_id: Inst) -> bool {
+    let inst_data = &unit[inst_id];
     !matches!(inst_data, InstData::Nullary { .. })
+}
+
+pub(crate) fn get_unit_name(scope_unit: &Unit) -> String {
+    scope_unit.name().to_string()
+}
+
+pub(crate) fn get_inst_name(module: &Module, scope_unit: &Unit, inst_id: Inst) -> String {
+    let scope_unit_id = scope_unit.id();
+    if let InstData::Call { unit, .. } = scope_unit[inst_id] {
+        match module
+            .lookup_ext_unit(unit, scope_unit_id)
+            .expect("ExtUnit does not exist in Module.")
+        {
+            llhd::ir::LinkedUnit::Def(ext_unit_id) => {
+                let mut unit_name = get_unit_name(&module.unit(ext_unit_id));
+                unit_name.push('.');
+                unit_name.push_str(&inst_id.to_string());
+                unit_name
+            }
+            llhd::ir::LinkedUnit::Decl(decl_id) => {
+                module[decl_id].name.to_string() + &inst_id.to_string()
+            }
+        }
+    } else {
+        let mut inst_name = scope_unit[inst_id].opcode().to_string();
+        inst_name.push('.');
+        inst_name.push_str(
+            &scope_unit
+                .get_inst_result(inst_id)
+                .unwrap_or_else(|| Value::new(0))
+                .to_string(),
+        );
+        inst_name
+    }
 }
 
 pub(crate) fn build_unit(nets: &[LLHDENode], name: &UnitName, sig: &Signature) -> UnitData {
@@ -41,7 +76,7 @@ pub(crate) fn build_enodes<'u>(unit: &'u Unit) -> impl Iterator<Item = LLHDENode
 
 #[cfg(test)]
 mod tests {
-    use llhd::ir::{Opcode, Value};
+    use llhd::ir::{ExtUnit, Opcode, UnitId, Value};
     use llhd::table::TableKey;
 
     use super::*;
@@ -156,5 +191,82 @@ mod tests {
         let unit = module.units().next().unwrap();
         let enodes: Vec<_> = build_enodes(&unit).collect();
         assert_eq!(5, enodes.len(), "There should be 5 ENodes built from Unit.");
+    }
+
+    #[test]
+    fn llhd_get_name_for_inst() {
+        let input = indoc::indoc! {"
+            entity @ent2 (i1 %in1, i1 %in2, i1 %in3) -> () {
+                %and1 = and i1 %in1, %in2
+                %or1 = or i1 %and1, %in3
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let unit = module.units().next().unwrap();
+        let and_inst = unit.all_insts().next().unwrap();
+        let and_inst_name = get_inst_name(&module, &unit, and_inst);
+        assert_eq!(
+            "and.v3", and_inst_name,
+            "And instruction name does not match."
+        );
+    }
+
+    #[test]
+    fn llhd_get_name_for_inst_call() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %and1, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @top () -> () {
+                %top_input1 = const i1 0
+                %in1 = sig i1 %top_input1
+                %top_input2 = const i1 1
+                %in2 = sig i1 %top_input2
+                %top_out1 = const i1 0
+                %out1 = sig i1 %top_out1
+                inst %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1)
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let inst_info = module
+            .units()
+            .map(|module_unit| {
+                let unit_id = module_unit.id();
+                let unit_name = module_unit.name().to_string();
+                (module_unit, unit_id, unit_name)
+            })
+            .filter(|(_, _, unit_name)| unit_name == "@top")
+            .map(|(module_unit, unit_id, _)| (module_unit, unit_id))
+            .flat_map(|(module_unit, unit_id)| {
+                module_unit
+                    .all_insts()
+                    .filter(move |inst| match &module_unit[*inst] {
+                        InstData::Call { .. } => true,
+                        _ => false,
+                    })
+                    .map(move |inst| (unit_id, inst, module_unit[inst].to_owned()))
+                    .map(|(unit_id, inst, inst_data)| {
+                        let mut ext_unit_id = ExtUnit::new(0);
+                        if let InstData::Call { unit, .. } = inst_data {
+                            ext_unit_id = unit;
+                        }
+                        (unit_id, inst, ext_unit_id)
+                    })
+            })
+            .collect::<Vec<(UnitId, Inst, ExtUnit)>>();
+        let top_unit = module.unit(inst_info[0].0);
+        let and_inst = inst_info[0].1;
+        let and_inst_name = get_inst_name(&module, &top_unit, and_inst);
+        assert_eq!(
+            "%top.and.i7", and_inst_name,
+            "And instantiation name does not match."
+        );
     }
 }

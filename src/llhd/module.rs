@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use llhd::ir::{Inst, InstData, Module, UnitId, Value, ValueData};
 use llhd::table::TableKey;
 
-use super::common::filter_nullary;
+use super::common::{filter_nullary, get_inst_name, get_unit_name};
 use super::enode::LLHDENode;
 use super::{LLHDInst, LLHDNet};
 
@@ -68,7 +68,7 @@ impl LModule {
 
     pub(crate) fn get_unit_name(&self, unit_id: UnitId) -> String {
         let unit = self.module.unit(unit_id);
-        unit.name().to_string()
+        get_unit_name(&unit)
     }
 
     pub(crate) fn get_unit_id(&self, unit_name: &str) -> UnitId {
@@ -95,17 +95,8 @@ impl LModule {
     pub(crate) fn get_inst_name(&self, llhd_inst: LLHDInst) -> String {
         let unit_id = llhd_inst.0;
         let inst_id = llhd_inst.1;
-        let unit = self.module.unit(unit_id);
-        unit.get_inst_result(inst_id)
-            .unwrap_or_else(|| Value::new(0))
-            .to_string()
-        // inst_id
-        //     .dump(&unit)
-        //     .to_string()
-        //     .split_once(char::is_whitespace)
-        //     .expect("Instruction contains no whitespace, can't split off instruction name")
-        //     .0
-        //     .to_owned()
+        let parent_unit = self.module.unit(unit_id);
+        get_inst_name(&self.module, &parent_unit, inst_id)
     }
 
     pub(crate) fn get_inst(&self, unit_id: UnitId, name: &str) -> Inst {
@@ -336,8 +327,63 @@ mod tests {
         let unit_id = llhd_module.units().next().unwrap().id();
         let inst_id = (unit_id, Inst::new(1));
         let inst_name = llhd_module.get_inst_name(inst_id);
-        // assert_eq!("%and1", inst_name, "Inst name does not match");
-        assert_eq!("v3", inst_name, "Inst name does not match");
+        assert_eq!("and.v3", inst_name, "Inst name does not match");
+    }
+
+    #[test]
+    fn llhd_module_get_inst_name_for_cell() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %and1, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @top () -> () {
+                %top_input1 = const i1 0
+                %in1 = sig i1 %top_input1
+                %top_input2 = const i1 1
+                %in2 = sig i1 %top_input2
+                %top_out1 = const i1 0
+                %out1 = sig i1 %top_out1
+                inst %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1)
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let llhd_module = LModule::from(module);
+        let inst_info = llhd_module
+            .units()
+            .map(|module_unit| {
+                let unit_id = module_unit.id();
+                let unit_name = module_unit.name().to_string();
+                (module_unit, unit_id, unit_name)
+            })
+            .filter(|(_, _, unit_name)| unit_name == "@top")
+            .map(|(module_unit, unit_id, _)| (module_unit, unit_id))
+            .flat_map(|(module_unit, unit_id)| {
+                module_unit
+                    .all_insts()
+                    .filter(move |inst| match &module_unit[*inst] {
+                        InstData::Call { .. } => true,
+                        _ => false,
+                    })
+                    .map(move |inst| (unit_id, inst, module_unit[inst].to_owned()))
+                    .map(|(unit_id, inst, inst_data)| {
+                        let mut ext_unit_id = ExtUnit::new(0);
+                        if let InstData::Call { unit, .. } = inst_data {
+                            ext_unit_id = unit;
+                        }
+                        (unit_id, inst, ext_unit_id)
+                    })
+            })
+            .collect::<Vec<(UnitId, Inst, ExtUnit)>>();
+        let (and_inst_parent_unit_id, and_inst_id) = (inst_info[0].0, inst_info[0].1);
+        let and_inst_name = llhd_module.get_inst_name((and_inst_parent_unit_id, and_inst_id));
+        assert_eq!("%top.and.i7", and_inst_name, "Inst name does not match");
     }
 
     #[test]
@@ -358,19 +404,6 @@ mod tests {
 
     #[test]
     fn llhd_module_get_unit_id_from_inst() {
-        // let input = indoc::indoc! {"
-        //     entity @and_library_cell (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
-        //         %delay = const time 0s
-        //         %and1 = and i1 %in1, %in2
-        //         drv i1$ %out1, %and1, %delay
-        //     }
-        //     entity @ent2 (i1$ %in1, i1$ %in2, i1$ %in3) -> () {
-        //         %zero = const i1 0
-        //         %and1 = sig i1$ %zero
-        //         inst @and_library_cell (i1$ %in1, i1$ %in2) -> (i1$ %and1)
-        //         %or1 = or i1 %and1, %in3
-        //     }
-        // "};
         let input = indoc::indoc! {"
             proc %top.always_ff.227.0 (i1$ %0, i1$ %1, i32$ %2) -> (i32$ %3) {
             %4:
@@ -529,29 +562,11 @@ mod tests {
                         (unit_id, inst, ext_unit_id)
                     })
             })
-            // if let InstData::Call { opcode, unit, ins, args }
-            // (unit_id, inst, ext_unit_id.to_owned())
-            // let parent_id = unit_id;
-            // let mut inst_id = Inst::new(0);
-            // let mut template_id = ExtUnit::new(0);
-            // module_unit.all_insts().for_each(|inst| {
-            //     match &module_unit[inst] {
-            //         InstData::Call { opcode, unit, ins, args } => {
-            //             if opcode == &Opcode::Inst {
-            //                 inst_id = inst;
-            //                 template_id = *unit;
-            //             }
-            //         },
-            //         _ => (),
-            //     }
-            // });
-            // (parent_id, inst_id, template_id)
             .collect::<Vec<(UnitId, Inst, ExtUnit)>>();
         let (always_ff_parent_unit_id, always_ff_inst_id, _always_ff_template_id) =
             inst_info[0].to_owned();
         let (initial_parent_unit_id, initial_inst_id, _initial_template_id) =
             inst_info[1].to_owned();
-        // (always_ff_parent_unit_id, always_ff_inst_id, always_ff_template_id) = llhd_module
         let always_ff_unit_id = llhd_module
             .get_unit_id_from_inst((always_ff_parent_unit_id, always_ff_inst_id))
             .unwrap();
