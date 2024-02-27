@@ -1,9 +1,9 @@
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 
-use llhd::ir::{Inst, InstData, Module, UnitId, Value, ValueData,ExtUnit};
+use llhd::ir::{ExtUnit, Inst, InstData, Module, UnitId, Value, ValueData};
 use llhd::table::TableKey;
 
 use super::common::{filter_instantiations, filter_nullary, get_inst_name, get_unit_name};
@@ -162,7 +162,8 @@ impl LModule {
     ) -> impl Iterator<Item = UnitId> + '_ {
         let scope_unit = self.module.unit(unit_id);
         let mut seen_units = HashSet::new();
-        scope_unit.all_insts()
+        scope_unit
+            .all_insts()
             .filter(move |inst| filter_instantiations(&scope_unit, *inst))
             .map(move |inst| {
                 let inst_data = &scope_unit[inst];
@@ -178,6 +179,29 @@ impl LModule {
                 dependency_unit_id
             })
             .filter(move |dependency_unit_id| seen_units.insert(*dependency_unit_id))
+    }
+
+    pub(crate) fn iter_dependent_units(
+        &self,
+        unit_id: UnitId,
+    ) -> impl Iterator<Item = UnitId> + '_ {
+        let mut dependent_units = HashSet::new();
+        self.module
+            .units()
+            .flat_map(|unit| {
+                let inner_unit_id = unit.id();
+                unit.extern_units()
+                    .map(move |(_, ext_unit_data)| {
+                        (inner_unit_id, ext_unit_data)
+                    })
+            })
+            .map(|(inner_unit_id, ext_unit_data)| {
+                let ext_unit_id = self.get_unit_id(&ext_unit_data.name.to_string());
+                (inner_unit_id, ext_unit_id)
+            })
+            .filter(move |(_, ext_unit_id)| unit_id == *ext_unit_id)
+            .map(|(inner_unit_id, _)| inner_unit_id)
+            .filter(move |inner_unit_id| dependent_units.insert(*inner_unit_id))
     }
 }
 
@@ -778,9 +802,155 @@ mod tests {
         );
         let unit_dependency_names: HashSet<_> = unit_dependencies
             .into_iter()
-            .map(|unit| get_unit_name(&unit)).collect();
-        assert!(unit_dependency_names.contains("%top.and"), "%top.and is a dependent_unit.");
-        assert!(unit_dependency_names.contains("%top.or"), "%top.or is a dependent_unit.");
-        assert!(!unit_dependency_names.contains("%top.or_unused"), "%top.or_unused is a dependent_unit.");
+            .map(|unit| get_unit_name(&unit))
+            .collect();
+        assert!(
+            unit_dependency_names.contains("%top.and"),
+            "%top.and is a dependent_unit."
+        );
+        assert!(
+            unit_dependency_names.contains("%top.or"),
+            "%top.or is a dependent_unit."
+        );
+        assert!(
+            !unit_dependency_names.contains("%top.or_unused"),
+            "%top.or_unused is a dependent_unit."
+        );
+    }
+
+    #[test]
+    fn llhd_module_unit_get_dependent_units() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %and1, %epsilon
+                wait %init for %epsilon
+            }
+
+            proc %top.or (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %or1 = or i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %or1, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @second () -> () {
+                %top_input11 = const i1 0
+                %in11 = sig i1 %top_input11
+                %top_input21 = const i1 1
+                %in21 = sig i1 %top_input21
+                %top_out11 = const i1 0
+                %out11 = sig i1 %top_out11
+
+                %top_input12 = const i1 0
+                %in12 = sig i1 %top_input12
+                %top_input22 = const i1 1
+                %in22 = sig i1 %top_input22
+                %top_out12 = const i1 0
+                %out12 = sig i1 %top_out12
+
+                inst %top.and (i1$ %in11, i1$ %in21) -> (i1$ %out11)
+                inst %top.and (i1$ %in12, i1$ %in22) -> (i1$ %out12)
+            }
+
+            entity @third () -> () {
+                %top_input11 = const i1 0
+                %in11 = sig i1 %top_input11
+                %top_input21 = const i1 1
+                %in21 = sig i1 %top_input21
+                %top_out11 = const i1 0
+                %out11 = sig i1 %top_out11
+
+                inst %top.and (i1$ %in11, i1$ %in21) -> (i1$ %out11)
+            }
+
+            entity @fourth () -> () {
+                %top_input11 = const i1 0
+                %in11 = sig i1 %top_input11
+                %top_input21 = const i1 1
+                %in21 = sig i1 %top_input21
+                %top_out11 = const i1 0
+                %out11 = sig i1 %top_out11
+
+                %top_input12 = const i1 0
+                %in12 = sig i1 %top_input12
+                %top_input22 = const i1 1
+                %in22 = sig i1 %top_input22
+                %top_out12 = const i1 0
+                %out12 = sig i1 %top_out12
+
+                inst %top.and (i1$ %in11, i1$ %in21) -> (i1$ %out11)
+                inst %top.and (i1$ %in12, i1$ %in22) -> (i1$ %out12)
+            }
+
+            entity @top () -> () {
+                %top_input11 = const i1 0
+                %in11 = sig i1 %top_input11
+                %top_input21 = const i1 1
+                %in21 = sig i1 %top_input21
+                %top_out11 = const i1 0
+                %out11 = sig i1 %top_out11
+
+                %top_input12 = const i1 0
+                %in12 = sig i1 %top_input12
+                %top_input22 = const i1 1
+                %in22 = sig i1 %top_input22
+                %top_out12 = const i1 0
+                %out12 = sig i1 %top_out12
+
+                inst %top.and (i1$ %in11, i1$ %in21) -> (i1$ %out11)
+                inst %top.and (i1$ %in12, i1$ %in22) -> (i1$ %out12)
+            }
+        "};
+
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let llhd_module = LModule::from(module);
+        let units: Vec<_> = llhd_module.units().collect();
+        let and_unit = units[0];
+        assert_eq!(
+            "%top.and",
+            get_unit_name(&and_unit),
+            "Unit should be 'and' unit."
+        );
+        let unit_dependencies: Vec<_> = llhd_module
+            .iter_dependent_units(and_unit.id())
+            .map(|unit_id| llhd_module.module.unit(unit_id))
+            .collect();
+        assert_eq!(
+            4,
+            unit_dependencies.len(),
+            "There are 4 Units dependent on %top.and: @top, @second, @third, @fourth, "
+        );
+        let dependent_unit_names: HashSet<_> = unit_dependencies
+            .into_iter()
+            .map(|unit| get_unit_name(&unit))
+            .collect();
+        assert!(
+            dependent_unit_names.contains("@top"),
+            "@top is a dependent unit."
+        );
+        assert!(
+            dependent_unit_names.contains("@second"),
+            "@second is a dependent unit."
+        );
+        assert!(
+            dependent_unit_names.contains("@third"),
+            "@third is a dependent unit."
+        );
+        assert!(
+            dependent_unit_names.contains("@fourth"),
+            "@fourth is a dependent unit."
+        );
+        assert!(
+            !dependent_unit_names.contains("%top.or"),
+            "%top.or not is a dependent unit."
+        );
     }
 }
