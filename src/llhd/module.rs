@@ -11,7 +11,6 @@ use super::enode::LLHDENode;
 use super::{LLHDInst, LLHDNet};
 
 type NameUnitMap = HashMap<String, UnitId>;
-type InstNameMap = HashMap<LLHDInst, String>;
 type NameInstMap = HashMap<(UnitId, String), Inst>;
 
 /// `NewType` Wrapper for an LLHD Module
@@ -19,7 +18,6 @@ pub struct LModule {
     module: Module,
     name_unit_map: NameUnitMap,
     name_inst_map: NameInstMap,
-    inst_name_map: InstNameMap,
 }
 
 impl LModule {
@@ -43,7 +41,6 @@ impl LModule {
             module: init.module,
             name_unit_map,
             name_inst_map,
-            inst_name_map: HashMap::default(),
         }
     }
 
@@ -229,7 +226,6 @@ impl Default for LModule {
             module: Module::new(),
             name_unit_map: HashMap::new(),
             name_inst_map: HashMap::new(),
-            inst_name_map: HashMap::new(),
         }
     }
 }
