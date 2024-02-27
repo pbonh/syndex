@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{HashSet, HashMap};
 use std::fmt;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 
-use llhd::ir::{Inst, InstData, Module, UnitId, Value, ValueData};
+use llhd::ir::{Inst, InstData, Module, UnitId, Value, ValueData,ExtUnit};
 use llhd::table::TableKey;
 
 use super::common::{filter_instantiations, filter_nullary, get_inst_name, get_unit_name};
@@ -157,6 +157,30 @@ impl LModule {
         unit.all_insts()
             .filter(move |inst| filter_instantiations(&unit, *inst))
             .map(move |inst| (unit.id(), inst))
+    }
+
+    pub(crate) fn iter_unit_dependencies(
+        &self,
+        unit_id: UnitId,
+    ) -> impl Iterator<Item = UnitId> + '_ {
+        let scope_unit = self.module.unit(unit_id);
+        let mut seen_units = HashSet::new();
+        scope_unit.all_insts()
+            .filter(move |inst| filter_instantiations(&scope_unit, *inst))
+            .map(move |inst| {
+                let inst_data = &scope_unit[inst];
+                if let InstData::Call { unit, .. } = inst_data {
+                    *unit
+                } else {
+                    ExtUnit::new(usize::max_value())
+                }
+            })
+            .map(move |ext_unit_id| {
+                let unit_name = scope_unit[ext_unit_id].to_owned().name.to_string();
+                let dependency_unit_id = self.get_unit_id(&unit_name);
+                dependency_unit_id
+            })
+            .filter(move |dependency_unit_id| seen_units.insert(*dependency_unit_id))
     }
 }
 
@@ -656,9 +680,111 @@ mod tests {
         );
         let inst_count = llhd_module.iter_inst(top_unit.id()).count();
         assert_eq!(
-            4,
-            inst_count,
+            4, inst_count,
             "There should be 4 Instantiation instructions present in Unit."
         );
+    }
+
+    #[test]
+    fn llhd_module_unit_get_dependencies() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %and1, %epsilon
+                wait %init for %epsilon
+            }
+
+            proc %top.or (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %or1 = or i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %or1, %epsilon
+                wait %init for %epsilon
+            }
+
+            proc %top.or_unused (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %or1 = or i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %or1, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @top () -> () {
+                %top_input11 = const i1 0
+                %in11 = sig i1 %top_input11
+                %top_input21 = const i1 1
+                %in21 = sig i1 %top_input21
+                %top_out11 = const i1 0
+                %out11 = sig i1 %top_out11
+
+                %top_input12 = const i1 0
+                %in12 = sig i1 %top_input12
+                %top_input22 = const i1 1
+                %in22 = sig i1 %top_input22
+                %top_out12 = const i1 0
+                %out12 = sig i1 %top_out12
+
+                %top_input13 = const i1 0
+                %in13 = sig i1 %top_input13
+                %top_input23 = const i1 1
+                %in23 = sig i1 %top_input23
+                %top_out13 = const i1 0
+                %out13 = sig i1 %top_out13
+
+                %top_input14 = const i1 0
+                %in14 = sig i1 %top_input14
+                %top_input24 = const i1 1
+                %in24 = sig i1 %top_input24
+                %top_out14 = const i1 0
+                %out14 = sig i1 %top_out14
+
+                %top_input15 = const i1 0
+                %in15 = sig i1 %top_input15
+                %top_input25 = const i1 1
+                %in25 = sig i1 %top_input25
+                %top_out15 = const i1 0
+                %out15 = sig i1 %top_out15
+
+                inst %top.and (i1$ %in11, i1$ %in21) -> (i1$ %out11)
+                inst %top.and (i1$ %in12, i1$ %in22) -> (i1$ %out12)
+                inst %top.and (i1$ %in13, i1$ %in23) -> (i1$ %out13)
+                inst %top.and (i1$ %in14, i1$ %in24) -> (i1$ %out14)
+                inst %top.or (i1$ %in15, i1$ %in25) -> (i1$ %out15)
+            }
+        "};
+
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let llhd_module = LModule::from(module);
+        let units: Vec<_> = llhd_module.units().collect();
+        let top_unit = units[3];
+        assert_eq!(
+            "@top",
+            get_unit_name(&top_unit),
+            "Unit should be 'top' unit."
+        );
+        let unit_dependencies: Vec<_> = llhd_module
+            .iter_unit_dependencies(top_unit.id())
+            .map(|unit_id| llhd_module.module.unit(unit_id))
+            .collect();
+        assert_eq!(
+            2,
+            unit_dependencies.len(),
+            "There are 2 Unit dependencies for @top: %top.and and %top.or"
+        );
+        let unit_dependency_names: HashSet<_> = unit_dependencies
+            .into_iter()
+            .map(|unit| get_unit_name(&unit)).collect();
+        assert!(unit_dependency_names.contains("%top.and"), "%top.and is a dependent_unit.");
+        assert!(unit_dependency_names.contains("%top.or"), "%top.or is a dependent_unit.");
+        assert!(!unit_dependency_names.contains("%top.or_unused"), "%top.or_unused is a dependent_unit.");
     }
 }
