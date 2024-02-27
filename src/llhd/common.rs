@@ -8,6 +8,11 @@ pub(crate) fn filter_nullary(unit: &Unit, inst_id: Inst) -> bool {
     !matches!(inst_data, InstData::Nullary { .. })
 }
 
+pub(crate) fn filter_instantiations(unit: &Unit, inst_id: Inst) -> bool {
+    let inst_data = &unit[inst_id];
+    matches!(inst_data, InstData::Call { .. })
+}
+
 pub(crate) fn get_unit_name(scope_unit: &Unit) -> String {
     scope_unit.name().to_string()
 }
@@ -271,6 +276,58 @@ mod tests {
         assert_eq!(
             "@top.%top.and.i7", and_inst_name,
             "And instantiation name does not match."
+        );
+    }
+
+    #[test]
+    fn llhd_get_instantiation_insts() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %and1, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @top () -> () {
+                %top_input1 = const i1 0
+                %in1 = sig i1 %top_input1
+                %top_input2 = const i1 1
+                %in2 = sig i1 %top_input2
+                %top_out1 = const i1 0
+                %out1 = sig i1 %top_out1
+                inst %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1)
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let top_unit = module
+            .units()
+            .map(|module_unit| {
+                let unit_id = module_unit.id();
+                let unit_name = module_unit.name().to_string();
+                (module_unit, unit_id, unit_name)
+            })
+            .filter(|(_, _, unit_name)| unit_name == "@top")
+            .map(|(module_unit, _, _)| module_unit)
+            .collect::<Vec<Unit>>()[0];
+        assert_eq!("@top", get_unit_name(&top_unit));
+        let unit_insts: Vec<_> = top_unit
+            .all_insts()
+            .filter(|inst| filter_instantiations(&top_unit, *inst))
+            .collect();
+        assert_eq!(
+            1,
+            unit_insts.len(),
+            "There should be 1 Call/Instantiation Instruction present in Unit."
+        );
+        let instantiation_inst = unit_insts[0];
+        let instantiation_inst_name = get_inst_name(&module, &top_unit, instantiation_inst);
+        assert_eq!(
+            "@top.%top.and.i7", instantiation_inst_name,
+            "Instantiation Inst name should match."
         );
     }
 }

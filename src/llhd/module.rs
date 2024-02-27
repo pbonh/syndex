@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use llhd::ir::{Inst, InstData, Module, UnitId, Value, ValueData};
 use llhd::table::TableKey;
 
-use super::common::{filter_nullary, get_inst_name, get_unit_name};
+use super::common::{filter_instantiations, filter_nullary, get_inst_name, get_unit_name};
 use super::enode::LLHDENode;
 use super::{LLHDInst, LLHDNet};
 
@@ -150,6 +150,13 @@ impl LModule {
                     )
                 }),
         )
+    }
+
+    pub(crate) fn iter_inst(&self, unit_id: UnitId) -> impl Iterator<Item = LLHDInst> + '_ {
+        let unit = self.module.unit(unit_id);
+        unit.all_insts()
+            .filter(move |inst| filter_instantiations(&unit, *inst))
+            .map(move |inst| (unit.id(), inst))
     }
 }
 
@@ -383,7 +390,10 @@ mod tests {
             .collect::<Vec<(UnitId, Inst, ExtUnit)>>();
         let (and_inst_parent_unit_id, and_inst_id) = (inst_info[0].0, inst_info[0].1);
         let and_inst_name = llhd_module.get_inst_name((and_inst_parent_unit_id, and_inst_id));
-        assert_eq!("@top.%top.and.i7", and_inst_name, "Inst name does not match");
+        assert_eq!(
+            "@top.%top.and.i7", and_inst_name,
+            "Inst name does not match"
+        );
     }
 
     #[test]
@@ -584,6 +594,71 @@ mod tests {
             initial_parent_unit_name,
             llhd_module.get_unit_name(initial_unit_id),
             "Template Unit name should match."
+        );
+    }
+
+    #[test]
+    fn llhd_module_iter_unit_insts() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %and1, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @top () -> () {
+                %top_input11 = const i1 0
+                %in11 = sig i1 %top_input11
+                %top_input21 = const i1 1
+                %in21 = sig i1 %top_input21
+                %top_out11 = const i1 0
+                %out11 = sig i1 %top_out11
+
+                %top_input12 = const i1 0
+                %in12 = sig i1 %top_input12
+                %top_input22 = const i1 1
+                %in22 = sig i1 %top_input22
+                %top_out12 = const i1 0
+                %out12 = sig i1 %top_out12
+
+                %top_input13 = const i1 0
+                %in13 = sig i1 %top_input13
+                %top_input23 = const i1 1
+                %in23 = sig i1 %top_input23
+                %top_out13 = const i1 0
+                %out13 = sig i1 %top_out13
+
+                %top_input14 = const i1 0
+                %in14 = sig i1 %top_input14
+                %top_input24 = const i1 1
+                %in24 = sig i1 %top_input24
+                %top_out14 = const i1 0
+                %out14 = sig i1 %top_out14
+
+                inst %top.and (i1$ %in11, i1$ %in21) -> (i1$ %out11)
+                inst %top.and (i1$ %in12, i1$ %in22) -> (i1$ %out12)
+                inst %top.and (i1$ %in13, i1$ %in23) -> (i1$ %out13)
+                inst %top.and (i1$ %in14, i1$ %in24) -> (i1$ %out14)
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let llhd_module = LModule::from(module);
+        let units: Vec<_> = llhd_module.units().collect();
+        let top_unit = units[1];
+        assert_eq!(
+            "@top",
+            get_unit_name(&top_unit),
+            "Unit should be 'top' unit."
+        );
+        let inst_count = llhd_module.iter_inst(top_unit.id()).count();
+        assert_eq!(
+            4,
+            inst_count,
+            "There should be 4 Instantiation instructions present in Unit."
         );
     }
 }

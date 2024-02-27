@@ -119,7 +119,7 @@ impl Syndex {
     }
 
     #[must_use]
-    pub fn get<T: Component>(&self, net: LLHDNet) -> Option<&T> {
+    pub fn get_net<T: Component>(&self, net: LLHDNet) -> Option<&T> {
         let net_entity = self.net_map[&net];
         self.world.get::<T>(net_entity)
     }
@@ -240,7 +240,7 @@ mod tests {
                             let llhd_net = (unit_id, inst_value);
                             index.add::<TimingNode>(llhd_net);
                             // index.set::<TimingNode>(llhd_net, TimingNode::default());
-                            let inst_component = index.get::<TimingNode>(llhd_net);
+                            let inst_component = index.get_net::<TimingNode>(llhd_net);
                             match inst_component {
                                 None => panic!("No TimingNode Components Available for Entity."),
                                 Some(_inst_component_data) => (),
