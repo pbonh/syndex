@@ -926,7 +926,7 @@ mod tests {
         assert_eq!(
             4,
             unit_dependencies.len(),
-            "There are 4 Units dependent on %top.and: @top, @second, @third, @fourth, "
+            "There are 4 Units dependent on %top.and: @top, @second, @third, @fourth."
         );
         let dependent_unit_names: HashSet<_> = unit_dependencies
             .into_iter()
@@ -951,6 +951,22 @@ mod tests {
         assert!(
             !dependent_unit_names.contains("%top.or"),
             "%top.or not is a dependent unit."
+        );
+
+        let or_unit = units[1];
+        assert_eq!(
+            "%top.or",
+            get_unit_name(&or_unit),
+            "Unit should be 'or' unit."
+        );
+        let or_unit_dependencies: Vec<_> = llhd_module
+            .iter_dependent_units(or_unit.id())
+            .map(|unit_id| llhd_module.module.unit(unit_id))
+            .collect();
+        assert_eq!(
+            0,
+            or_unit_dependencies.len(),
+            "There are 0 Units dependent on %top.or."
         );
     }
 }
