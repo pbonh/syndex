@@ -191,9 +191,7 @@ impl LModule {
             .flat_map(|unit| {
                 let inner_unit_id = unit.id();
                 unit.extern_units()
-                    .map(move |(_, ext_unit_data)| {
-                        (inner_unit_id, ext_unit_data)
-                    })
+                    .map(move |(_, ext_unit_data)| (inner_unit_id, ext_unit_data))
             })
             .map(|(inner_unit_id, ext_unit_data)| {
                 let ext_unit_id = self.get_unit_id(&ext_unit_data.name.to_string());
@@ -202,6 +200,44 @@ impl LModule {
             .filter(move |(_, ext_unit_id)| unit_id == *ext_unit_id)
             .map(|(inner_unit_id, _)| inner_unit_id)
             .filter(move |inner_unit_id| dependent_units.insert(*inner_unit_id))
+    }
+
+    pub(crate) fn iter_unit_references(
+        &self,
+        unit_id: UnitId,
+    ) -> impl Iterator<Item = LLHDInst> + '_ {
+        self.module
+            .units()
+            .flat_map(|unit| {
+                let inner_unit_id = unit.id();
+                unit.all_insts()
+                    .map(move |inst| (unit, inner_unit_id, inst))
+            })
+            .filter_map(|(unit, inner_unit_id, inst)| {
+                match unit[inst].get_ext_unit() {
+                    Some(_) => Some((inner_unit_id, inst)),
+                    None => None,
+                }
+            })
+            .filter(move |(inner_unit_id, inst)| {
+                let ext_unit_id = self
+                    .get_unit_id_from_inst((*inner_unit_id, *inst))
+                    .expect("Inst should have a corresponding Def.");
+                unit_id == ext_unit_id
+            })
+        // self.module
+        //     .units()
+        //     .flat_map(|unit| {
+        //         let inner_unit_id = unit.id();
+        //         unit.extern_units()
+        //             .map(move |(_, ext_unit_data)| (inner_unit_id, ext_unit_data))
+        //     })
+        //     .map(|(inner_unit_id, ext_unit_data)| {
+        //         let ext_unit_id = self.get_unit_id(&ext_unit_data.name.to_string());
+        //         (inner_unit_id, ext_unit_id)
+        //     })
+        //     .filter(move |(_, ext_unit_id)| unit_id == *ext_unit_id)
+        //     .map(|(inner_unit_id, ext_unit_id)| (inner_unit_id, ext_unit_id))
     }
 }
 
@@ -967,6 +1003,141 @@ mod tests {
             0,
             or_unit_dependencies.len(),
             "There are 0 Units dependent on %top.or."
+        );
+    }
+
+    #[test]
+    fn llhd_module_unit_get_references() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %and1, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @second () -> () {
+                %top_input11 = const i1 0
+                %in11 = sig i1 %top_input11
+                %top_input21 = const i1 1
+                %in21 = sig i1 %top_input21
+                %top_out11 = const i1 0
+                %out11 = sig i1 %top_out11
+
+                %top_input12 = const i1 0
+                %in12 = sig i1 %top_input12
+                %top_input22 = const i1 1
+                %in22 = sig i1 %top_input22
+                %top_out12 = const i1 0
+                %out12 = sig i1 %top_out12
+
+                inst %top.and (i1$ %in11, i1$ %in21) -> (i1$ %out11)
+                inst %top.and (i1$ %in12, i1$ %in22) -> (i1$ %out12)
+            }
+
+            entity @third () -> () {
+                %top_input11 = const i1 0
+                %in11 = sig i1 %top_input11
+                %top_input21 = const i1 1
+                %in21 = sig i1 %top_input21
+                %top_out11 = const i1 0
+                %out11 = sig i1 %top_out11
+
+                inst %top.and (i1$ %in11, i1$ %in21) -> (i1$ %out11)
+            }
+
+            entity @fourth () -> () {
+                %top_input11 = const i1 0
+                %in11 = sig i1 %top_input11
+                %top_input21 = const i1 1
+                %in21 = sig i1 %top_input21
+                %top_out11 = const i1 0
+                %out11 = sig i1 %top_out11
+
+                %top_input12 = const i1 0
+                %in12 = sig i1 %top_input12
+                %top_input22 = const i1 1
+                %in22 = sig i1 %top_input22
+                %top_out12 = const i1 0
+                %out12 = sig i1 %top_out12
+
+                inst %top.and (i1$ %in11, i1$ %in21) -> (i1$ %out11)
+                inst %top.and (i1$ %in12, i1$ %in22) -> (i1$ %out12)
+            }
+
+            entity @top () -> () {
+                %top_input11 = const i1 0
+                %in11 = sig i1 %top_input11
+                %top_input21 = const i1 1
+                %in21 = sig i1 %top_input21
+                %top_out11 = const i1 0
+                %out11 = sig i1 %top_out11
+
+                %top_input12 = const i1 0
+                %in12 = sig i1 %top_input12
+                %top_input22 = const i1 1
+                %in22 = sig i1 %top_input22
+                %top_out12 = const i1 0
+                %out12 = sig i1 %top_out12
+
+                inst %top.and (i1$ %in11, i1$ %in21) -> (i1$ %out11)
+                inst %top.and (i1$ %in12, i1$ %in22) -> (i1$ %out12)
+            }
+        "};
+
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let llhd_module = LModule::from(module);
+        let units: Vec<_> = llhd_module.units().collect();
+        let and_unit = units[0];
+        assert_eq!(
+            "%top.and",
+            get_unit_name(&and_unit),
+            "Unit should be 'and' unit."
+        );
+        let unit_references: Vec<_> = llhd_module
+            .iter_unit_references(and_unit.id())
+            .map(|(unit_id, inst)| (llhd_module.module.unit(unit_id), inst))
+            .collect();
+        assert_eq!(
+            7,
+            unit_references.len(),
+            "There are 7 references to %top.and: @top.%top.and, @second.%top.and, \
+             @third.%top.and, @fourth.%top.and."
+        );
+        let unit_reference_names: HashSet<_> = unit_references
+            .into_iter()
+            .map(|(unit, inst)| llhd_module.get_inst_name((unit.id(), inst)))
+            .collect();
+        assert!(
+            unit_reference_names.contains("@top.%top.and.i13"),
+            "@top has 2 references to %top.and."
+        );
+        assert!(
+            unit_reference_names.contains("@top.%top.and.i14"),
+            "@top has 2 references to %top.and."
+        );
+        assert!(
+            unit_reference_names.contains("@second.%top.and.i13"),
+            "@second has 2 references to %top.and."
+        );
+        assert!(
+            unit_reference_names.contains("@second.%top.and.i14"),
+            "@second has 2 references to %top.and."
+        );
+        assert!(
+            unit_reference_names.contains("@fourth.%top.and.i13"),
+            "@fourth has 2 references to %top.and."
+        );
+        assert!(
+            unit_reference_names.contains("@fourth.%top.and.i14"),
+            "@fourth has 2 references to %top.and."
+        );
+        assert!(
+            unit_reference_names.contains("@third.%top.and.i7"),
+            "@third has a reference to %top.and."
         );
     }
 }
