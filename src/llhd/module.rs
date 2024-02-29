@@ -3,7 +3,7 @@ use std::fmt;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 
-use llhd::ir::{ExtUnit, Inst, InstData, Module, UnitId, Value, ValueData};
+use llhd::ir::{Inst, InstData, Module, UnitId, Value, ValueData};
 use llhd::table::TableKey;
 
 use super::common::{filter_instantiations, filter_nullary, get_inst_name, get_unit_name};
@@ -165,12 +165,12 @@ impl LModule {
         scope_unit
             .all_insts()
             .filter(move |inst| filter_instantiations(&scope_unit, *inst))
-            .map(move |inst| {
+            .filter_map(move |inst| {
                 let inst_data = &scope_unit[inst];
                 if let InstData::Call { unit, .. } = inst_data {
-                    *unit
+                    Some(*unit)
                 } else {
-                    ExtUnit::new(usize::max_value())
+                    None
                 }
             })
             .map(move |ext_unit_id| {
@@ -202,6 +202,21 @@ impl LModule {
             .filter(move |inner_unit_id| dependent_units.insert(*inner_unit_id))
     }
 
+    pub(crate) fn iter_unit_instantiations(
+        &self,
+        unit_id: UnitId,
+    ) -> impl Iterator<Item = LLHDInst> + '_ {
+        let unit = self.module.unit(unit_id);
+        unit.all_insts()
+            .map(move |inst| (unit, unit_id, inst))
+            .filter_map(
+                move |(unit, inner_unit_id, inst)| match unit[inst].get_ext_unit() {
+                    Some(_) => Some((inner_unit_id, inst)),
+                    None => None,
+                },
+            )
+    }
+
     pub(crate) fn iter_unit_references(
         &self,
         unit_id: UnitId,
@@ -210,14 +225,7 @@ impl LModule {
             .units()
             .flat_map(|unit| {
                 let inner_unit_id = unit.id();
-                unit.all_insts()
-                    .map(move |inst| (unit, inner_unit_id, inst))
-            })
-            .filter_map(|(unit, inner_unit_id, inst)| {
-                match unit[inst].get_ext_unit() {
-                    Some(_) => Some((inner_unit_id, inst)),
-                    None => None,
-                }
+                self.iter_unit_instantiations(inner_unit_id)
             })
             .filter(move |(inner_unit_id, inst)| {
                 let ext_unit_id = self
@@ -225,6 +233,26 @@ impl LModule {
                     .expect("Inst should have a corresponding Def.");
                 unit_id == ext_unit_id
             })
+        // self.module
+        //     .units()
+        //     .flat_map(|unit| {
+        //         let inner_unit_id = unit.id();
+        //         unit.all_insts()
+        //             .map(move |inst| (unit, inner_unit_id, inst))
+        //     })
+        //     .filter_map(
+        //         |(unit, inner_unit_id, inst)| match unit[inst].get_ext_unit() {
+        //             Some(_) => Some((inner_unit_id, inst)),
+        //             None => None,
+        //         },
+        //     )
+        //     .filter(move |(inner_unit_id, inst)| {
+        //         let ext_unit_id = self
+        //             .get_unit_id_from_inst((*inner_unit_id, *inst))
+        //             .expect("Inst should have a corresponding Def.");
+        //         unit_id == ext_unit_id
+        //     })
+        //
         // self.module
         //     .units()
         //     .flat_map(|unit| {
