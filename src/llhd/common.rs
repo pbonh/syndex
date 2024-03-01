@@ -14,12 +14,12 @@ pub(crate) fn filter_instantiations(unit: &Unit, inst_id: Inst) -> bool {
 }
 
 pub(crate) fn get_unit_name(scope_unit: &Unit) -> String {
-    scope_unit.name().to_string()
-    // scope_unit
-    //     .name()
-    //     .get_name()
-    //     .expect("UnitName does not resolve to a String.")
-    //     .to_owned()
+    // scope_unit.name().to_string()
+    scope_unit
+        .name()
+        .get_name()
+        .expect("UnitName does not resolve to a String.")
+        .to_owned()
 }
 
 pub(crate) fn get_inst_name(module: &Module, scope_unit: &Unit, inst_id: Inst) -> String {
@@ -235,7 +235,7 @@ mod tests {
         let and_inst = unit.all_insts().next().unwrap();
         let and_inst_name = get_inst_name(&module, &unit, and_inst);
         assert_eq!(
-            "@ent2.and.v3", and_inst_name,
+            "ent2.and.v3", and_inst_name,
             "And instruction name does not match."
         );
     }
@@ -294,7 +294,7 @@ mod tests {
         let and_inst = inst_info[0].1;
         let and_inst_name = get_inst_name(&module, &top_unit, and_inst);
         assert_eq!(
-            "@top.%top.and.i7", and_inst_name,
+            "top.top.and.i7", and_inst_name,
             "And instantiation name does not match."
         );
     }
@@ -333,7 +333,7 @@ mod tests {
             .filter(|(_, _, unit_name)| unit_name == "@top")
             .map(|(module_unit, _, _)| module_unit)
             .collect::<Vec<Unit>>()[0];
-        assert_eq!("@top", get_unit_name(&top_unit));
+        assert_eq!("top", get_unit_name(&top_unit));
         let unit_insts: Vec<_> = top_unit
             .all_insts()
             .filter(|inst| filter_instantiations(&top_unit, *inst))
@@ -346,7 +346,7 @@ mod tests {
         let instantiation_inst = unit_insts[0];
         let instantiation_inst_name = get_inst_name(&module, &top_unit, instantiation_inst);
         assert_eq!(
-            "@top.%top.and.i7", instantiation_inst_name,
+            "top.top.and.i7", instantiation_inst_name,
             "Instantiation Inst name should match."
         );
     }

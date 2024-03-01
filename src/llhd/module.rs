@@ -195,7 +195,11 @@ impl LModule {
                 }
             })
             .map(move |ext_unit_id| {
-                let unit_name = scope_unit[ext_unit_id].to_owned().name.to_string();
+                let ext_unit_data = scope_unit[ext_unit_id].to_owned();
+                let unit_name = ext_unit_data
+                    .name
+                    .get_name()
+                    .expect("ExtUnit's UnitName does not resolve to String.");
                 let dependency_unit_id = self.get_unit_id(&unit_name);
                 dependency_unit_id
             })
@@ -502,7 +506,7 @@ mod tests {
         let llhd_module = LModule::from(module);
         let unit_id = llhd_module.module().units().next().unwrap().id();
         let unit_name = llhd_module.get_unit_name(unit_id);
-        assert_eq!("@ent2", unit_name, "Unit name does not match stored name.");
+        assert_eq!("ent2", unit_name, "Unit name does not match stored name.");
     }
 
     #[test]
@@ -515,7 +519,7 @@ mod tests {
         "};
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
-        let unit_name = "@ent2".to_owned();
+        let unit_name = "ent2".to_owned();
         let unit_id = llhd_module.get_unit_id(&unit_name);
         assert_eq!(
             UnitId::new(0),
@@ -537,7 +541,7 @@ mod tests {
         let unit_id = llhd_module.module().units().next().unwrap().id();
         let inst_id = (unit_id, Inst::new(1));
         let inst_name = llhd_module.get_inst_name(inst_id);
-        assert_eq!("@ent2.and.v3", inst_name, "Inst name does not match");
+        assert_eq!("ent2.and.v3", inst_name, "Inst name does not match");
     }
 
     #[test]
@@ -594,10 +598,7 @@ mod tests {
             .collect::<Vec<(UnitId, Inst, ExtUnit)>>();
         let (and_inst_parent_unit_id, and_inst_id) = (inst_info[0].0, inst_info[0].1);
         let and_inst_name = llhd_module.get_inst_name((and_inst_parent_unit_id, and_inst_id));
-        assert_eq!(
-            "@top.%top.and.i7", and_inst_name,
-            "Inst name does not match"
-        );
+        assert_eq!("top.top.and.i7", and_inst_name, "Inst name does not match");
     }
 
     #[test]
@@ -789,8 +790,8 @@ mod tests {
         let initial_unit_id = llhd_module
             .get_unit_id_from_inst((initial_parent_unit_id, initial_inst_id))
             .unwrap();
-        let always_ff_parent_unit_name = "%top.always_ff.227.0".to_owned();
-        let initial_parent_unit_name = "%top.initial.228.0".to_owned();
+        let always_ff_parent_unit_name = "top.always_ff.227.0".to_owned();
+        let initial_parent_unit_name = "top.initial.228.0".to_owned();
         assert_eq!(
             always_ff_parent_unit_name,
             llhd_module.get_unit_name(always_ff_unit_id),
@@ -857,7 +858,7 @@ mod tests {
         let units: Vec<_> = module_binding.units().collect();
         let top_unit = units[1];
         assert_eq!(
-            "@top",
+            "top",
             get_unit_name(&top_unit),
             "Unit should be 'top' unit."
         );
@@ -951,7 +952,7 @@ mod tests {
         let units: Vec<_> = module_binding.units().collect();
         let top_unit = units[3];
         assert_eq!(
-            "@top",
+            "top",
             get_unit_name(&top_unit),
             "Unit should be 'top' unit."
         );
@@ -969,16 +970,16 @@ mod tests {
             .map(|unit| get_unit_name(&unit))
             .collect();
         assert!(
-            unit_dependency_names.contains("%top.and"),
-            "%top.and is a dependent_unit."
+            unit_dependency_names.contains("top.and"),
+            "top.and is a dependent_unit."
         );
         assert!(
-            unit_dependency_names.contains("%top.or"),
-            "%top.or is a dependent_unit."
+            unit_dependency_names.contains("top.or"),
+            "top.or is a dependent_unit."
         );
         assert!(
-            !unit_dependency_names.contains("%top.or_unused"),
-            "%top.or_unused is a dependent_unit."
+            !unit_dependency_names.contains("top.or_unused"),
+            "top.or_unused is a dependent_unit."
         );
     }
 
@@ -1080,7 +1081,7 @@ mod tests {
         let units: Vec<_> = module_binding.units().collect();
         let and_unit = units[0];
         assert_eq!(
-            "%top.and",
+            "top.and",
             get_unit_name(&and_unit),
             "Unit should be 'and' unit."
         );
@@ -1098,29 +1099,29 @@ mod tests {
             .map(|unit| get_unit_name(&unit))
             .collect();
         assert!(
-            dependent_unit_names.contains("@top"),
+            dependent_unit_names.contains("top"),
             "@top is a dependent unit."
         );
         assert!(
-            dependent_unit_names.contains("@second"),
+            dependent_unit_names.contains("second"),
             "@second is a dependent unit."
         );
         assert!(
-            dependent_unit_names.contains("@third"),
+            dependent_unit_names.contains("third"),
             "@third is a dependent unit."
         );
         assert!(
-            dependent_unit_names.contains("@fourth"),
+            dependent_unit_names.contains("fourth"),
             "@fourth is a dependent unit."
         );
         assert!(
-            !dependent_unit_names.contains("%top.or"),
+            !dependent_unit_names.contains("top.or"),
             "%top.or not is a dependent unit."
         );
 
         let or_unit = units[1];
         assert_eq!(
-            "%top.or",
+            "top.or",
             get_unit_name(&or_unit),
             "Unit should be 'or' unit."
         );
@@ -1224,7 +1225,7 @@ mod tests {
         let units: Vec<_> = module_binding.units().collect();
         let and_unit = units[0];
         assert_eq!(
-            "%top.and",
+            "top.and",
             get_unit_name(&and_unit),
             "Unit should be 'and' unit."
         );
@@ -1243,31 +1244,31 @@ mod tests {
             .map(|(unit, inst)| llhd_module.get_inst_name((unit.id(), inst)))
             .collect();
         assert!(
-            unit_reference_names.contains("@top.%top.and.i13"),
+            unit_reference_names.contains("top.top.and.i13"),
             "@top has 2 references to %top.and."
         );
         assert!(
-            unit_reference_names.contains("@top.%top.and.i14"),
+            unit_reference_names.contains("top.top.and.i14"),
             "@top has 2 references to %top.and."
         );
         assert!(
-            unit_reference_names.contains("@second.%top.and.i13"),
+            unit_reference_names.contains("second.top.and.i13"),
             "@second has 2 references to %top.and."
         );
         assert!(
-            unit_reference_names.contains("@second.%top.and.i14"),
+            unit_reference_names.contains("second.top.and.i14"),
             "@second has 2 references to %top.and."
         );
         assert!(
-            unit_reference_names.contains("@fourth.%top.and.i13"),
+            unit_reference_names.contains("fourth.top.and.i13"),
             "@fourth has 2 references to %top.and."
         );
         assert!(
-            unit_reference_names.contains("@fourth.%top.and.i14"),
+            unit_reference_names.contains("fourth.top.and.i14"),
             "@fourth has 2 references to %top.and."
         );
         assert!(
-            unit_reference_names.contains("@third.%top.and.i7"),
+            unit_reference_names.contains("third.top.and.i7"),
             "@third has a reference to %top.and."
         );
     }
@@ -1368,7 +1369,7 @@ mod tests {
         let _instantiation_inst = llhd_module.add_instantiation(top_unit_id, and_unit_id, None);
         let and_unit = llhd_module.module().units().next().unwrap();
         assert_eq!(
-            "%top.and",
+            "top.and",
             get_unit_name(&and_unit),
             "Unit should be 'and' unit."
         );
@@ -1476,14 +1477,11 @@ mod tests {
         let mut llhd_module = LModule::from(module);
         let and_unit_id = UnitId::new(0);
         let and_unit_name = llhd_module.get_unit_name(and_unit_id);
-        assert_eq!(
-            "%top.and", and_unit_name,
-            "Unit should be named '%top.and'."
-        );
+        assert_eq!("top.and", and_unit_name, "Unit should be named '%top.and'.");
         llhd_module.rename_unit(and_unit_id, "ent.and");
         let and_unit_name_updated = llhd_module.get_unit_name(and_unit_id);
         assert_eq!(
-            "%ent.and", and_unit_name_updated,
+            "ent.and", and_unit_name_updated,
             "Unit should be named '%ent.and'."
         );
     }
@@ -1517,13 +1515,10 @@ mod tests {
         let and_unit_id = UnitId::new(0);
         let and_inst_id = Inst::new(7);
         let and_unit_name = llhd_module.get_unit_name(and_unit_id);
-        assert_eq!(
-            "%top.and", and_unit_name,
-            "Unit should be named '%top.and'."
-        );
+        assert_eq!("top.and", and_unit_name, "Unit should be named '%top.and'.");
         let and_inst_name = llhd_module.get_inst_name((top_unit_id, and_inst_id));
         assert_eq!(
-            "@top.%top.and.i7", and_inst_name,
+            "top.top.and.i7", and_inst_name,
             "Inst should be named '%top.and'."
         );
         llhd_module.rename_inst((top_unit_id, and_inst_id), "ent.and");
