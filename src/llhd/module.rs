@@ -331,9 +331,10 @@ impl LModule {
         let unit_id = inst.0;
         let inst_id = inst.1;
         let inst_name = self.get_inst_name(inst);
-        self.name_inst_map.remove(&(unit_id, inst_name));
-        let mut unit = self.module.unit_mut(unit_id);
-        unit.delete_inst(inst_id);
+        if let Some(_) = self.name_inst_map.remove(&(unit_id, inst_name)) {
+            let mut unit = self.module.unit_mut(unit_id);
+            unit.delete_inst(inst_id);
+        }
     }
 
     pub(crate) fn rename_unit(&mut self, unit_id: UnitId, name: &str) {
@@ -358,8 +359,9 @@ impl LModule {
         let inst_id = inst.1;
         let old_inst_name = self.get_inst_name(inst);
         let new_inst_name = name.to_owned();
-        self.name_inst_map.remove(&(unit_id, old_inst_name));
-        self.name_inst_map.insert((unit_id, new_inst_name), inst_id);
+        if let Some(_) = self.name_inst_map.remove(&(unit_id, old_inst_name)) {
+            self.name_inst_map.insert((unit_id, new_inst_name), inst_id);
+        }
     }
 
     pub fn declare(&mut self, name: UnitName, sig: Signature) -> DeclId {
@@ -1513,7 +1515,7 @@ mod tests {
         let mut llhd_module = LModule::from(module);
         let top_unit_id = UnitId::new(1);
         let and_unit_id = UnitId::new(0);
-        let and_inst_id = Inst::new(6);
+        let and_inst_id = Inst::new(7);
         let and_unit_name = llhd_module.get_unit_name(and_unit_id);
         assert_eq!(
             "%top.and", and_unit_name,
@@ -1521,7 +1523,7 @@ mod tests {
         );
         let and_inst_name = llhd_module.get_inst_name((top_unit_id, and_inst_id));
         assert_eq!(
-            "@top.sig.v5", and_inst_name,
+            "@top.%top.and.i7", and_inst_name,
             "Inst should be named '%top.and'."
         );
         llhd_module.rename_inst((top_unit_id, and_inst_id), "ent.and");
