@@ -31,13 +31,20 @@ impl LModule {
         };
         let mut name_inst_map = NameInstMap::default();
         let mut name_unit_map = NameUnitMap::default();
-        init.module.units().for_each(|unit| {
-            let unit_id = unit.id();
-            let unit_name = get_unit_name(&unit);
+        init.module.units().for_each(|scoped_unit| {
+            let unit_id = scoped_unit.id();
+            let unit_name = get_unit_name(&scoped_unit);
             name_unit_map.insert(unit_name, unit_id);
-            init.all_insts(unit_id).into_iter().for_each(|inst| {
-                let net_name = get_inst_name(&init.module, &unit, inst);
-                name_inst_map.insert((unit_id, net_name), inst);
+            init.all_insts(unit_id).into_iter()
+                .filter_map(|inst| {
+                    match &scoped_unit[inst] {
+                        InstData::Call { .. } => Some(inst),
+                        _ => None,
+                    }
+                })
+                .for_each(|inst| {
+                    let net_name = get_inst_name(&init.module, &scoped_unit, inst);
+                    name_inst_map.insert((unit_id, net_name), inst);
             });
         });
         Self {
@@ -49,6 +56,10 @@ impl LModule {
 
     pub(crate) fn unit_names(&self) -> usize {
         self.name_unit_map.len()
+    }
+
+    pub(crate) fn inst_names(&self) -> usize {
+        self.name_inst_map.len()
     }
 
     pub(crate) fn module(&self) -> &Module {
@@ -315,9 +326,20 @@ impl LModule {
                 .insert((scoped_unit, inst_name.to_owned()), inst_id);
         }
         inst_id
-        // let data = InstData::Call { opcode: Opcode::Inst, unit: template_unit, ins: (), args: () }
-        // unit.build_inst(data, ty)
     }
+
+    pub(crate) fn remove_instantiation(
+        &mut self,
+        inst: LLHDInst,
+    ) {
+        let unit_id = inst.0;
+        let inst_id = inst.1;
+        let inst_name = self.get_inst_name(inst);
+        self.name_inst_map.remove(&(unit_id, inst_name));
+        let mut unit = self.module.unit_mut(unit_id);
+        unit.delete_inst(inst_id);
+    }
+
 
     pub fn declare(&mut self, name: UnitName, sig: Signature) -> DeclId {
         self.module.declare(name, sig)
@@ -556,6 +578,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn llhd_module_get_inst_id() {
         let input = indoc::indoc! {"
             entity @ent2 (i1 %in1, i1 %in2, i1 %in3) -> () {
@@ -1339,6 +1362,45 @@ mod tests {
             1,
             unit_references.len(),
             "There is 1 reference to %top.and: @top.%top.and."
+        );
+    }
+
+    #[test]
+    fn llhd_module_remove_instantiation() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %and1, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @top () -> () {
+                %top_input1 = const i1 0
+                %in1 = sig i1 %top_input1
+                %top_input2 = const i1 1
+                %in2 = sig i1 %top_input2
+                %top_out1 = const i1 0
+                %out1 = sig i1 %top_out1
+                inst %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1)
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let mut llhd_module = LModule::from(module);
+        let top_unit_id = UnitId::new(1);
+        assert_eq!(
+            1,
+            llhd_module.inst_names(),
+            "There should be 1 Instantiation Inst's present in Unit."
+        );
+        llhd_module.remove_instantiation((top_unit_id,Inst::new(7)));
+        assert_eq!(
+            0,
+            llhd_module.inst_names(),
+            "There should be 0 Instantiation Inst's present in Unit."
         );
     }
 }
