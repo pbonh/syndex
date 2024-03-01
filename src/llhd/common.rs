@@ -116,7 +116,11 @@ mod tests {
     fn build_unit_name_from_string() {
         let unit_name = build_unit_name("top");
         assert!(unit_name.is_global(), "Unit should have global type.");
-        assert_eq!("top", unit_name.get_name().unwrap(), "Unit name should match.");
+        assert_eq!(
+            "top",
+            unit_name.get_name().unwrap(),
+            "Unit name should match."
+        );
     }
 
     #[test]

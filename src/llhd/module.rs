@@ -1,12 +1,15 @@
 use std::collections::{HashMap, HashSet};
-use rayon::prelude::*;
 use std::fmt;
 use std::fmt::Display;
 
-use llhd::ir::{InstData, ValueData, prelude::*};
+use llhd::ir::prelude::*;
+use llhd::ir::{InstData, ValueData};
 use llhd::table::TableKey;
+use rayon::prelude::*;
 
-use super::common::{filter_instantiations, filter_nullary, get_inst_name, get_unit_name, build_unit_name};
+use super::common::{
+    build_unit_name, filter_instantiations, filter_nullary, get_inst_name, get_unit_name,
+};
 use super::enode::LLHDENode;
 use super::{LLHDInst, LLHDNet};
 
@@ -293,6 +296,29 @@ impl LModule {
         self.name_unit_map.remove(&unit_name);
     }
 
+    pub(crate) fn add_instantiation(
+        &mut self,
+        scoped_unit: UnitId,
+        template_unit: UnitId,
+        name: Option<&str>,
+    ) -> Inst {
+        let unit_name = self.module.unit(template_unit).name().clone();
+        let sig = self.module.unit(template_unit).sig().clone();
+        let mut unit = self.module.unit_mut(scoped_unit);
+        let ext_unit_id = unit.add_extern(unit_name, sig);
+        let inputs: Vec<Value> = vec![];
+        let outputs: Vec<Value> = vec![];
+        let inst_id = unit.ins().inst(ext_unit_id, inputs, outputs);
+        self.module.link();
+        if let Some(inst_name) = name {
+            self.name_inst_map
+                .insert((scoped_unit, inst_name.to_owned()), inst_id);
+        }
+        inst_id
+        // let data = InstData::Call { opcode: Opcode::Inst, unit: template_unit, ins: (), args: () }
+        // unit.build_inst(data, ty)
+    }
+
     pub fn declare(&mut self, name: UnitName, sig: Signature) -> DeclId {
         self.module.declare(name, sig)
     }
@@ -495,7 +521,8 @@ mod tests {
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
         let inst_info = llhd_module
-            .module().units()
+            .module()
+            .units()
             .map(|module_unit| {
                 let unit_id = module_unit.id();
                 let unit_name = module_unit.name().to_string();
@@ -680,7 +707,8 @@ mod tests {
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
         let inst_info = llhd_module
-            .module().units()
+            .module()
+            .units()
             .map(|module_unit| {
                 let unit_id = module_unit.id();
                 let unit_name = module_unit.name().to_string();
@@ -1209,10 +1237,20 @@ mod tests {
         let module = llhd::assembly::parse_module(input).unwrap();
         let mut llhd_module = LModule::from(module);
         let top_unit_id = llhd_module.add_unit("top");
-        assert!(!llhd_module.get_unit_name(UnitId::new(0)).is_empty(), "Unit should be present in UnitNameMap.");
-        assert!(!llhd_module.get_unit_name(UnitId::new(1)).is_empty(), "Unit should be present in UnitNameMap.");
+        assert!(
+            !llhd_module.get_unit_name(UnitId::new(0)).is_empty(),
+            "Unit should be present in UnitNameMap."
+        );
+        assert!(
+            !llhd_module.get_unit_name(UnitId::new(1)).is_empty(),
+            "Unit should be present in UnitNameMap."
+        );
         let top_unit = llhd_module.module().unit(top_unit_id);
-        assert_eq!("@top", top_unit.name().to_string(), "Unit name should match.");
+        assert_eq!(
+            "@top",
+            top_unit.name().to_string(),
+            "Unit name should match."
+        );
     }
 
     #[test]
@@ -1231,10 +1269,76 @@ mod tests {
         let mut llhd_module = LModule::from(module);
         let top_unit_id = UnitId::new(0);
         llhd_module.remove_unit(top_unit_id);
-        assert_eq!(1, llhd_module.unit_names(), "There should be 1 Unit present in Module.");
-        assert_eq!(1, llhd_module.module().units().count(), "There should be 1 Unit present in Module.");
+        assert_eq!(
+            1,
+            llhd_module.unit_names(),
+            "There should be 1 Unit present in Module."
+        );
+        assert_eq!(
+            1,
+            llhd_module.module().units().count(),
+            "There should be 1 Unit present in Module."
+        );
         let ent2_id = UnitId::new(1);
         let ent2_unit = llhd_module.module().unit(ent2_id);
-        assert_eq!("@ent2", ent2_unit.name().to_string(), "@ent2 should be the remaining unit.");
+        assert_eq!(
+            "@ent2",
+            ent2_unit.name().to_string(),
+            "@ent2 should be the remaining unit."
+        );
+    }
+
+    #[test]
+    fn llhd_module_add_instantiation() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %and1, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @top () -> () {
+                %top_input11 = const i1 0
+                %in11 = sig i1 %top_input11
+                %top_input21 = const i1 1
+                %in21 = sig i1 %top_input21
+                %top_out11 = const i1 0
+                %out11 = sig i1 %top_out11
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let mut llhd_module = LModule::from(module);
+        let top_unit_id = UnitId::new(1);
+        let and_unit_id = UnitId::new(0);
+        assert_eq!(
+            0,
+            llhd_module.iter_unit_instantiations(top_unit_id).count(),
+            "There should be no %top.and instantiations yet."
+        );
+        let _instantiation_inst = llhd_module.add_instantiation(top_unit_id, and_unit_id, None);
+        let and_unit = llhd_module.module().units().next().unwrap();
+        assert_eq!(
+            "%top.and",
+            get_unit_name(&and_unit),
+            "Unit should be 'and' unit."
+        );
+        assert_eq!(
+            1,
+            llhd_module.iter_unit_instantiations(top_unit_id).count(),
+            "There is 1 reference to %top.and: @top.%top.and."
+        );
+        let unit_references: Vec<_> = llhd_module
+            .iter_unit_references(and_unit.id())
+            .map(|(unit_id, inst)| (llhd_module.module.unit(unit_id), inst))
+            .collect();
+        assert_eq!(
+            1,
+            unit_references.len(),
+            "There is 1 reference to %top.and: @top.%top.and."
+        );
     }
 }
