@@ -85,7 +85,7 @@ mod tests {
         "};
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
-        let unit_id = llhd_module.units().next().unwrap().id();
+        let unit_id = llhd_module.module().units().next().unwrap().id();
         let args: Vec<LLHDENode> = llhd_module
             .all_args_data(unit_id)
             .into_iter()

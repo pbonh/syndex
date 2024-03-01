@@ -5,7 +5,7 @@
 // use crate::llhd::LLHDInst;
 //
 // impl HierarchyBase for Syndex {
-//     type NameType = String;
+//     type NameType = UnitName;
 //     type CellId = UnitId;
 //     type CellInstId = LLHDInst;
 //

@@ -1,12 +1,12 @@
 use std::collections::{HashMap, HashSet};
+use rayon::prelude::*;
 use std::fmt;
 use std::fmt::Display;
-use std::ops::{Deref, DerefMut};
 
-use llhd::ir::{Inst, InstData, Module, UnitId, Value, ValueData};
+use llhd::ir::{InstData, ValueData, prelude::*};
 use llhd::table::TableKey;
 
-use super::common::{filter_instantiations, filter_nullary, get_inst_name, get_unit_name};
+use super::common::{filter_instantiations, filter_nullary, get_inst_name, get_unit_name, build_unit_name};
 use super::enode::LLHDENode;
 use super::{LLHDInst, LLHDNet};
 
@@ -42,6 +42,14 @@ impl LModule {
             name_unit_map,
             name_inst_map,
         }
+    }
+
+    pub(crate) fn unit_names(&self) -> usize {
+        self.name_unit_map.len()
+    }
+
+    pub(crate) fn module(&self) -> &Module {
+        &self.module
     }
 
     pub(crate) fn get(&self, net: LLHDNet) -> LLHDENode {
@@ -267,38 +275,54 @@ impl LModule {
         //     .filter(move |(_, ext_unit_id)| unit_id == *ext_unit_id)
         //     .map(|(inner_unit_id, ext_unit_id)| (inner_unit_id, ext_unit_id))
     }
-}
 
-impl Deref for LModule {
-    type Target = Module;
-
-    fn deref(&self) -> &Self::Target {
-        &self.module
+    pub(crate) fn add_unit(&mut self, unit_name: &str) -> UnitId {
+        let kind = UnitKind::Entity;
+        let name = build_unit_name(unit_name);
+        let sig = Signature::default();
+        let unit_data = UnitData::new(kind, name, sig);
+        let global_unit_name = unit_data.name.to_owned().to_string();
+        let unit_id = self.module.add_unit(unit_data);
+        self.name_unit_map.insert(global_unit_name, unit_id);
+        unit_id
     }
-}
 
-impl DerefMut for LModule {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.module
+    pub(crate) fn remove_unit(&mut self, unit_id: UnitId) {
+        let unit_name = self.get_unit_name(unit_id);
+        self.module.remove_unit(unit_id);
+        self.name_unit_map.remove(&unit_name);
     }
-}
 
-impl<Module> AsRef<Module> for LModule
-where
-    Module: ?Sized,
-    <LModule as Deref>::Target: AsRef<Module>,
-{
-    fn as_ref(&self) -> &Module {
-        self.deref().as_ref()
+    pub fn declare(&mut self, name: UnitName, sig: Signature) -> DeclId {
+        self.module.declare(name, sig)
     }
-}
 
-impl<Module> AsMut<Module> for LModule
-where
-    <Self as Deref>::Target: AsMut<Module>,
-{
-    fn as_mut(&mut self) -> &mut Module {
-        self.deref_mut().as_mut()
+    pub fn add_decl(&mut self, data: DeclData) -> DeclId {
+        self.module.add_decl(data)
+    }
+
+    pub fn remove_decl(&mut self, decl: DeclId) {
+        self.module.remove_decl(decl);
+    }
+
+    pub fn units_mut<'a>(&'a mut self) -> impl Iterator<Item = UnitBuilder<'a>> + 'a {
+        self.module.units_mut()
+    }
+
+    pub fn par_units_mut<'a>(&'a mut self) -> impl ParallelIterator<Item = UnitBuilder<'a>> + 'a {
+        self.module.par_units_mut()
+    }
+
+    pub fn unit_mut(&mut self, unit: UnitId) -> UnitBuilder {
+        self.module.unit_mut(unit)
+    }
+
+    pub fn link(&mut self) {
+        self.module.link();
+    }
+
+    pub fn set_location_hint(&mut self, mod_unit: UnitId, loc: usize) {
+        self.module.set_location_hint(mod_unit, loc);
     }
 }
 
@@ -358,7 +382,7 @@ mod tests {
         "};
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
-        let unit_id = llhd_module.units().next().unwrap().id();
+        let unit_id = llhd_module.module().units().next().unwrap().id();
         let unit_args = llhd_module.all_args(unit_id);
         let unit_args_data = llhd_module.all_args_data(unit_id);
         let unit_insts = llhd_module.all_insts(unit_id);
@@ -385,7 +409,7 @@ mod tests {
         "};
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
-        let unit_id = llhd_module.units().next().unwrap().id();
+        let unit_id = llhd_module.module().units().next().unwrap().id();
         let net_id = (unit_id, Value::new(3));
         let net_data = llhd_module.get(net_id);
         assert_eq!(
@@ -405,7 +429,7 @@ mod tests {
         "};
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
-        let unit_id = llhd_module.units().next().unwrap().id();
+        let unit_id = llhd_module.module().units().next().unwrap().id();
         let unit_name = llhd_module.get_unit_name(unit_id);
         assert_eq!("@ent2", unit_name, "Unit name does not match stored name.");
     }
@@ -439,7 +463,7 @@ mod tests {
         "};
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
-        let unit_id = llhd_module.units().next().unwrap().id();
+        let unit_id = llhd_module.module().units().next().unwrap().id();
         let inst_id = (unit_id, Inst::new(1));
         let inst_name = llhd_module.get_inst_name(inst_id);
         assert_eq!("@ent2.and.v3", inst_name, "Inst name does not match");
@@ -471,7 +495,7 @@ mod tests {
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
         let inst_info = llhd_module
-            .units()
+            .module().units()
             .map(|module_unit| {
                 let unit_id = module_unit.id();
                 let unit_name = module_unit.name().to_string();
@@ -514,7 +538,7 @@ mod tests {
         "};
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
-        let unit_id = llhd_module.units().next().unwrap().id();
+        let unit_id = llhd_module.module().units().next().unwrap().id();
         let inst_id = llhd_module.get_inst(unit_id, "@ent2.and.v3");
         let and_inst_id = (unit_id, Inst::new(1));
         assert_eq!(and_inst_id.1, inst_id, "Inst Id's do not match");
@@ -656,7 +680,7 @@ mod tests {
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
         let inst_info = llhd_module
-            .units()
+            .module().units()
             .map(|module_unit| {
                 let unit_id = module_unit.id();
                 let unit_name = module_unit.name().to_string();
@@ -755,7 +779,8 @@ mod tests {
         "};
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
-        let units: Vec<_> = llhd_module.units().collect();
+        let module_binding = llhd_module.module();
+        let units: Vec<_> = module_binding.units().collect();
         let top_unit = units[1];
         assert_eq!(
             "@top",
@@ -848,7 +873,8 @@ mod tests {
 
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
-        let units: Vec<_> = llhd_module.units().collect();
+        let module_binding = llhd_module.module();
+        let units: Vec<_> = module_binding.units().collect();
         let top_unit = units[3];
         assert_eq!(
             "@top",
@@ -976,7 +1002,8 @@ mod tests {
 
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
-        let units: Vec<_> = llhd_module.units().collect();
+        let module_binding = llhd_module.module();
+        let units: Vec<_> = module_binding.units().collect();
         let and_unit = units[0];
         assert_eq!(
             "%top.and",
@@ -1118,7 +1145,9 @@ mod tests {
 
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
-        let units: Vec<_> = llhd_module.units().collect();
+
+        let module_binding = llhd_module.module();
+        let units: Vec<_> = module_binding.units().collect();
         let and_unit = units[0];
         assert_eq!(
             "%top.and",
@@ -1167,5 +1196,45 @@ mod tests {
             unit_reference_names.contains("@third.%top.and.i7"),
             "@third has a reference to %top.and."
         );
+    }
+
+    #[test]
+    fn llhd_module_add_unit() {
+        let input = indoc::indoc! {"
+            entity @ent2 (i1 %in1, i1 %in2, i1 %in3) -> () {
+                %and1 = and i1 %in1, %in2
+                %or1 = or i1 %and1, %in3
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let mut llhd_module = LModule::from(module);
+        let top_unit_id = llhd_module.add_unit("top");
+        assert!(!llhd_module.get_unit_name(UnitId::new(0)).is_empty(), "Unit should be present in UnitNameMap.");
+        assert!(!llhd_module.get_unit_name(UnitId::new(1)).is_empty(), "Unit should be present in UnitNameMap.");
+        let top_unit = llhd_module.module().unit(top_unit_id);
+        assert_eq!("@top", top_unit.name().to_string(), "Unit name should match.");
+    }
+
+    #[test]
+    fn llhd_module_remove_unit() {
+        let input = indoc::indoc! {"
+            entity @top (i1 %in1, i1 %in2, i1 %in3) -> () {
+                %and1 = and i1 %in1, %in2
+                %or1 = or i1 %and1, %in3
+            }
+            entity @ent2 (i1 %in1, i1 %in2, i1 %in3) -> () {
+                %and1 = and i1 %in1, %in2
+                %or1 = or i1 %and1, %in3
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let mut llhd_module = LModule::from(module);
+        let top_unit_id = UnitId::new(0);
+        llhd_module.remove_unit(top_unit_id);
+        assert_eq!(1, llhd_module.unit_names(), "There should be 1 Unit present in Module.");
+        assert_eq!(1, llhd_module.module().units().count(), "There should be 1 Unit present in Module.");
+        let ent2_id = UnitId::new(1);
+        let ent2_unit = llhd_module.module().unit(ent2_id);
+        assert_eq!("@ent2", ent2_unit.name().to_string(), "@ent2 should be the remaining unit.");
     }
 }

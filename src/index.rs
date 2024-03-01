@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::ops::Index;
 
 use flecs::{Component, Entity};
-use llhd::ir::{DeclData, DeclId, Signature, UnitBuilder, UnitData, UnitId, UnitName};
+use llhd::ir::{DeclData, DeclId, Signature, UnitBuilder, UnitId, UnitName};
 use rayon::prelude::*;
 
 use crate::llhd::module::LModule;
@@ -38,7 +38,7 @@ impl Syndex {
     }
 
     fn load(&mut self, module: LModule) {
-        module.units().for_each(|unit| {
+        module.module().units().for_each(|unit| {
             let unit_id = unit.id();
             module.all_nets(unit_id).for_each(|llhd_net| {
                 let net_entity = self.world.entity();
@@ -65,10 +65,11 @@ impl Syndex {
     //         .map(|(net, net_entity)| (net, self.world.get::<T>(net_entity).unwrap()))
     // }
 
-    pub fn add_unit(&mut self, data: UnitData) -> UnitId {
-        let unit_component = UnitComponent::from(&data);
+    pub fn add_unit(&mut self, name: &str) -> UnitId {
+        let unit_id = self.module.add_unit(name);
+        let unit_data = self.module.module().unit(unit_id).data();
+        let unit_component = UnitComponent::from(unit_data);
         let unit_entity = self.world.entity().set(unit_component);
-        let unit_id = self.module.add_unit(data);
         self.unit_map.insert(unit_id, unit_entity);
         unit_id
     }
@@ -182,11 +183,8 @@ mod tests {
 
     #[test]
     fn create_unit_data_in_world() {
-        let unit_name = UnitName::Global("top".to_owned());
-        let ent = build_entity(unit_name);
-
         let mut index = create_index!(());
-        let ent_id = index.add_unit(ent);
+        let ent_id = index.add_unit("top");
         let unit_component_data = &index[ent_id];
         assert_eq!(
             "@top",
@@ -228,6 +226,7 @@ mod tests {
             "There should be 3 Component Types present in World."
         );
         let _: Vec<_> = index
+            .module()
             .module()
             .units()
             .map(|unit| {

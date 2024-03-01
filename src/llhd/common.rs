@@ -83,6 +83,10 @@ pub(crate) fn build_enodes<'u>(unit: &'u Unit) -> impl Iterator<Item = LLHDENode
         )
 }
 
+pub(crate) fn build_unit_name(name: &str) -> UnitName {
+    UnitName::Global(name.to_owned())
+}
+
 #[cfg(test)]
 mod tests {
     use llhd::ir::{ExtUnit, Opcode, UnitId, Value};
@@ -106,6 +110,13 @@ mod tests {
             unit_insts.count(),
             "There should be 2 Instructions present in Unit."
         );
+    }
+
+    #[test]
+    fn build_unit_name_from_string() {
+        let unit_name = build_unit_name("top");
+        assert!(unit_name.is_global(), "Unit should have global type.");
+        assert_eq!("top", unit_name.get_name().unwrap(), "Unit name should match.");
     }
 
     #[test]
