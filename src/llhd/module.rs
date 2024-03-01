@@ -15,12 +15,14 @@ use super::{LLHDInst, LLHDNet};
 
 type NameUnitMap = HashMap<String, UnitId>;
 type NameInstMap = HashMap<(UnitId, String), Inst>;
+type InstNameMap = HashMap<LLHDInst, String>;
 
 /// `NewType` Wrapper for an LLHD Module
 pub struct LModule {
     module: Module,
     name_unit_map: NameUnitMap,
     name_inst_map: NameInstMap,
+    inst_name_map: InstNameMap,
 }
 
 impl LModule {
@@ -29,8 +31,9 @@ impl LModule {
             module,
             ..Default::default()
         };
-        let mut name_inst_map = NameInstMap::default();
         let mut name_unit_map = NameUnitMap::default();
+        let mut name_inst_map = NameInstMap::default();
+        let mut inst_name_map = InstNameMap::default();
         init.module.units().for_each(|scoped_unit| {
             let unit_id = scoped_unit.id();
             let unit_name = get_unit_name(&scoped_unit);
@@ -43,13 +46,15 @@ impl LModule {
                 })
                 .for_each(|inst| {
                     let net_name = get_inst_name(&init.module, &scoped_unit, inst);
-                    name_inst_map.insert((unit_id, net_name), inst);
+                    name_inst_map.insert((unit_id, net_name.to_owned()), inst);
+                    inst_name_map.insert((unit_id, inst), net_name);
                 });
         });
         Self {
             module: init.module,
             name_unit_map,
             name_inst_map,
+            inst_name_map,
         }
     }
 
@@ -110,8 +115,7 @@ impl LModule {
     pub(crate) fn get_inst_name(&self, llhd_inst: LLHDInst) -> String {
         let unit_id = llhd_inst.0;
         let inst_id = llhd_inst.1;
-        let parent_unit = self.module.unit(unit_id);
-        get_inst_name(&self.module, &parent_unit, inst_id)
+        self.inst_name_map[&(unit_id, inst_id)].to_owned()
     }
 
     pub(crate) fn get_inst(&self, unit_id: UnitId, name: &str) -> Inst {
@@ -219,7 +223,11 @@ impl LModule {
                     .map(move |(_, ext_unit_data)| (inner_unit_id, ext_unit_data))
             })
             .map(|(inner_unit_id, ext_unit_data)| {
-                let ext_unit_id = self.get_unit_id(&ext_unit_data.name.to_string());
+                let ext_unit_name = ext_unit_data
+                    .name
+                    .get_name()
+                    .expect("UnitName does not resolve to a String.");
+                let ext_unit_id = self.get_unit_id(ext_unit_name);
                 (inner_unit_id, ext_unit_id)
             })
             .filter(move |(_, ext_unit_id)| unit_id == *ext_unit_id)
@@ -327,6 +335,8 @@ impl LModule {
         if let Some(inst_name) = name {
             self.name_inst_map
                 .insert((scoped_unit, inst_name.to_owned()), inst_id);
+            self.inst_name_map
+                .insert((scoped_unit, inst_id), inst_name.to_owned());
         }
         inst_id
     }
@@ -334,8 +344,9 @@ impl LModule {
     pub(crate) fn remove_instantiation(&mut self, inst: LLHDInst) {
         let unit_id = inst.0;
         let inst_id = inst.1;
-        let inst_name = self.get_inst_name(inst);
-        if let Some(_) = self.name_inst_map.remove(&(unit_id, inst_name)) {
+        let inst_name = &self.inst_name_map[&(unit_id, inst_id)];
+        if let Some(_) = self.name_inst_map.remove(&(unit_id, inst_name.to_owned())) {
+            self.inst_name_map.remove(&(unit_id, inst_id));
             let mut unit = self.module.unit_mut(unit_id);
             unit.delete_inst(inst_id);
         }
@@ -361,10 +372,12 @@ impl LModule {
     pub(crate) fn rename_inst(&mut self, inst: LLHDInst, name: &str) {
         let unit_id = inst.0;
         let inst_id = inst.1;
-        let old_inst_name = self.get_inst_name(inst);
+        let old_inst_name = &self.inst_name_map[&(unit_id, inst_id)];
         let new_inst_name = name.to_owned();
-        if let Some(_) = self.name_inst_map.remove(&(unit_id, old_inst_name)) {
-            self.name_inst_map.insert((unit_id, new_inst_name), inst_id);
+        if let Some(_) = self.name_inst_map.remove(&(unit_id, old_inst_name.to_owned())) {
+            self.inst_name_map.remove(&(unit_id, inst_id));
+            self.name_inst_map.insert((unit_id, new_inst_name.to_owned()), inst_id);
+            self.inst_name_map.insert((unit_id, inst_id), new_inst_name);
         }
     }
 
@@ -413,6 +426,7 @@ impl Default for LModule {
             module: Module::new(),
             name_unit_map: HashMap::new(),
             name_inst_map: HashMap::new(),
+            inst_name_map: HashMap::new(),
         }
     }
 }
@@ -529,6 +543,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn llhd_module_get_inst_name() {
         let input = indoc::indoc! {"
             entity @ent2 (i1 %in1, i1 %in2, i1 %in3) -> () {
@@ -539,7 +554,8 @@ mod tests {
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
         let unit_id = llhd_module.module().units().next().unwrap().id();
-        let inst_id = (unit_id, Inst::new(1));
+        let and_inst_id = llhd_module.module().unit(unit_id).all_insts().nth(1).unwrap();
+        let inst_id = (unit_id, and_inst_id);
         let inst_name = llhd_module.get_inst_name(inst_id);
         assert_eq!("ent2.and.v3", inst_name, "Inst name does not match");
     }
@@ -1515,7 +1531,7 @@ mod tests {
         let and_unit_id = UnitId::new(0);
         let and_inst_id = Inst::new(7);
         let and_unit_name = llhd_module.get_unit_name(and_unit_id);
-        assert_eq!("top.and", and_unit_name, "Unit should be named '%top.and'.");
+        assert_eq!("top.and", and_unit_name, "Unit should be named 'top.and'.");
         let and_inst_name = llhd_module.get_inst_name((top_unit_id, and_inst_id));
         assert_eq!(
             "top.top.and.i7", and_inst_name,
@@ -1524,7 +1540,7 @@ mod tests {
         llhd_module.rename_inst((top_unit_id, and_inst_id), "ent.and");
         let and_inst_name_updated = llhd_module.get_inst_name((top_unit_id, and_inst_id));
         assert_eq!(
-            "%ent.and", and_inst_name_updated,
+            "ent.and", and_inst_name_updated,
             "Inst should be named '%ent.and'."
         );
     }
