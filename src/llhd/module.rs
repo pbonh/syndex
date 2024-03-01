@@ -35,17 +35,16 @@ impl LModule {
             let unit_id = scoped_unit.id();
             let unit_name = get_unit_name(&scoped_unit);
             name_unit_map.insert(unit_name, unit_id);
-            init.all_insts(unit_id).into_iter()
-                .filter_map(|inst| {
-                    match &scoped_unit[inst] {
-                        InstData::Call { .. } => Some(inst),
-                        _ => None,
-                    }
+            init.all_insts(unit_id)
+                .into_iter()
+                .filter_map(|inst| match &scoped_unit[inst] {
+                    InstData::Call { .. } => Some(inst),
+                    _ => None,
                 })
                 .for_each(|inst| {
                     let net_name = get_inst_name(&init.module, &scoped_unit, inst);
                     name_inst_map.insert((unit_id, net_name), inst);
-            });
+                });
         });
         Self {
             module: init.module,
@@ -328,10 +327,7 @@ impl LModule {
         inst_id
     }
 
-    pub(crate) fn remove_instantiation(
-        &mut self,
-        inst: LLHDInst,
-    ) {
+    pub(crate) fn remove_instantiation(&mut self, inst: LLHDInst) {
         let unit_id = inst.0;
         let inst_id = inst.1;
         let inst_name = self.get_inst_name(inst);
@@ -340,6 +336,31 @@ impl LModule {
         unit.delete_inst(inst_id);
     }
 
+    pub(crate) fn rename_unit(&mut self, unit_id: UnitId, name: &str) {
+        let old_unit_name = self.get_unit_name(unit_id);
+        let new_unit_name = name.to_owned();
+        let mut unit = self.module.unit_mut(unit_id);
+        match unit.data().name {
+            UnitName::Local(_) => {
+                unit.data().name = UnitName::local(new_unit_name.to_owned());
+            }
+            UnitName::Global(_) => {
+                unit.data().name = UnitName::global(new_unit_name.to_owned());
+            }
+            _ => (),
+        }
+        self.name_unit_map.remove(&old_unit_name);
+        self.name_unit_map.insert(new_unit_name, unit_id);
+    }
+
+    pub(crate) fn rename_inst(&mut self, inst: LLHDInst, name: &str) {
+        let unit_id = inst.0;
+        let inst_id = inst.1;
+        let old_inst_name = self.get_inst_name(inst);
+        let new_inst_name = name.to_owned();
+        self.name_inst_map.remove(&(unit_id, old_inst_name));
+        self.name_inst_map.insert((unit_id, new_inst_name), inst_id);
+    }
 
     pub fn declare(&mut self, name: UnitName, sig: Signature) -> DeclId {
         self.module.declare(name, sig)
@@ -1396,11 +1417,118 @@ mod tests {
             llhd_module.inst_names(),
             "There should be 1 Instantiation Inst's present in Unit."
         );
-        llhd_module.remove_instantiation((top_unit_id,Inst::new(7)));
+        let inst_count_before = llhd_module
+            .module()
+            .units()
+            .nth(1)
+            .unwrap()
+            .all_insts()
+            .count();
+        assert_eq!(
+            8, inst_count_before,
+            "There should be 8 total Inst's present in Unit."
+        );
+        llhd_module.remove_instantiation((top_unit_id, Inst::new(7)));
+        let inst_count_after = llhd_module
+            .module()
+            .units()
+            .nth(1)
+            .unwrap()
+            .all_insts()
+            .count();
+        assert_eq!(
+            7, inst_count_after,
+            "There should be 7 total Inst's present in Unit."
+        );
         assert_eq!(
             0,
             llhd_module.inst_names(),
             "There should be 0 Instantiation Inst's present in Unit."
+        );
+    }
+
+    #[test]
+    fn llhd_module_rename_unit() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %and1, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @top () -> () {
+                %top_input1 = const i1 0
+                %in1 = sig i1 %top_input1
+                %top_input2 = const i1 1
+                %in2 = sig i1 %top_input2
+                %top_out1 = const i1 0
+                %out1 = sig i1 %top_out1
+                inst %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1)
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let mut llhd_module = LModule::from(module);
+        let and_unit_id = UnitId::new(0);
+        let and_unit_name = llhd_module.get_unit_name(and_unit_id);
+        assert_eq!(
+            "%top.and", and_unit_name,
+            "Unit should be named '%top.and'."
+        );
+        llhd_module.rename_unit(and_unit_id, "ent.and");
+        let and_unit_name_updated = llhd_module.get_unit_name(and_unit_id);
+        assert_eq!(
+            "%ent.and", and_unit_name_updated,
+            "Unit should be named '%ent.and'."
+        );
+    }
+
+    #[test]
+    fn llhd_module_rename_instantiation() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %and1, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @top () -> () {
+                %top_input1 = const i1 0
+                %in1 = sig i1 %top_input1
+                %top_input2 = const i1 1
+                %in2 = sig i1 %top_input2
+                %top_out1 = const i1 0
+                %out1 = sig i1 %top_out1
+                inst %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1)
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let mut llhd_module = LModule::from(module);
+        let top_unit_id = UnitId::new(1);
+        let and_unit_id = UnitId::new(0);
+        let and_inst_id = Inst::new(6);
+        let and_unit_name = llhd_module.get_unit_name(and_unit_id);
+        assert_eq!(
+            "%top.and", and_unit_name,
+            "Unit should be named '%top.and'."
+        );
+        let and_inst_name = llhd_module.get_inst_name((top_unit_id, and_inst_id));
+        assert_eq!(
+            "@top.sig.v5", and_inst_name,
+            "Inst should be named '%top.and'."
+        );
+        llhd_module.rename_inst((top_unit_id, and_inst_id), "ent.and");
+        let and_inst_name_updated = llhd_module.get_inst_name((top_unit_id, and_inst_id));
+        assert_eq!(
+            "%ent.and", and_inst_name_updated,
+            "Inst should be named '%ent.and'."
         );
     }
 }

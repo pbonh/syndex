@@ -15,6 +15,11 @@ pub(crate) fn filter_instantiations(unit: &Unit, inst_id: Inst) -> bool {
 
 pub(crate) fn get_unit_name(scope_unit: &Unit) -> String {
     scope_unit.name().to_string()
+    // scope_unit
+    //     .name()
+    //     .get_name()
+    //     .expect("UnitName does not resolve to a String.")
+    //     .to_owned()
 }
 
 pub(crate) fn get_inst_name(module: &Module, scope_unit: &Unit, inst_id: Inst) -> String {
