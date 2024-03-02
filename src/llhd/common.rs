@@ -1,5 +1,4 @@
 use llhd::ir::{Inst, InstData, Module, Signature, Unit, UnitBuilder, UnitData, UnitName, Value};
-use llhd::table::TableKey;
 
 use super::enode::LLHDENode;
 
@@ -46,12 +45,7 @@ pub(crate) fn get_inst_name(module: &Module, scope_unit: &Unit, inst_id: Inst) -
         inst_name.push('.');
         inst_name.push_str(&scope_unit[inst_id].opcode().to_string());
         inst_name.push('.');
-        inst_name.push_str(
-            &scope_unit
-                .get_inst_result(inst_id)
-                .unwrap_or_else(|| Value::new(usize::max_value()))
-                .to_string(),
-        );
+        inst_name.push_str(&inst_id.to_string());
         inst_name
     }
 }
@@ -243,7 +237,7 @@ mod tests {
         let and_inst = unit.all_insts().next().unwrap();
         let and_inst_name = get_inst_name(&module, &unit, and_inst);
         assert_eq!(
-            "ent2.and.v3", and_inst_name,
+            "ent2.and.i1", and_inst_name,
             "And instruction name does not match."
         );
     }
