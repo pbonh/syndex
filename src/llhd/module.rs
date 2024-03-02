@@ -40,10 +40,7 @@ impl LModule {
             name_unit_map.insert(unit_name, unit_id);
             init.all_insts(unit_id)
                 .into_iter()
-                .filter_map(|inst| match &scoped_unit[inst] {
-                    InstData::Call { .. } => Some(inst),
-                    _ => None,
-                })
+                .filter(|inst| matches!(scoped_unit[*inst], InstData::Call { .. }))
                 .for_each(|inst| {
                     let net_name = get_inst_name(&init.module, &scoped_unit, inst);
                     name_inst_map.insert((unit_id, net_name.to_owned()), inst);
@@ -374,9 +371,13 @@ impl LModule {
         let inst_id = inst.1;
         let old_inst_name = &self.inst_name_map[&(unit_id, inst_id)];
         let new_inst_name = name.to_owned();
-        if let Some(_) = self.name_inst_map.remove(&(unit_id, old_inst_name.to_owned())) {
+        if let Some(_) = self
+            .name_inst_map
+            .remove(&(unit_id, old_inst_name.to_owned()))
+        {
             self.inst_name_map.remove(&(unit_id, inst_id));
-            self.name_inst_map.insert((unit_id, new_inst_name.to_owned()), inst_id);
+            self.name_inst_map
+                .insert((unit_id, new_inst_name.to_owned()), inst_id);
             self.inst_name_map.insert((unit_id, inst_id), new_inst_name);
         }
     }
@@ -554,7 +555,12 @@ mod tests {
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_module = LModule::from(module);
         let unit_id = llhd_module.module().units().next().unwrap().id();
-        let and_inst_id = llhd_module.module().unit(unit_id).all_insts().nth(1).unwrap();
+        let and_inst_id = llhd_module
+            .module()
+            .unit(unit_id)
+            .all_insts()
+            .nth(1)
+            .unwrap();
         let inst_id = (unit_id, and_inst_id);
         let inst_name = llhd_module.get_inst_name(inst_id);
         assert_eq!("ent2.and.v3", inst_name, "Inst name does not match");
