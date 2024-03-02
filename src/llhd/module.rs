@@ -3,15 +3,16 @@ use std::fmt;
 use std::fmt::Display;
 
 use llhd::ir::prelude::*;
-use llhd::ir::{InstData, ValueData};
+use llhd::ir::{InstData, LinkedUnit, ValueData};
 use llhd::table::TableKey;
 use rayon::prelude::*;
 
 use super::common::{
     build_unit_name, filter_instantiations, filter_nullary, get_inst_name, get_unit_name,
+    get_value_name,
 };
 use super::enode::LLHDENode;
-use super::{LLHDInst, LLHDNet};
+use super::{LLHDArg, LLHDInst, LLHDNet};
 
 type NameUnitMap = HashMap<String, UnitId>;
 type NameInstMap = HashMap<(UnitId, String), Inst>;
@@ -101,12 +102,54 @@ impl LModule {
                 .lookup_ext_unit(*unit, unit_id)
                 .expect("ExtUnit does not exist in Module.")
             {
-                llhd::ir::LinkedUnit::Def(ext_unit_id) => Some(ext_unit_id),
-                llhd::ir::LinkedUnit::Decl(_) => None,
+                LinkedUnit::Def(ext_unit_id) => Some(ext_unit_id),
+                LinkedUnit::Decl(_) => None,
             }
         } else {
             None
         }
+    }
+
+    pub(crate) fn get_unit_arg(&self, inst: LLHDArg) -> LLHDNet {
+        let owned_unit_id = inst.0;
+        let inst_id = inst.1;
+        let value_id = inst.2;
+        if let InstData::Call { unit, args, .. } = &self.module().unit(owned_unit_id)[inst_id] {
+            if let LinkedUnit::Def(ext_unit_id) = self
+                .module()
+                .lookup_ext_unit(*unit, owned_unit_id)
+                .expect("ExtUnit not linked")
+            {
+                let instantiation_arg_idx = args
+                    .into_iter()
+                    .position(|arg| *arg == value_id)
+                    .expect("Arg Values don't match Searched Value.");
+                let arg_id = self
+                    .module()
+                    .unit(ext_unit_id)
+                    .input_arg(instantiation_arg_idx);
+                (ext_unit_id, arg_id)
+            } else {
+                panic!("Not a Unit Definition.")
+            }
+        } else {
+            panic!("Not an instantiation instruction.")
+        }
+        // let value_refs = self.module().unit(value.0).uses(value.1);
+        // let instantiation_refs = value_refs.iter().filter_map(|inst| {
+        //     let inst_data = self.module.unit(value.0)[inst.to_owned()].to_owned();
+        //     match inst_data {
+        //         InstData::Call { unit, args, .. } => Some((unit, args)),
+        //         _ => None
+        //     }
+        // });
+    }
+
+    pub(crate) fn get_value_name(&self, value: LLHDNet) -> String {
+        let scope_unit_id = value.0;
+        let value_id = value.1;
+        let scope_unit = &self.module.unit(scope_unit_id);
+        get_value_name(self.module(), scope_unit, value_id)
     }
 
     pub(crate) fn get_inst_name(&self, llhd_inst: LLHDInst) -> String {
@@ -1548,6 +1591,59 @@ mod tests {
         assert_eq!(
             "ent.and", and_inst_name_updated,
             "Inst should be named '%ent.and'."
+        );
+    }
+
+    #[test]
+    fn llhd_module_get_pin_val_from_inst_val() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2, i1$ %in3) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %in3_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                %and2 = and i1 %in3_prb, %and1
+                drv i1$ %out1, %and2, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @top () -> () {
+                %top_input1 = const i1 0
+                %in1 = sig i1 %top_input1
+                %top_input2 = const i1 1
+                %in2 = sig i1 %top_input2
+                %top_input3 = const i1 1
+                %in3 = sig i1 %top_input3
+                %top_out1 = const i1 0
+                %out1 = sig i1 %top_out1
+                inst %top.and (i1$ %in1, i1$ %in2, i1$ %in3) -> (i1$ %out1)
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let llhd_module = LModule::from(module);
+        let top_unit_id = UnitId::new(1);
+        let and_inst_arg1_id = (top_unit_id, Inst::new(9), Value::new(1));
+        let and_unit_arg1_id = llhd_module.get_unit_arg(and_inst_arg1_id);
+        let and_unit_arg1_name = llhd_module.get_value_name(and_unit_arg1_id);
+        assert_eq!(
+            "top.and.v0", and_unit_arg1_name,
+            "Unit Arg should be named 'top.and.v0'."
+        );
+        let and_inst_arg2_id = (top_unit_id, Inst::new(9), Value::new(3));
+        let and_unit_arg2_id = llhd_module.get_unit_arg(and_inst_arg2_id);
+        let and_unit_arg2_name = llhd_module.get_value_name(and_unit_arg2_id);
+        assert_eq!(
+            "top.and.v1", and_unit_arg2_name,
+            "Unit Arg should be named 'top.and.v1'."
+        );
+        let and_inst_arg3_id = (top_unit_id, Inst::new(9), Value::new(5));
+        let and_unit_arg3_id = llhd_module.get_unit_arg(and_inst_arg3_id);
+        let and_unit_arg3_name = llhd_module.get_value_name(and_unit_arg3_id);
+        assert_eq!(
+            "top.and.v2", and_unit_arg3_name,
+            "Unit Arg should be named 'top.and.v2'."
         );
     }
 }

@@ -20,3 +20,6 @@ pub type LLHDNet = (UnitId, Value);
 
 /// `Inst` Identifier within LLHD `Unit`
 pub type LLHDInst = (UnitId, Inst);
+
+/// `Pin/Value` Identifier within LLHD `Unit`
+pub type LLHDArg = (UnitId, Inst, Value);

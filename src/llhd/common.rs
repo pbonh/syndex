@@ -56,6 +56,14 @@ pub(crate) fn get_inst_name(module: &Module, scope_unit: &Unit, inst_id: Inst) -
     }
 }
 
+pub(crate) fn get_value_name(module: &Module, scope_unit: &Unit, value: Value) -> String {
+    let scope_unit_id = scope_unit.id();
+    let mut value_name = get_unit_name(&module.unit(scope_unit_id));
+    value_name.push('.');
+    value_name.push_str(&value.to_string());
+    value_name
+}
+
 pub(crate) fn build_unit(nets: &[LLHDENode], name: &UnitName, sig: &Signature) -> UnitData {
     let mut unit = UnitData::new(llhd::ir::UnitKind::Entity, name.clone(), sig.clone());
     {
@@ -295,6 +303,68 @@ mod tests {
         let and_inst_name = get_inst_name(&module, &top_unit, and_inst);
         assert_eq!(
             "top.top.and.i7", and_inst_name,
+            "And instantiation name does not match."
+        );
+    }
+
+    #[test]
+    fn llhd_get_name_for_value() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                drv i1$ %out1, %and1, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @top () -> () {
+                %top_input1 = const i1 0
+                %in1 = sig i1 %top_input1
+                %top_input2 = const i1 1
+                %in2 = sig i1 %top_input2
+                %top_out1 = const i1 0
+                %out1 = sig i1 %top_out1
+                inst %top.and (i1$ %in1, i1$ %in2) -> (i1$ %out1)
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let inst_info = module
+            .units()
+            .map(|module_unit| {
+                let unit_id = module_unit.id();
+                let unit_name = module_unit.name().to_string();
+                (module_unit, unit_id, unit_name)
+            })
+            .filter(|(_, _, unit_name)| unit_name == "@top")
+            .map(|(module_unit, unit_id, _)| (module_unit, unit_id))
+            .flat_map(|(module_unit, unit_id)| {
+                module_unit
+                    .all_insts()
+                    .filter(move |inst| match &module_unit[*inst] {
+                        InstData::Call { .. } => true,
+                        _ => false,
+                    })
+                    .map(move |inst| {
+                        let value = module_unit[inst].args().last().unwrap().to_owned();
+                        (unit_id, value, module_unit[inst].to_owned())
+                    })
+                    .map(|(unit_id, value, inst_data)| {
+                        let mut ext_unit_id = ExtUnit::new(0);
+                        if let InstData::Call { unit, .. } = inst_data {
+                            ext_unit_id = unit;
+                        }
+                        (unit_id, value, ext_unit_id)
+                    })
+            })
+            .collect::<Vec<(UnitId, Value, ExtUnit)>>();
+        let top_unit = module.unit(inst_info[0].0);
+        let and_value = inst_info[0].1;
+        let and_inst_name = get_value_name(&module, &top_unit, and_value);
+        assert_eq!(
+            "top.v5", and_inst_name,
             "And instantiation name does not match."
         );
     }
