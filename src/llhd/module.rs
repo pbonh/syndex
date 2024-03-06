@@ -15,6 +15,7 @@ use super::enode::LLHDENode;
 use super::{LLHDArg, LLHDInst, LLHDNet};
 
 type NameUnitMap = HashMap<String, UnitId>;
+type UnitNameMap = HashMap<UnitId, String>;
 type NameInstMap = HashMap<(UnitId, String), Inst>;
 type InstNameMap = HashMap<LLHDInst, String>;
 
@@ -22,6 +23,7 @@ type InstNameMap = HashMap<LLHDInst, String>;
 pub struct LModule {
     module: Module,
     name_unit_map: NameUnitMap,
+    unit_name_map: UnitNameMap,
     name_inst_map: NameInstMap,
     inst_name_map: InstNameMap,
 }
@@ -33,12 +35,14 @@ impl LModule {
             ..Default::default()
         };
         let mut name_unit_map = NameUnitMap::default();
+        let mut unit_name_map = UnitNameMap::default();
         let mut name_inst_map = NameInstMap::default();
         let mut inst_name_map = InstNameMap::default();
         init.module.units().for_each(|scoped_unit| {
             let unit_id = scoped_unit.id();
             let unit_name = get_unit_name(&scoped_unit);
-            name_unit_map.insert(unit_name, unit_id);
+            name_unit_map.insert(unit_name.to_owned(), unit_id);
+            unit_name_map.insert(unit_id, unit_name);
             init.all_insts(unit_id)
                 .into_iter()
                 .filter(|inst| matches!(scoped_unit[*inst], InstData::Call { .. }))
@@ -51,6 +55,7 @@ impl LModule {
         Self {
             module: init.module,
             name_unit_map,
+            unit_name_map,
             name_inst_map,
             inst_name_map,
         }
@@ -85,8 +90,7 @@ impl LModule {
     }
 
     pub(crate) fn get_unit_name(&self, unit_id: UnitId) -> String {
-        let unit = self.module.unit(unit_id);
-        get_unit_name(&unit)
+        self.unit_name_map[&unit_id].to_owned()
     }
 
     pub(crate) fn get_unit_id(&self, unit_name: &str) -> UnitId {
@@ -306,39 +310,6 @@ impl LModule {
                     .expect("Inst should have a corresponding Def.");
                 unit_id == ext_unit_id
             })
-        // self.module
-        //     .units()
-        //     .flat_map(|unit| {
-        //         let inner_unit_id = unit.id();
-        //         unit.all_insts()
-        //             .map(move |inst| (unit, inner_unit_id, inst))
-        //     })
-        //     .filter_map(
-        //         |(unit, inner_unit_id, inst)| match unit[inst].get_ext_unit() {
-        //             Some(_) => Some((inner_unit_id, inst)),
-        //             None => None,
-        //         },
-        //     )
-        //     .filter(move |(inner_unit_id, inst)| {
-        //         let ext_unit_id = self
-        //             .get_unit_id_from_inst((*inner_unit_id, *inst))
-        //             .expect("Inst should have a corresponding Def.");
-        //         unit_id == ext_unit_id
-        //     })
-        //
-        // self.module
-        //     .units()
-        //     .flat_map(|unit| {
-        //         let inner_unit_id = unit.id();
-        //         unit.extern_units()
-        //             .map(move |(_, ext_unit_data)| (inner_unit_id, ext_unit_data))
-        //     })
-        //     .map(|(inner_unit_id, ext_unit_data)| {
-        //         let ext_unit_id = self.get_unit_id(&ext_unit_data.name.to_string());
-        //         (inner_unit_id, ext_unit_id)
-        //     })
-        //     .filter(move |(_, ext_unit_id)| unit_id == *ext_unit_id)
-        //     .map(|(inner_unit_id, ext_unit_id)| (inner_unit_id, ext_unit_id))
     }
 
     pub(crate) fn add_unit(&mut self, unit_name: &str) -> UnitId {
@@ -348,14 +319,17 @@ impl LModule {
         let unit_data = UnitData::new(kind, name, sig);
         let global_unit_name = unit_data.name.to_owned().to_string();
         let unit_id = self.module.add_unit(unit_data);
-        self.name_unit_map.insert(global_unit_name, unit_id);
+        self.name_unit_map.insert(global_unit_name.to_owned(), unit_id);
+        self.unit_name_map.insert(unit_id, global_unit_name);
         unit_id
     }
 
     pub(crate) fn remove_unit(&mut self, unit_id: UnitId) {
-        let unit_name = self.get_unit_name(unit_id);
+        let unit_name = &self.unit_name_map[&unit_id];
         self.module.remove_unit(unit_id);
-        self.name_unit_map.remove(&unit_name);
+        if let Some(_) = self.name_unit_map.remove(unit_name) {
+            self.unit_name_map.remove(&unit_id);
+        }
     }
 
     pub(crate) fn add_instantiation(
@@ -393,7 +367,7 @@ impl LModule {
     }
 
     pub(crate) fn rename_unit(&mut self, unit_id: UnitId, name: &str) {
-        let old_unit_name = self.get_unit_name(unit_id);
+        let old_unit_name = &self.unit_name_map[&unit_id];
         let new_unit_name = name.to_owned();
         let mut unit = self.module.unit_mut(unit_id);
         match unit.data().name {
@@ -405,8 +379,10 @@ impl LModule {
             }
             _ => (),
         }
-        self.name_unit_map.remove(&old_unit_name);
-        self.name_unit_map.insert(new_unit_name, unit_id);
+        self.name_unit_map.remove(old_unit_name);
+        self.name_unit_map.insert(new_unit_name.to_owned(), unit_id);
+        self.unit_name_map.remove(&unit_id);
+        self.unit_name_map.insert(unit_id, new_unit_name);
     }
 
     pub(crate) fn rename_inst(&mut self, inst: LLHDInst, name: &str) {
@@ -469,6 +445,7 @@ impl Default for LModule {
         Self {
             module: Module::new(),
             name_unit_map: HashMap::new(),
+            unit_name_map: HashMap::new(),
             name_inst_map: HashMap::new(),
             inst_name_map: HashMap::new(),
         }
@@ -924,7 +901,7 @@ mod tests {
         let top_unit = units[1];
         assert_eq!(
             "top",
-            get_unit_name(&top_unit),
+            llhd_module.get_unit_name(top_unit.id()),
             "Unit should be 'top' unit."
         );
         let inst_count = llhd_module.iter_inst(top_unit.id()).count();
@@ -1018,7 +995,7 @@ mod tests {
         let top_unit = units[3];
         assert_eq!(
             "top",
-            get_unit_name(&top_unit),
+            llhd_module.get_unit_name(top_unit.id()),
             "Unit should be 'top' unit."
         );
         let unit_dependencies: Vec<_> = llhd_module
@@ -1032,7 +1009,7 @@ mod tests {
         );
         let unit_dependency_names: HashSet<_> = unit_dependencies
             .into_iter()
-            .map(|unit| get_unit_name(&unit))
+            .map(|unit| llhd_module.get_unit_name(unit.id()))
             .collect();
         assert!(
             unit_dependency_names.contains("top.and"),
@@ -1147,7 +1124,7 @@ mod tests {
         let and_unit = units[0];
         assert_eq!(
             "top.and",
-            get_unit_name(&and_unit),
+            llhd_module.get_unit_name(and_unit.id()),
             "Unit should be 'and' unit."
         );
         let unit_dependencies: Vec<_> = llhd_module
@@ -1161,7 +1138,7 @@ mod tests {
         );
         let dependent_unit_names: HashSet<_> = unit_dependencies
             .into_iter()
-            .map(|unit| get_unit_name(&unit))
+            .map(|unit| llhd_module.get_unit_name(unit.id()))
             .collect();
         assert!(
             dependent_unit_names.contains("top"),
@@ -1187,7 +1164,7 @@ mod tests {
         let or_unit = units[1];
         assert_eq!(
             "top.or",
-            get_unit_name(&or_unit),
+            llhd_module.get_unit_name(or_unit.id()),
             "Unit should be 'or' unit."
         );
         let or_unit_dependencies: Vec<_> = llhd_module
@@ -1291,7 +1268,7 @@ mod tests {
         let and_unit = units[0];
         assert_eq!(
             "top.and",
-            get_unit_name(&and_unit),
+            llhd_module.get_unit_name(and_unit.id()),
             "Unit should be 'and' unit."
         );
         let unit_references: Vec<_> = llhd_module
