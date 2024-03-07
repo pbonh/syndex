@@ -1,19 +1,26 @@
 {
-  "packages": [
-    "cargo-edit@latest",
-    "cargo-watch@latest",
-    "cargo-readme@latest",
-    "rust-analyzer@latest",
-    "rustup@latest",
-    "bacon@latest",
-    "cargo-generate@latest",
-    "pkg-config@latest",
-    "llvmPackages.libclang@latest",
-    "clang@latest",
-    "llvm@latest",
-    "cargo-nextest@latest",
-    "cargo-llvm-cov@latest"
-  ],
+  "packages": {
+    "cargo-edit":            "latest",
+    "cargo-watch":           "latest",
+    "cargo-readme":          "latest",
+    "rust-analyzer":         "latest",
+    "rustup":                "latest",
+    "bacon":                 "latest",
+    "cargo-generate":        "latest",
+    "pkg-config":            "latest",
+    "llvmPackages.libclang": "latest",
+    "clang":                 "latest",
+    "llvm":                  "latest",
+    "cargo-nextest":         "latest",
+    "cargo-llvm-cov": {
+      "version":            "latest",
+      "excluded_platforms": ["aarch64-darwin"]
+    },
+    "libiconv": {
+      "version":            "latest",
+      "platforms": ["aarch64-darwin"]
+    },
+  },
   "env": {
     "PROJECT_DIR": "$PWD"
   },
