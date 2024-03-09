@@ -18,12 +18,16 @@ type NameUnitMap = HashMap<String, UnitId>;
 type UnitNameMap = HashMap<UnitId, String>;
 type NameInstMap = HashMap<(UnitId, String), Inst>;
 type InstNameMap = HashMap<LLHDInst, String>;
+type ArgNameMap = HashMap<LLHDNet, String>;
+type NameArgMap = HashMap<(UnitId, String), LLHDNet>;
 
 /// `NewType` Wrapper for an LLHD Module
 pub struct LModule {
     module: Module,
     name_unit_map: NameUnitMap,
     unit_name_map: UnitNameMap,
+    name_arg_map: NameArgMap,
+    arg_name_map: ArgNameMap,
     name_inst_map: NameInstMap,
     inst_name_map: InstNameMap,
 }
@@ -36,6 +40,8 @@ impl LModule {
         };
         let mut name_unit_map = NameUnitMap::default();
         let mut unit_name_map = UnitNameMap::default();
+        let mut name_arg_map = NameArgMap::default();
+        let mut arg_name_map = ArgNameMap::default();
         let mut name_inst_map = NameInstMap::default();
         let mut inst_name_map = InstNameMap::default();
         init.module.units().for_each(|scoped_unit| {
@@ -52,10 +58,20 @@ impl LModule {
                     inst_name_map.insert((unit_id, inst), net_name);
                 });
         });
+        init.module.units().for_each(|scoped_unit| {
+            let unit_id = scoped_unit.id();
+            scoped_unit.args().for_each(|arg| {
+                let arg_name = &get_value_name(&init.module, &scoped_unit, arg);
+                name_arg_map.insert((unit_id, arg_name.to_owned()), (unit_id, arg));
+                arg_name_map.insert((unit_id, arg), arg_name.to_owned());
+            });
+        });
         Self {
             module: init.module,
             name_unit_map,
             unit_name_map,
+            name_arg_map,
+            arg_name_map,
             name_inst_map,
             inst_name_map,
         }
@@ -160,6 +176,14 @@ impl LModule {
         let unit_id = llhd_inst.0;
         let inst_id = llhd_inst.1;
         self.inst_name_map[&(unit_id, inst_id)].to_owned()
+    }
+
+    pub(crate) fn get_arg_name(&self, unit_arg_id: LLHDNet) -> String {
+        self.arg_name_map[&unit_arg_id].to_owned()
+    }
+
+    pub(crate) fn get_arg(&self, unit_id: UnitId, name: &str) -> LLHDNet {
+        self.name_arg_map[&(unit_id, name.to_owned())]
     }
 
     pub(crate) fn get_inst(&self, unit_id: UnitId, name: &str) -> Inst {
@@ -319,7 +343,8 @@ impl LModule {
         let unit_data = UnitData::new(kind, name, sig);
         let global_unit_name = unit_data.name.to_owned().to_string();
         let unit_id = self.module.add_unit(unit_data);
-        self.name_unit_map.insert(global_unit_name.to_owned(), unit_id);
+        self.name_unit_map
+            .insert(global_unit_name.to_owned(), unit_id);
         self.unit_name_map.insert(unit_id, global_unit_name);
         unit_id
     }
@@ -446,6 +471,8 @@ impl Default for LModule {
             module: Module::new(),
             name_unit_map: HashMap::new(),
             unit_name_map: HashMap::new(),
+            name_arg_map: HashMap::new(),
+            arg_name_map: HashMap::new(),
             name_inst_map: HashMap::new(),
             inst_name_map: HashMap::new(),
         }
@@ -1621,6 +1648,50 @@ mod tests {
         assert_eq!(
             "top.and.v2", and_unit_arg3_name,
             "Unit Arg should be named 'top.and.v2'."
+        );
+    }
+
+    #[test]
+    fn llhd_module_get_pin_name() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2, i1$ %in3) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %in3_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                %and2 = and i1 %in3_prb, %and1
+                drv i1$ %out1, %and2, %epsilon
+                wait %init for %epsilon
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let llhd_module = LModule::from(module);
+        let and_unit_id = UnitId::new(0);
+        let and_unit_arg1_id = (and_unit_id, Value::new(0));
+        let and_unit_arg1_name = llhd_module.get_arg_name(and_unit_arg1_id);
+        assert_eq!(
+            "top.and.v0", and_unit_arg1_name,
+            "Unit Arg should be named 'top.and.v0'."
+        );
+        let and_unit_arg1_value = llhd_module.get_arg(and_unit_id, "top.and.v0");
+        assert_eq!(
+            (and_unit_id, Value::new(0)),
+            and_unit_arg1_value,
+            "Unit Arg should match for 'top.and.v0'."
+        );
+        let and_unit_arg2_value = llhd_module.get_arg(and_unit_id, "top.and.v1");
+        assert_eq!(
+            (and_unit_id, Value::new(1)),
+            and_unit_arg2_value,
+            "Unit Arg should match for 'top.and.v1'."
+        );
+        let and_unit_arg3_value = llhd_module.get_arg(and_unit_id, "top.and.v2");
+        assert_eq!(
+            (and_unit_id, Value::new(2)),
+            and_unit_arg3_value,
+            "Unit Arg should match for 'top.and.v2'."
         );
     }
 }
