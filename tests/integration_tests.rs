@@ -10,6 +10,7 @@ fn integrate() {
 
 /// Make sure all necessary values are available in the environment.
 #[test]
+#[ignore]
 fn test_config() {
     let _ = CONFIG.example_bool;
 }

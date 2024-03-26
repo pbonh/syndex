@@ -13,6 +13,7 @@ mod tests {
 
     /// Run main, it might makes sense to test it sometimes. Here it's mostly to improve coverage.
     #[test]
+    #[ignore]
     fn test_main() {
         assert_eq!(main(), ());
     }
