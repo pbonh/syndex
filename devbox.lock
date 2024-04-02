@@ -266,6 +266,54 @@
           "store_path": "/nix/store/rs66y4kzwh1n8cz2ia0qw5m4fhahqwia-rustup-1.26.0"
         }
       }
+    },
+    "vscode-extensions.vadimcn.vscode-lldb@latest": {
+      "last_modified": "2024-03-25T12:46:37Z",
+      "resolved": "github:NixOS/nixpkgs/c726225724e681b3626acc941c6f95d2b0602087#vscode-extensions.vadimcn.vscode-lldb",
+      "source": "devbox-search",
+      "version": "1.10.0",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/dd8h6db15fq1ik9yp0vgzh69bq6ckvc2-vscode-extension-vadimcn-vscode-lldb-1.10.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/dd8h6db15fq1ik9yp0vgzh69bq6ckvc2-vscode-extension-vadimcn-vscode-lldb-1.10.0"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/cpky66lqca74h1vqwi451gg943c64rcm-vscode-extension-vadimcn-vscode-lldb-1.10.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/cpky66lqca74h1vqwi451gg943c64rcm-vscode-extension-vadimcn-vscode-lldb-1.10.0"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/z4i0kr1849xyx193c29p0bh8q5hnw4ly-vscode-extension-vadimcn-vscode-lldb-1.10.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/z4i0kr1849xyx193c29p0bh8q5hnw4ly-vscode-extension-vadimcn-vscode-lldb-1.10.0"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/k1d2cq0s4nb1n4mbgv4jn5r2ml1kihv6-vscode-extension-vadimcn-vscode-lldb-1.10.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/k1d2cq0s4nb1n4mbgv4jn5r2ml1kihv6-vscode-extension-vadimcn-vscode-lldb-1.10.0"
+        }
+      }
     }
   }
 }

@@ -12,6 +12,7 @@
     "clang":                 "latest",
     "llvm":                  "latest",
     "cargo-nextest":         "latest",
+    "vscode-extensions.vadimcn.vscode-lldb":         "latest",
     "cargo-llvm-cov": {
       "version":            "latest",
       "excluded_platforms": ["aarch64-darwin"]
