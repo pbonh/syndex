@@ -64,6 +64,9 @@
 mod config;
 
 /// Index/Database for Design
+pub mod llhd_world;
+
+/// Index/Database for Design
 pub mod index;
 
 /// Types & Utilities for Managing LLHD Modules
