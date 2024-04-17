@@ -13,6 +13,9 @@ pub mod inst;
 /// LLHD Module Type Wrapper
 pub mod module;
 
+/// LLHD Module LibrEDA Trait Implementation
+pub mod libreda_module;
+
 use llhd::ir::{Inst, UnitId, Value};
 
 /// `Net/Value` Identifier within LLHD `Unit`

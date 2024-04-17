@@ -7,7 +7,7 @@ use flecs::{Component, Entity};
 use llhd::ir::{DeclData, DeclId, Signature, UnitBuilder, UnitId, UnitName};
 use rayon::prelude::*;
 
-use crate::llhd::module::LModule;
+use crate::llhd::libreda_module::LModule;
 use crate::llhd::unit::UnitComponent;
 use crate::llhd::LLHDNet;
 use crate::world::LWorld;

@@ -49,7 +49,7 @@ impl LLHDENode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::llhd::module::LModule;
+    use crate::llhd::libreda_module::LModule;
 
     #[test]
     fn llhd_enode_construction_default() {
