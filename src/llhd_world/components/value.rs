@@ -1,7 +1,7 @@
 use llhd::ir::{ValueData,Value};
 
 #[derive(Debug,Default)]
-pub struct ValueComponent {
+pub(crate) struct ValueComponent {
     pub(crate) id: Option<Value>,
     pub(crate) data: ValueData,
 }
@@ -70,5 +70,15 @@ mod tests {
             }
         });
         assert_eq!(9, value_components.len(), "There should be 9 Values defined in Unit.");
+        assert_eq!(Value::new(0), value_components[0].id.unwrap(), "First Id should be Arg with Id: 0");
+        assert_eq!(Value::new(1), value_components[1].id.unwrap(), "Second Id should be Arg with Id: 1");
+        if let ValueData::Inst{ inst, .. } = value_components[8].data {
+            let add_inst_data = &entity[inst];
+            let opcode = add_inst_data.opcode();
+            assert!(matches!(opcode, Opcode::Add), "Inst should be Add type.");
+        } else {
+            panic!("Value(8) should correspond to an add inst.");
+        }
+        assert_eq!(Value::new(8), value_components[8].id.unwrap(), "Last Id should be Value with Id: 8");
     }
 }
