@@ -28,7 +28,6 @@ pub(crate) fn build_values<'unit>(
 pub(crate) fn build_insts<'unit>(unit: &'unit Unit) -> impl Iterator<Item = InstComponent> + 'unit {
     unit.all_insts()
         .filter(|inst| filter_nullary(unit, *inst))
-        .filter(|inst| unit.get_inst_result(*inst).is_some())
         .map(|inst| {
             let inst_data = &unit[inst];
             InstComponent {
