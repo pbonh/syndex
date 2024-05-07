@@ -1,6 +1,16 @@
 use crate::llhd::common::filter_nullary;
-use crate::llhd_world::components::{inst::InstComponent, value::ValueComponent};
-use llhd::ir::Unit;
+use crate::llhd_world::components::{
+    inst::InstComponent, unit::UnitComponent, value::ValueComponent,
+};
+use llhd::ir::{Module, Unit};
+
+pub(crate) fn build_units(module: &Module) -> impl Iterator<Item = UnitComponent> + '_ {
+    module.units().map(|unit| UnitComponent {
+        id: Some(unit.id()),
+        name: unit.name().clone(),
+        kind: unit.kind(),
+    })
+}
 
 pub(crate) fn build_values<'unit>(
     unit: &'unit Unit,
@@ -43,6 +53,38 @@ mod tests {
     use llhd::ir::prelude::*;
     use llhd::ir::ValueData;
     use llhd::table::TableKey;
+
+    #[test]
+    fn build_unit_component() {
+        let input = indoc::indoc! {"
+            proc %top.and (i1$ %in1, i1$ %in2, i1$ %in3) -> (i1$ %out1) {
+            %init:
+                %epsilon = const time 0s 1e
+                %in1_prb = prb i1$ %in1
+                %in2_prb = prb i1$ %in2
+                %in3_prb = prb i1$ %in2
+                %and1 = and i1 %in1_prb, %in2_prb
+                %and2 = and i1 %in3_prb, %and1
+                drv i1$ %out1, %and2, %epsilon
+                wait %init for %epsilon
+            }
+
+            entity @top () -> () {
+                %top_input1 = const i1 0
+                %in1 = sig i1 %top_input1
+                %top_input2 = const i1 1
+                %in2 = sig i1 %top_input2
+                %top_input3 = const i1 1
+                %in3 = sig i1 %top_input3
+                %top_out1 = const i1 0
+                %out1 = sig i1 %top_out1
+                inst %top.and (i1$ %in1, i1$ %in2, i1$ %in3) -> (i1$ %out1)
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let units: Vec<UnitComponent> = build_units(&module).collect();
+        assert_eq!(2, units.len(), "There should be 2 Units present in Module.");
+    }
 
     fn build_entity(name: UnitName) -> UnitData {
         let mut sig = Signature::new();

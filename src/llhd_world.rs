@@ -1,3 +1,4 @@
+pub mod macros;
 mod components;
 mod initializer;
 pub(crate) mod world;

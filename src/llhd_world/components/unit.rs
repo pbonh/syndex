@@ -1,16 +1,18 @@
-use llhd::ir::prelude::{UnitData, UnitKind, UnitName};
+use llhd::ir::prelude::{UnitData, UnitId, UnitKind, UnitName};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct UnitComponent {
+    pub(crate) id: Option<UnitId>,
     pub(crate) name: UnitName,
     pub(crate) kind: UnitKind,
 }
 
-impl From<&UnitData> for UnitComponent {
-    fn from(unit: &UnitData) -> Self {
+impl From<&(UnitId, UnitData)> for UnitComponent {
+    fn from(unit: &(UnitId, UnitData)) -> Self {
         Self {
-            name: unit.name.clone(),
-            kind: unit.kind,
+            id: Some(unit.0),
+            name: unit.1.name.clone(),
+            kind: unit.1.kind,
         }
     }
 }
@@ -18,6 +20,7 @@ impl From<&UnitData> for UnitComponent {
 impl Default for UnitComponent {
     fn default() -> Self {
         Self {
+            id: None,
             name: UnitName::anonymous(0),
             kind: llhd::ir::UnitKind::Entity,
         }
@@ -26,8 +29,9 @@ impl Default for UnitComponent {
 
 #[cfg(test)]
 mod tests {
-    use llhd::ir::prelude::*;
     use super::*;
+    use llhd::ir::prelude::*;
+    use llhd::table::TableKey;
 
     fn build_entity(name: UnitName) -> UnitData {
         let mut sig = Signature::new();
@@ -56,7 +60,8 @@ mod tests {
 
     #[test]
     fn create_unit_component() {
+        let entity_id = UnitId::new(0);
         let entity = build_entity(UnitName::anonymous(0));
-        let _unit_component = UnitComponent::from(&entity);
+        let _unit_component = UnitComponent::from(&(entity_id,entity));
     }
 }
