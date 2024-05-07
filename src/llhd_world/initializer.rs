@@ -1,8 +1,10 @@
 use crate::llhd::common::filter_nullary;
-use crate::llhd_world::components::value::ValueComponent;
+use crate::llhd_world::components::{inst::InstComponent, value::ValueComponent};
 use llhd::ir::Unit;
 
-pub(crate) fn build_values<'unit>(unit: &'unit Unit) -> impl Iterator<Item = ValueComponent> + 'unit {
+pub(crate) fn build_values<'unit>(
+    unit: &'unit Unit,
+) -> impl Iterator<Item = ValueComponent> + 'unit {
     unit.input_args()
         .map(|arg| ValueComponent {
             id: Some(arg),
@@ -23,12 +25,25 @@ pub(crate) fn build_values<'unit>(unit: &'unit Unit) -> impl Iterator<Item = Val
         )
 }
 
+pub(crate) fn build_insts<'unit>(unit: &'unit Unit) -> impl Iterator<Item = InstComponent> + 'unit {
+    unit.all_insts()
+        .filter(|inst| filter_nullary(unit, *inst))
+        .filter(|inst| unit.get_inst_result(*inst).is_some())
+        .map(|inst| {
+            let inst_data = &unit[inst];
+            InstComponent {
+                id: Some(inst),
+                data: inst_data.clone(),
+            }
+        })
+}
+
 #[cfg(test)]
 mod tests {
+    use super::*;
     use llhd::ir::prelude::*;
     use llhd::ir::ValueData;
     use llhd::table::TableKey;
-    use super::*;
 
     fn build_entity(name: UnitName) -> UnitData {
         let mut sig = Signature::new();
@@ -55,17 +70,64 @@ mod tests {
         let unit_data = build_entity(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
         let value_components: Vec<ValueComponent> = build_values(&unit).collect();
-        assert_eq!(8, value_components.len(), "There should be 9 Values defined in Unit.");
-        assert_eq!(Value::new(0), value_components[0].id.unwrap(), "First Id should be Arg with Id: 0");
-        assert_eq!(Value::new(1), value_components[1].id.unwrap(), "Second Id should be Arg with Id: 1");
+        assert_eq!(
+            8,
+            value_components.len(),
+            "There should be 9 Values defined in Unit."
+        );
+        assert_eq!(
+            Value::new(0),
+            value_components[0].id.unwrap(),
+            "First Id should be Arg with Id: 0"
+        );
+        assert_eq!(
+            Value::new(1),
+            value_components[1].id.unwrap(),
+            "Second Id should be Arg with Id: 1"
+        );
         let add_value_component = value_components.last().unwrap();
-        if let ValueData::Inst{ inst, .. } = add_value_component.data {
+        if let ValueData::Inst { inst, .. } = add_value_component.data {
             let add_inst_data = &unit[inst];
             let opcode = add_inst_data.opcode();
             assert!(matches!(opcode, Opcode::Add), "Inst should be Add type.");
         } else {
             panic!("Value(7) should correspond to an add inst.");
         }
-        assert_eq!(Value::new(8), add_value_component.id.unwrap(), "Last Id should be Value with Id: 7");
+        assert_eq!(
+            Value::new(8),
+            add_value_component.id.unwrap(),
+            "Last Id should be Value with Id: 7"
+        );
+    }
+
+    #[test]
+    fn create_inst_component() {
+        let unit_data = build_entity(UnitName::anonymous(0));
+        let unit = Unit::new(UnitId::new(0), &unit_data);
+        let inst_components: Vec<InstComponent> = build_insts(&unit).collect();
+        assert_eq!(
+            5,
+            inst_components.len(),
+            "There should be 5 Insts defined in Unit."
+        );
+        assert_eq!(
+            Inst::new(1),
+            inst_components[0].id.unwrap(),
+            "First Id should be Inst with Id: 0"
+        );
+        assert_eq!(
+            Inst::new(2),
+            inst_components[1].id.unwrap(),
+            "Second Id should be Inst with Id: 1"
+        );
+        let add_component = &inst_components.last().unwrap();
+        let add_inst_data = &add_component.data;
+        let opcode = add_inst_data.opcode();
+        assert_eq!(
+            Inst::new(5),
+            add_component.id.unwrap(),
+            "Last Id should be Inst with Id: 4"
+        );
+        assert!(matches!(opcode, Opcode::Add), "Inst should be Add type.");
     }
 }
