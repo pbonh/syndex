@@ -6,11 +6,11 @@ pub struct LLHDWorld {
     pub(crate) world: LWorld,
 }
 
-impl LLHDWorld {
-    pub(crate) fn new() -> Self {
+impl From<(LLHDModule, LWorld)> for LLHDWorld {
+    fn from(init: (LLHDModule, LWorld)) -> Self {
         Self {
-            module: LLHDModule::default(),
-            world: LWorld::default(),
+            module: init.0,
+            world: init.1,
         }
     }
 }
@@ -70,6 +70,6 @@ mod tests {
             }
         "};
         let module = llhd::assembly::parse_module(input).unwrap();
-        let _llhd_world = create_llhd_world!(&module, TimingNode, TimingEdge);
+        let _llhd_world = create_llhd_world!(module, TimingNode, TimingEdge);
     }
 }
