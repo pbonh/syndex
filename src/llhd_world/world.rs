@@ -1,9 +1,19 @@
 use crate::{llhd::module::LLHDModule, world::LWorld};
 
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 pub struct LLHDWorld {
     pub(crate) module: LLHDModule,
     pub(crate) world: LWorld,
+}
+
+impl LLHDWorld {
+    pub fn module(&self) -> &LLHDModule {
+        &self.module
+    }
+
+    pub fn world(&self) -> &LWorld {
+        &self.world
+    }
 }
 
 impl From<(LLHDModule, LWorld)> for LLHDWorld {
@@ -17,7 +27,11 @@ impl From<(LLHDModule, LWorld)> for LLHDWorld {
 
 #[cfg(test)]
 mod tests {
-    use crate::create_llhd_world;
+    use crate::{
+        create_llhd_world,
+        llhd_world::components::{unit::UnitComponent, value::ValueComponent},
+    };
+    use std::collections::HashSet;
 
     use super::*;
 
@@ -70,6 +84,60 @@ mod tests {
             }
         "};
         let module = llhd::assembly::parse_module(input).unwrap();
-        let _llhd_world = create_llhd_world!(module, TimingNode, TimingEdge);
+        let llhd_world = create_llhd_world!(module, TimingNode, TimingEdge);
+
+        let sub_module_name = "%top.and";
+        let top_module_name = "@top";
+        let mut units: HashSet<String> = Default::default();
+        llhd_world
+            .world()
+            .each1(|_entity: flecs::Entity, unit_component: &UnitComponent| {
+                units.insert(unit_component.name.to_string());
+            });
+        assert_eq!(2, units.len(), "There should be 2 Units present in ECS.");
+        assert!(units.contains(sub_module_name));
+        assert!(units.contains(top_module_name));
+        llhd_world
+            .world()
+            .each1(|entity: flecs::Entity, _unit_component: &UnitComponent| {
+                let mut value_str_list: HashSet<String> = Default::default();
+                if entity.name() == sub_module_name {
+                    entity.children(|child_value| {
+                        let value_component = child_value.get::<ValueComponent>();
+                        if let Some(value_id) = value_component.id {
+                            let value_str = value_id.to_string();
+                            value_str_list.insert(value_str);
+                        } else {
+                            panic!("Value should have a valid Id.");
+                        }
+                    });
+                    assert_eq!(10, value_str_list.len(), "10 Values should be present in sub entity.");
+                    assert!(value_str_list.contains("v0"));
+                    assert!(value_str_list.contains("v9"));
+                } else if entity.name() == top_module_name {
+                    entity.children(|child_value| {
+                        let value_component = child_value.get::<ValueComponent>();
+                        if let Some(value_id) = value_component.id {
+                            let value_str = value_id.to_string();
+                            value_str_list.insert(value_str);
+                        } else {
+                            panic!("Value should have a valid Id.");
+                        }
+                    });
+                    assert_eq!(8, value_str_list.len(), "8 Values should be present in top entity.");
+                    assert!(value_str_list.contains("v0"));
+                    assert!(value_str_list.contains("v7"));
+                } else {
+                    panic!("Unknown module name: {}", entity.name());
+                }
+            });
+
+        let mut values: Vec<String> = Default::default();
+        llhd_world
+            .world()
+            .each1(|_entity: flecs::Entity, value_component: &ValueComponent| {
+                values.push(value_component.id.unwrap().to_string());
+            });
+        assert_eq!(18, values.len(), "There should be 18 Values present in ECS.");
     }
 }

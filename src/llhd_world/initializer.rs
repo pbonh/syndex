@@ -15,7 +15,7 @@ pub(crate) fn build_units(module: &Module) -> impl Iterator<Item = UnitComponent
 pub(crate) fn build_values<'unit>(
     unit: &'unit Unit,
 ) -> impl Iterator<Item = ValueComponent> + 'unit {
-    unit.input_args()
+    unit.args()
         .map(|arg| ValueComponent {
             id: Some(arg),
             data: unit[arg].clone(),
@@ -112,7 +112,7 @@ mod tests {
         let unit = Unit::new(UnitId::new(0), &unit_data);
         let value_components: Vec<ValueComponent> = build_values(&unit).collect();
         assert_eq!(
-            8,
+            9,
             value_components.len(),
             "There should be 9 Values defined in Unit."
         );
