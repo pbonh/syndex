@@ -8,7 +8,7 @@ pub struct LWorld(World);
 
 impl Default for LWorld {
     fn default() -> Self {
-        LWorld(World::new())
+        Self(World::new())
     }
 }
 
