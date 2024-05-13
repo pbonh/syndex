@@ -87,7 +87,22 @@ mod tests {
         let llhd_world = create_llhd_world!(module, TimingNode, TimingEdge);
 
         let sub_module_name = "%top.and";
+        let sub_module_name_first_value = "v0";
+        let sub_module_name_last_value = "v9";
         let top_module_name = "@top";
+        let top_module_name_first_value = "v0";
+        let top_module_name_last_value = "v7";
+        let sub_module_name_first_value_full_name = sub_module_name.to_owned() + "::" + sub_module_name_first_value;
+        let sub_module_name_last_value_full_name = sub_module_name.to_owned() + "::" + sub_module_name_last_value;
+        let top_module_name_first_value_full_name = top_module_name.to_owned() + "::" + top_module_name_first_value;
+        let top_module_name_last_value_full_name = top_module_name.to_owned() + "::" + top_module_name_last_value;
+        assert!(llhd_world.world().lookup(&sub_module_name).is_some(), "%top.and should be present name to lookup in ECS.");
+        assert!(llhd_world.world().lookup(&sub_module_name_first_value_full_name).is_some(), "%top.and::v0 should be present name to lookup in ECS.");
+        assert!(llhd_world.world().lookup(&sub_module_name_last_value_full_name).is_some(), "%top.and::v9 should be present name to lookup in ECS.");
+        assert!(llhd_world.world().lookup(&top_module_name).is_some(), "@top should be present name to lookup in ECS.");
+        assert!(llhd_world.world().lookup(&top_module_name_first_value_full_name).is_some(), "@top::v0 should be present name to lookup in ECS.");
+        assert!(llhd_world.world().lookup(&top_module_name_last_value_full_name).is_some(), "@top::v9 should be present name to lookup in ECS.");
+
         let mut units: HashSet<String> = Default::default();
         llhd_world
             .world()
@@ -112,8 +127,8 @@ mod tests {
                         }
                     });
                     assert_eq!(10, value_str_list.len(), "10 Values should be present in sub entity.");
-                    assert!(value_str_list.contains("v0"));
-                    assert!(value_str_list.contains("v9"));
+                    assert!(value_str_list.contains(sub_module_name_first_value));
+                    assert!(value_str_list.contains(sub_module_name_last_value));
                 } else if entity.name() == top_module_name {
                     entity.children(|child_value| {
                         let value_component = child_value.get::<ValueComponent>();
@@ -125,8 +140,8 @@ mod tests {
                         }
                     });
                     assert_eq!(8, value_str_list.len(), "8 Values should be present in top entity.");
-                    assert!(value_str_list.contains("v0"));
-                    assert!(value_str_list.contains("v7"));
+                    assert!(value_str_list.contains(top_module_name_first_value));
+                    assert!(value_str_list.contains(top_module_name_last_value));
                 } else {
                     panic!("Unknown module name: {}", entity.name());
                 }
