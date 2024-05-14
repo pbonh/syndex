@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
     use bevy_ecs::prelude::*;
+    use bevy_hierarchy::BuildWorldChildren;
     use llhd::ir::prelude::*;
+    use llhd::ir::ValueData;
 
     #[test]
     fn bevy_entity_basic() {
@@ -112,11 +114,26 @@ mod tests {
     #[derive(Debug, Clone, Eq, PartialEq, Component)]
     struct LLHDUnitComponent(Option<UnitId>, UnitName, UnitKind);
 
+    #[derive(Debug, Clone, Component)]
+    struct LLHDValueComponent(Option<Value>, ValueData);
+
     impl Default for LLHDUnitComponent {
         fn default() -> Self {
             Self(None, UnitName::anonymous(0), llhd::ir::UnitKind::Entity)
         }
     }
+
+    impl PartialEq for LLHDValueComponent {
+        fn eq(&self, other: &Self) -> bool {
+            if self.0.is_some() && other.0.is_some() {
+                self.0.unwrap() == other.0.unwrap()
+            } else {
+                false
+            }
+        }
+    }
+
+    impl Eq for LLHDValueComponent {}
 
     #[test]
     fn bevy_llhd_example() {
@@ -126,6 +143,15 @@ mod tests {
         let llhd_entity_id = llhd_entity.id();
         let llhd_entity_name = llhd_entity.name().to_owned();
         let llhd_entity_kind = llhd_entity.kind();
-        let _ecs_entity = world.spawn(LLHDUnitComponent(Some(llhd_entity_id), llhd_entity_name, llhd_entity_kind));
+        let llhd_entity_arg1 = llhd_entity.input_arg(0);
+        let llhd_entity_arg1_data = &llhd_entity[llhd_entity_arg1];
+        let llhd_value_component = LLHDValueComponent(Some(llhd_entity_arg1), llhd_entity_arg1_data.to_owned());
+        let _ecs_entity = world.spawn(LLHDUnitComponent(
+            Some(llhd_entity_id),
+            llhd_entity_name,
+            llhd_entity_kind,
+        )).with_children(|parent_unit| {
+                parent_unit.spawn(llhd_value_component);
+            });
     }
 }
