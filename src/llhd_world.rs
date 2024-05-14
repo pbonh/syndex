@@ -1,7 +1,6 @@
-pub mod macros;
+mod bevy_example;
 mod components;
-mod initializer;
-pub(crate) mod world;
 mod example_hierarchy;
 mod example_relations;
-mod bevy_example;
+mod initializer;
+pub(crate) mod world;

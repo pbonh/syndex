@@ -1,9 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
-use flecs::World;
+use bevy_ecs::world::World;
 
 /// New-Type Wrapper for an LLHD Module
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 pub struct LWorld(World);
 
 impl Deref for LWorld {
@@ -23,7 +23,7 @@ impl DerefMut for LWorld {
 impl<World> AsRef<World> for LWorld
 where
     World: ?Sized,
-    <LWorld as Deref>::Target: AsRef<World>,
+    <Self as Deref>::Target: AsRef<World>,
 {
     fn as_ref(&self) -> &World {
         self.deref().as_ref()
@@ -32,7 +32,7 @@ where
 
 impl<World> AsMut<World> for LWorld
 where
-    <LWorld as Deref>::Target: AsMut<World>,
+    <Self as Deref>::Target: AsMut<World>,
 {
     fn as_mut(&mut self) -> &mut World {
         self.deref_mut().as_mut()

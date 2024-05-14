@@ -1,11 +1,11 @@
 use crate::llhd::common::filter_nullary;
 use crate::llhd_world::components::{
-    inst::InstComponent, unit::UnitComponent, value::ValueComponent,
+    inst::LLHDInstComponent, unit::LLHDUnitComponent, value::LLHDValueComponent,
 };
 use llhd::ir::{Module, Unit};
 
-pub(crate) fn build_units(module: &Module) -> impl Iterator<Item = UnitComponent> + '_ {
-    module.units().map(|unit| UnitComponent {
+pub(crate) fn build_units(module: &Module) -> impl Iterator<Item = LLHDUnitComponent> + '_ {
+    module.units().map(|unit| LLHDUnitComponent {
         id: Some(unit.id()),
         name: unit.name().clone(),
         kind: unit.kind(),
@@ -14,9 +14,9 @@ pub(crate) fn build_units(module: &Module) -> impl Iterator<Item = UnitComponent
 
 pub(crate) fn build_values<'unit>(
     unit: &'unit Unit,
-) -> impl Iterator<Item = ValueComponent> + 'unit {
+) -> impl Iterator<Item = LLHDValueComponent> + 'unit {
     unit.args()
-        .map(|arg| ValueComponent {
+        .map(|arg| LLHDValueComponent {
             id: Some(arg),
             data: unit[arg].clone(),
         })
@@ -27,7 +27,7 @@ pub(crate) fn build_values<'unit>(
                 .map(|inst| {
                     let value_id = unit.inst_result(inst);
                     let value_data = &unit[value_id];
-                    ValueComponent {
+                    LLHDValueComponent {
                         id: Some(value_id),
                         data: value_data.clone(),
                     }
@@ -35,12 +35,14 @@ pub(crate) fn build_values<'unit>(
         )
 }
 
-pub(crate) fn build_insts<'unit>(unit: &'unit Unit) -> impl Iterator<Item = InstComponent> + 'unit {
+pub(crate) fn build_insts<'unit>(
+    unit: &'unit Unit,
+) -> impl Iterator<Item = LLHDInstComponent> + 'unit {
     unit.all_insts()
         .filter(|inst| filter_nullary(unit, *inst))
         .map(|inst| {
             let inst_data = &unit[inst];
-            InstComponent {
+            LLHDInstComponent {
                 id: Some(inst),
                 data: inst_data.clone(),
             }
@@ -82,7 +84,7 @@ mod tests {
             }
         "};
         let module = llhd::assembly::parse_module(input).unwrap();
-        let units: Vec<UnitComponent> = build_units(&module).collect();
+        let units: Vec<LLHDUnitComponent> = build_units(&module).collect();
         assert_eq!(2, units.len(), "There should be 2 Units present in Module.");
     }
 
@@ -110,7 +112,7 @@ mod tests {
     fn create_value_component() {
         let unit_data = build_entity(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
-        let value_components: Vec<ValueComponent> = build_values(&unit).collect();
+        let value_components: Vec<LLHDValueComponent> = build_values(&unit).collect();
         assert_eq!(
             9,
             value_components.len(),
@@ -145,7 +147,7 @@ mod tests {
     fn create_inst_component() {
         let unit_data = build_entity(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
-        let inst_components: Vec<InstComponent> = build_insts(&unit).collect();
+        let inst_components: Vec<LLHDInstComponent> = build_insts(&unit).collect();
         assert_eq!(
             5,
             inst_components.len(),

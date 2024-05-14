@@ -1,12 +1,13 @@
+use bevy_ecs::prelude::*;
 use llhd::ir::{Inst, InstData};
 
-#[derive(Debug, Default, PartialEq, Eq)]
-pub struct InstComponent {
+#[derive(Debug, Default, PartialEq, Eq, Component)]
+pub struct LLHDInstComponent {
     pub(crate) id: Option<Inst>,
     pub(crate) data: InstData,
 }
 
-impl From<&(Inst, InstData)> for InstComponent {
+impl From<&(Inst, InstData)> for LLHDInstComponent {
     fn from(inst: &(Inst, InstData)) -> Self {
         Self {
             id: Some(inst.0),
@@ -44,20 +45,19 @@ mod tests {
 
     #[test]
     fn create_inst_component_default() {
-        let _unit_component = InstComponent::default();
+        let _unit_component = LLHDInstComponent::default();
     }
 
     #[test]
     fn create_inst_component() {
         let unit_data = build_entity(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
-        let mut inst_components: Vec<InstComponent> = Default::default();
-        unit
-            .all_insts()
+        let mut inst_components: Vec<LLHDInstComponent> = Default::default();
+        unit.all_insts()
             .filter(|inst| filter_nullary(&unit, *inst))
             .for_each(|inst| {
                 let inst_data = unit[inst].clone();
-                inst_components.push(InstComponent::from(&(inst, inst_data)));
+                inst_components.push(LLHDInstComponent::from(&(inst, inst_data)));
             });
         assert_eq!(
             5,

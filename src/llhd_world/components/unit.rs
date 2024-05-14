@@ -1,13 +1,14 @@
+use bevy_ecs::prelude::*;
 use llhd::ir::prelude::{UnitData, UnitId, UnitKind, UnitName};
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct UnitComponent {
+#[derive(Debug, PartialEq, Eq, Component)]
+pub struct LLHDUnitComponent {
     pub(crate) id: Option<UnitId>,
     pub(crate) name: UnitName,
     pub(crate) kind: UnitKind,
 }
 
-impl From<&(UnitId, UnitData)> for UnitComponent {
+impl From<&(UnitId, UnitData)> for LLHDUnitComponent {
     fn from(unit: &(UnitId, UnitData)) -> Self {
         Self {
             id: Some(unit.0),
@@ -17,7 +18,7 @@ impl From<&(UnitId, UnitData)> for UnitComponent {
     }
 }
 
-impl Default for UnitComponent {
+impl Default for LLHDUnitComponent {
     fn default() -> Self {
         Self {
             id: None,
@@ -55,13 +56,13 @@ mod tests {
 
     #[test]
     fn create_unit_component_default() {
-        let _unit_component = UnitComponent::default();
+        let _unit_component = LLHDUnitComponent::default();
     }
 
     #[test]
     fn create_unit_component() {
         let entity_id = UnitId::new(0);
         let entity = build_entity(UnitName::anonymous(0));
-        let _unit_component = UnitComponent::from(&(entity_id,entity));
+        let _unit_component = LLHDUnitComponent::from(&(entity_id, entity));
     }
 }
