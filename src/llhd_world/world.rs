@@ -1,4 +1,5 @@
-use bevy_ecs::prelude::{Component, Entity};
+use bevy_ecs::prelude::{Component, Entity, QueryState};
+use bevy_ecs::query::QueryData;
 use bevy_hierarchy::BuildWorldChildren;
 use std::ops::Add;
 
@@ -64,6 +65,10 @@ impl LLHDWorld {
             .unzip()
             .0
     }
+
+    pub fn query<D: QueryData>(&mut self) -> QueryState<D, ()> {
+        self.0.query::<D>()
+    }
 }
 
 impl From<LLHDModule> for LLHDWorld {
@@ -79,7 +84,8 @@ mod tests {
     // };
     // use std::collections::HashSet;
 
-    use crate::llhd_world::components::inst::LLHDInstComponent;
+    use crate::llhd_world::components::{inst::LLHDInstComponent, unit::LLHDUnitComponent};
+    use bevy_hierarchy::Children;
 
     use super::*;
 
@@ -110,6 +116,7 @@ mod tests {
             }
 
             entity @top () -> () {
+                %epsilon = const time 0s 1e
                 %top_input1 = const i1 0
                 %in1 = sig i1 %top_input1
                 %top_input2 = const i1 1
@@ -142,7 +149,7 @@ mod tests {
         let sub_module_name_first_value = "v0";
         let sub_module_name_last_value = "v9";
         let top_module_name_first_value = "v0";
-        let top_module_name_last_value = "v7";
+        let top_module_name_last_value = "v8";
         let sub_module_name_first_value_full_name =
             sub_module_name.to_owned() + "." + sub_module_name_first_value;
         let sub_module_name_last_value_full_name =
@@ -178,8 +185,8 @@ mod tests {
 
         let sub_module_name_first_inst = "i0";
         let sub_module_name_last_inst = "i7";
-        let top_module_name_first_inst = "i0";
-        let top_module_name_last_inst = "i8";
+        let top_module_name_first_inst = "i2";
+        let top_module_name_last_inst = "i10";
         let sub_module_name_first_inst_full_name =
             sub_module_name.to_owned() + "." + sub_module_name_first_inst;
         let sub_module_name_last_inst_full_name =
@@ -206,12 +213,13 @@ mod tests {
         );
         assert!(
             top_module_name_first_inst_entity.is_some(),
-            "@top.i0 should be present name to lookup in ECS."
+            "@top.i1 should be present name to lookup in ECS."
         );
         assert!(
             top_module_name_last_inst_entity.is_some(),
-            "@top.i8 should be present name to lookup in ECS."
+            "@top.i9 should be present name to lookup in ECS."
         );
+
         let sub_module_name_first_inst_data = llhd_world
             .world()
             .get::<LLHDInstComponent>(sub_module_name_first_inst_entity.unwrap())
@@ -235,12 +243,54 @@ mod tests {
             "Last Instruction in sub-module should be Wait."
         );
 
-        // let mut insts: Vec<String> = Default::default();
-        // llhd_world
-        //     .world()
-        //     .each1(|_entity: flecs::Entity, inst_component: &LLHDInstComponent| {
-        //         insts.push(inst_component.id.unwrap().to_string());
-        //     });
-        // assert_eq!(18, insts.len(), "There should be 18 insts present in ECS.");
+        let top_module_name_first_inst_data = llhd_world
+            .world()
+            .get::<LLHDInstComponent>(top_module_name_first_inst_entity.unwrap())
+            .unwrap();
+        assert!(
+            matches!(
+                top_module_name_first_inst_data.data.opcode(),
+                llhd::ir::Opcode::ConstInt
+            ),
+            "First Instruction in top-module should be ConstInt."
+        );
+        let top_module_name_last_inst_data = llhd_world
+            .world()
+            .get::<LLHDInstComponent>(top_module_name_last_inst_entity.unwrap())
+            .unwrap();
+        assert!(
+            matches!(
+                top_module_name_last_inst_data.data.opcode(),
+                llhd::ir::Opcode::Inst
+            ),
+            "Last Instruction in top-module should be Inst."
+        );
+
+        let mut parent_query = llhd_world.query::<(Entity, &Children)>();
+        parent_query
+            .iter(llhd_world.world())
+            .for_each(|(parent_unit_entity, child_entity)| {
+                let unit_name = llhd_world
+                    .world()
+                    .get::<LLHDUnitComponent>(parent_unit_entity)
+                    .unwrap()
+                    .name
+                    .to_string();
+                if unit_name == sub_module_name {
+                    assert_eq!(
+                        18,
+                        child_entity.len(),
+                        "There should be 18 child nodes(8 Values + 10 Insts) in @top module."
+                    );
+                } else if unit_name == top_module_name {
+                    assert_eq!(
+                        20,
+                        child_entity.len(),
+                        "There should be 20 child nodes(9 Values + 11 Insts) in @top module."
+                    );
+                } else {
+                    panic!("Unknown module name: {}", unit_name);
+                }
+            });
     }
 }
