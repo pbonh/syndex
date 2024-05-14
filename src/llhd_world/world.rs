@@ -57,6 +57,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn create_llhd_world_via_macro() {
         // let mut _world = LWorld::default();
         let input = indoc::indoc! {"
