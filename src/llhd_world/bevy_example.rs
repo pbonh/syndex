@@ -145,12 +145,15 @@ mod tests {
         let llhd_entity_kind = llhd_entity.kind();
         let llhd_entity_arg1 = llhd_entity.input_arg(0);
         let llhd_entity_arg1_data = &llhd_entity[llhd_entity_arg1];
-        let llhd_value_component = LLHDValueComponent(Some(llhd_entity_arg1), llhd_entity_arg1_data.to_owned());
-        let _ecs_entity = world.spawn(LLHDUnitComponent(
-            Some(llhd_entity_id),
-            llhd_entity_name,
-            llhd_entity_kind,
-        )).with_children(|parent_unit| {
+        let llhd_value_component =
+            LLHDValueComponent(Some(llhd_entity_arg1), llhd_entity_arg1_data.to_owned());
+        let _ecs_entity = world
+            .spawn(LLHDUnitComponent(
+                Some(llhd_entity_id),
+                llhd_entity_name,
+                llhd_entity_kind,
+            ))
+            .with_children(|parent_unit| {
                 parent_unit.spawn(llhd_value_component);
             });
     }
