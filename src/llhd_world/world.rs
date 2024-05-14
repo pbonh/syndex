@@ -79,6 +79,8 @@ mod tests {
     // };
     // use std::collections::HashSet;
 
+    use crate::llhd_world::components::inst::LLHDInstComponent;
+
     use super::*;
 
     #[test]
@@ -94,7 +96,6 @@ mod tests {
 
     #[test]
     fn create_llhd_world() {
-        // let mut _world = LWorld::default();
         let input = indoc::indoc! {"
             proc %top.and (i1$ %in1, i1$ %in2, i1$ %in3) -> (i1$ %out1) {
             %init:
@@ -150,34 +151,34 @@ mod tests {
             top_module_name.to_owned() + "." + top_module_name_first_value;
         let top_module_name_last_value_full_name =
             top_module_name.to_owned() + "." + top_module_name_last_value;
+        let sub_module_name_first_value_entity =
+            llhd_world.slow_lookup(&sub_module_name_first_value_full_name);
+        let sub_module_name_last_value_entity =
+            llhd_world.slow_lookup(&sub_module_name_last_value_full_name);
+        let top_module_name_first_value_entity =
+            llhd_world.slow_lookup(&top_module_name_first_value_full_name);
+        let top_module_name_last_value_entity =
+            llhd_world.slow_lookup(&top_module_name_last_value_full_name);
         assert!(
-            llhd_world
-                .slow_lookup(&sub_module_name_first_value_full_name)
-                .is_some(),
+            sub_module_name_first_value_entity.is_some(),
             "%top.and.v0 should be present name to lookup in ECS."
         );
         assert!(
-            llhd_world
-                .slow_lookup(&sub_module_name_last_value_full_name)
-                .is_some(),
+            sub_module_name_last_value_entity.is_some(),
             "%top.and.v9 should be present name to lookup in ECS."
         );
         assert!(
-            llhd_world
-                .slow_lookup(&top_module_name_first_value_full_name)
-                .is_some(),
+            top_module_name_first_value_entity.is_some(),
             "@top.v0 should be present name to lookup in ECS."
         );
         assert!(
-            llhd_world
-                .slow_lookup(&top_module_name_last_value_full_name)
-                .is_some(),
+            top_module_name_last_value_entity.is_some(),
             "@top.v9 should be present name to lookup in ECS."
         );
 
-        let sub_module_name_first_inst = "i1";
+        let sub_module_name_first_inst = "i0";
         let sub_module_name_last_inst = "i7";
-        let top_module_name_first_inst = "i1";
+        let top_module_name_first_inst = "i0";
         let top_module_name_last_inst = "i8";
         let sub_module_name_first_inst_full_name =
             sub_module_name.to_owned() + "." + sub_module_name_first_inst;
@@ -187,139 +188,53 @@ mod tests {
             top_module_name.to_owned() + "." + top_module_name_first_inst;
         let top_module_name_last_inst_full_name =
             top_module_name.to_owned() + "." + top_module_name_last_inst;
+        let sub_module_name_first_inst_entity =
+            llhd_world.slow_lookup(&sub_module_name_first_inst_full_name);
+        let sub_module_name_last_inst_entity =
+            llhd_world.slow_lookup(&sub_module_name_last_inst_full_name);
+        let top_module_name_first_inst_entity =
+            llhd_world.slow_lookup(&top_module_name_first_inst_full_name);
+        let top_module_name_last_inst_entity =
+            llhd_world.slow_lookup(&top_module_name_last_inst_full_name);
         assert!(
-            llhd_world
-                .slow_lookup(&sub_module_name_first_inst_full_name)
-                .is_some(),
+            sub_module_name_first_inst_entity.is_some(),
             "%top.and.i0 should be present name to lookup in ECS."
         );
         assert!(
-            llhd_world
-                .slow_lookup(&sub_module_name_last_inst_full_name)
-                .is_some(),
+            sub_module_name_last_inst_entity.is_some(),
             "%top.and.i7 should be present name to lookup in ECS."
         );
         assert!(
-            llhd_world
-                .slow_lookup(&top_module_name_first_inst_full_name)
-                .is_some(),
+            top_module_name_first_inst_entity.is_some(),
             "@top.i0 should be present name to lookup in ECS."
         );
         assert!(
-            llhd_world
-                .slow_lookup(&top_module_name_last_inst_full_name)
-                .is_some(),
+            top_module_name_last_inst_entity.is_some(),
             "@top.i8 should be present name to lookup in ECS."
         );
+        let sub_module_name_first_inst_data = llhd_world
+            .world()
+            .get::<LLHDInstComponent>(sub_module_name_first_inst_entity.unwrap())
+            .unwrap();
+        assert!(
+            matches!(
+                sub_module_name_first_inst_data.data.opcode(),
+                llhd::ir::Opcode::ConstTime
+            ),
+            "First Instruction in sub-module should be ConstTime."
+        );
+        let sub_module_name_last_inst_data = llhd_world
+            .world()
+            .get::<LLHDInstComponent>(sub_module_name_last_inst_entity.unwrap())
+            .unwrap();
+        assert!(
+            matches!(
+                sub_module_name_last_inst_data.data.opcode(),
+                llhd::ir::Opcode::WaitTime
+            ),
+            "Last Instruction in sub-module should be Wait."
+        );
 
-        // let mut units: HashSet<String> = Default::default();
-        // llhd_world
-        //     .world()
-        //     .each1(|_entity: flecs::Entity, unit_component: &LLHDUnitComponent| {
-        //         units.insert(unit_component.name.to_string());
-        //     });
-        // assert_eq!(2, units.len(), "There should be 2 Units present in ECS.");
-        // assert!(units.contains(sub_module_name));
-        // assert!(units.contains(top_module_name));
-        //
-        // llhd_world
-        //     .world()
-        //     .each1(|entity: flecs::Entity, _unit_component: &LLHDUnitComponent| {
-        //         let mut value_str_list: HashSet<String> = Default::default();
-        //         if entity.name() == sub_module_name {
-        //             entity.children(|child_value| {
-        //                 let value_component = child_value.get::<LLHDValueComponent>();
-        //                 if let Some(value_id) = value_component.id {
-        //                     let value_str = value_id.to_string();
-        //                     value_str_list.insert(value_str);
-        //                 } else {
-        //                     panic!("Value should have a valid Id.");
-        //                 }
-        //             });
-        //             assert_eq!(
-        //                 10,
-        //                 value_str_list.len(),
-        //                 "10 Values should be present in sub entity."
-        //             );
-        //             assert!(value_str_list.contains(sub_module_name_first_value));
-        //             assert!(value_str_list.contains(sub_module_name_last_value));
-        //         } else if entity.name() == top_module_name {
-        //             entity.children(|child_value| {
-        //                 let value_component = child_value.get::<LLHDValueComponent>();
-        //                 if let Some(value_id) = value_component.id {
-        //                     let value_str = value_id.to_string();
-        //                     value_str_list.insert(value_str);
-        //                 } else {
-        //                     panic!("Value should have a valid Id.");
-        //                 }
-        //             });
-        //             assert_eq!(
-        //                 8,
-        //                 value_str_list.len(),
-        //                 "8 Values should be present in top entity."
-        //             );
-        //             assert!(value_str_list.contains(top_module_name_first_value));
-        //             assert!(value_str_list.contains(top_module_name_last_value));
-        //         } else {
-        //             panic!("Unknown module name: {}", entity.name());
-        //         }
-        //     });
-        //
-        // let mut values: Vec<String> = Default::default();
-        // llhd_world
-        //     .world()
-        //     .each1(|_entity: flecs::Entity, value_component: &LLHDValueComponent| {
-        //         values.push(value_component.id.unwrap().to_string());
-        //     });
-        // assert_eq!(
-        //     18,
-        //     values.len(),
-        //     "There should be 18 Values present in ECS."
-        // );
-        //
-        // llhd_world
-        //     .world()
-        //     .each1(|entity: flecs::Entity, _unit_component: &UnitComponent| {
-        //         let mut inst_str_list: HashSet<String> = Default::default();
-        //         if entity.name() == sub_module_name {
-        //             entity.children(|child_inst| {
-        //                 let inst_component = child_inst.get::<LLHDInstComponent>();
-        //                 if let Some(inst_id) = inst_component.id {
-        //                     let inst_str = inst_id.to_string();
-        //                     inst_str_list.insert(inst_str);
-        //                 } else {
-        //                     panic!("inst should have a valid Id.");
-        //                 }
-        //             });
-        //             assert_eq!(
-        //                 10,
-        //                 inst_str_list.len(),
-        //                 "10 insts should be present in sub entity."
-        //             );
-        //             assert!(inst_str_list.contains(sub_module_name_first_inst));
-        //             assert!(inst_str_list.contains(sub_module_name_last_inst));
-        //         } else if entity.name() == top_module_name {
-        //             entity.children(|child_inst| {
-        //                 let inst_component = child_inst.get::<LLHDInstComponent>();
-        //                 if let Some(inst_id) = inst_component.id {
-        //                     let inst_str = inst_id.to_string();
-        //                     inst_str_list.insert(inst_str);
-        //                 } else {
-        //                     panic!("inst should have a valid Id.");
-        //                 }
-        //             });
-        //             assert_eq!(
-        //                 8,
-        //                 inst_str_list.len(),
-        //                 "8 insts should be present in top entity."
-        //             );
-        //             assert!(inst_str_list.contains(top_module_name_first_inst));
-        //             assert!(inst_str_list.contains(top_module_name_last_inst));
-        //         } else {
-        //             panic!("Unknown module name: {}", entity.name());
-        //         }
-        //     });
-        //
         // let mut insts: Vec<String> = Default::default();
         // llhd_world
         //     .world()

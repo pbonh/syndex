@@ -1,4 +1,3 @@
-use crate::llhd::common::filter_nullary;
 use crate::llhd_world::components::{
     inst::LLHDInstComponent, unit::LLHDUnitComponent, value::LLHDValueComponent,
 };
@@ -22,7 +21,6 @@ pub(crate) fn build_values<'unit>(
         })
         .chain(
             unit.all_insts()
-                .filter(|inst| filter_nullary(unit, *inst))
                 .filter(|inst| unit.get_inst_result(*inst).is_some())
                 .map(|inst| {
                     let value_id = unit.inst_result(inst);
@@ -38,15 +36,13 @@ pub(crate) fn build_values<'unit>(
 pub(crate) fn build_insts<'unit>(
     unit: &'unit Unit,
 ) -> impl Iterator<Item = LLHDInstComponent> + 'unit {
-    unit.all_insts()
-        .filter(|inst| filter_nullary(unit, *inst))
-        .map(|inst| {
-            let inst_data = &unit[inst];
-            LLHDInstComponent {
-                id: Some(inst),
-                data: inst_data.clone(),
-            }
-        })
+    unit.all_insts().map(|inst| {
+        let inst_data = &unit[inst];
+        LLHDInstComponent {
+            id: Some(inst),
+            data: inst_data.clone(),
+        }
+    })
 }
 
 #[cfg(test)]
@@ -149,27 +145,27 @@ mod tests {
         let unit = Unit::new(UnitId::new(0), &unit_data);
         let inst_components: Vec<LLHDInstComponent> = build_insts(&unit).collect();
         assert_eq!(
-            5,
+            6,
             inst_components.len(),
-            "There should be 5 Insts defined in Unit."
+            "There should be 6 Insts defined in Unit."
         );
         assert_eq!(
             Inst::new(1),
             inst_components[0].id.unwrap(),
-            "First Id should be Inst with Id: 0"
+            "First Id should be Inst with Id: 1"
         );
         assert_eq!(
             Inst::new(2),
             inst_components[1].id.unwrap(),
-            "Second Id should be Inst with Id: 1"
+            "Second Id should be Inst with Id: 0"
         );
-        let add_component = &inst_components.last().unwrap();
+        let add_component = &inst_components[2];
         let add_inst_data = &add_component.data;
         let opcode = add_inst_data.opcode();
         assert_eq!(
-            Inst::new(5),
+            Inst::new(3),
             add_component.id.unwrap(),
-            "Last Id should be Inst with Id: 4"
+            "Last Id should be Inst with Id: 3"
         );
         assert!(matches!(opcode, Opcode::Add), "Inst should be Add type.");
     }
