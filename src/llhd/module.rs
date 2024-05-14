@@ -1,9 +1,11 @@
+use bevy_ecs::prelude::Resource;
 use llhd::ir::Module;
 use std::fmt;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 
-pub(crate) struct LLHDModule(Module);
+#[derive(Resource)]
+pub struct LLHDModule(Module);
 
 impl Default for LLHDModule {
     fn default() -> Self {

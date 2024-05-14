@@ -1,76 +1,85 @@
+use bevy_ecs::prelude::{Component, Entity};
 use bevy_hierarchy::BuildWorldChildren;
+use std::ops::Add;
 
 use crate::llhd_world::initializer::{build_insts, build_units, build_values};
 use crate::{llhd::module::LLHDModule, world::LWorld};
 
-#[derive(Debug, Default)]
-pub struct LLHDWorld {
-    pub(crate) module: LLHDModule,
-    pub(crate) world: LWorld,
+#[derive(Debug, Clone, Default, Component)]
+pub struct ECSEntityName(String);
+
+impl Add for ECSEntityName {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self(self.0 + &other.0)
+    }
 }
+
+#[derive(Debug, Default)]
+pub struct LLHDWorld(LWorld);
 
 impl LLHDWorld {
     pub fn new(module: LLHDModule) -> Self {
         let mut world = LWorld::default();
         build_units(&module).for_each(|unit_component| {
             if let Some(unit_id) = unit_component.id {
-                let unit_name = unit_component.name.to_string();
-                let unit = world.spawn(unit_component).with_children(|parent_unit| {
-                    build_values(&module.unit(unit_id)).for_each(|value_component| {
-                        if let Some(value_id) = value_component.id {
-                            let value_name = value_id.to_string();
-                            parent_unit.spawn(value_component);
-                        }
+                let unit_name = ECSEntityName(unit_component.name.to_string());
+                let _unit_entity = world
+                    .spawn(unit_component)
+                    .insert(unit_name.to_owned())
+                    .with_children(|parent_unit| {
+                        build_values(&module.unit(unit_id)).for_each(|value_component| {
+                            if let Some(value_id) = value_component.id {
+                                let value_name = unit_name.to_owned()
+                                    + ECSEntityName(".".to_string())
+                                    + ECSEntityName(value_id.to_string());
+                                parent_unit.spawn(value_component).insert(value_name);
+                            }
+                        });
+                        build_insts(&module.unit(unit_id)).for_each(|inst_component| {
+                            if let Some(inst_id) = inst_component.id {
+                                let inst_name = unit_name.to_owned()
+                                    + ECSEntityName(".".to_string())
+                                    + ECSEntityName(inst_id.to_string());
+                                parent_unit.spawn(inst_component).insert(inst_name);
+                            }
+                        });
                     });
-                    build_insts(&module.unit(unit_id)).for_each(|inst_component| {
-                        if let Some(inst_id) = inst_component.id {
-                            let inst_name = inst_id.to_string();
-                            parent_unit.spawn(inst_component);
-                        }
-                    });
-                });
             }
         });
-        Self { module, world }
-    }
-
-    pub const fn module(&self) -> &LLHDModule {
-        &self.module
+        world.insert_resource(module);
+        Self(world)
     }
 
     pub const fn world(&self) -> &LWorld {
-        &self.world
+        &self.0
+    }
+
+    pub fn slow_lookup(&mut self, name: &str) -> Option<Entity> {
+        let mut entity_name_query = self.0.query::<(Entity, &ECSEntityName)>();
+        entity_name_query
+            .iter(&self.0)
+            .find(|(_entity, ecs_entity_name_component)| ecs_entity_name_component.0 == name)
+            .unzip()
+            .0
     }
 }
 
-impl From<(LLHDModule, LWorld)> for LLHDWorld {
-    fn from(init: (LLHDModule, LWorld)) -> Self {
-        Self {
-            module: init.0,
-            world: init.1,
-        }
+impl From<LLHDModule> for LLHDWorld {
+    fn from(module: LLHDModule) -> Self {
+        Self::new(module)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::llhd_world::components::{
-        inst::LLHDInstComponent, unit::LLHDUnitComponent, value::LLHDValueComponent,
-    };
-    use std::collections::HashSet;
+    // use crate::llhd_world::components::{
+    //     inst::LLHDInstComponent, unit::LLHDUnitComponent, value::LLHDValueComponent,
+    // };
+    // use std::collections::HashSet;
 
     use super::*;
-
-    #[derive(Default, Debug, PartialEq)]
-    struct TimingNode {
-        name: String,
-        delay: f64,
-    }
-
-    #[derive(Default, Debug, PartialEq)]
-    struct TimingEdge {
-        delay: f64,
-    }
 
     #[test]
     fn create_default_llhd_world() {
@@ -78,12 +87,13 @@ mod tests {
     }
 
     #[test]
-    fn create_empty_llhd_world_via_macro() {
-        // let _llhd_world = create_llhd_world!();
+    fn create_empty_llhd_world() {
+        let llhd_module = LLHDModule::default();
+        let _llhd_world = LLHDWorld::new(llhd_module);
     }
 
     #[test]
-    fn create_llhd_world_via_macro() {
+    fn create_llhd_world() {
         // let mut _world = LWorld::default();
         let input = indoc::indoc! {"
             proc %top.and (i1$ %in1, i1$ %in2, i1$ %in3) -> (i1$ %out1) {
@@ -111,102 +121,97 @@ mod tests {
             }
         "};
         let module = llhd::assembly::parse_module(input).unwrap();
-        // let llhd_world = create_llhd_world!(module, TimingNode, TimingEdge);
-        let _llhd_world = LLHDWorld::new(LLHDModule::from(module));
+        let mut llhd_world = LLHDWorld::new(LLHDModule::from(module));
+        assert!(
+            llhd_world.world().get_resource::<LLHDModule>().is_some(),
+            "LLHDWorld should contain a LLHDModule resource."
+        );
 
-        // let sub_module_name = "%top.and";
-        // let top_module_name = "@top";
-        // assert!(
-        //     llhd_world.world().lookup(&sub_module_name).is_some(),
-        //     "%top.and should be present name to lookup in ECS."
-        // );
-        // assert!(
-        //     llhd_world.world().lookup(&top_module_name).is_some(),
-        //     "@top should be present name to lookup in ECS."
-        // );
-        //
-        // let sub_module_name_first_value = "v0";
-        // let sub_module_name_last_value = "v9";
-        // let top_module_name_first_value = "v0";
-        // let top_module_name_last_value = "v7";
-        // let sub_module_name_first_value_full_name =
-        //     sub_module_name.to_owned() + "::" + sub_module_name_first_value;
-        // let sub_module_name_last_value_full_name =
-        //     sub_module_name.to_owned() + "::" + sub_module_name_last_value;
-        // let top_module_name_first_value_full_name =
-        //     top_module_name.to_owned() + "::" + top_module_name_first_value;
-        // let top_module_name_last_value_full_name =
-        //     top_module_name.to_owned() + "::" + top_module_name_last_value;
-        // assert!(
-        //     llhd_world
-        //         .world()
-        //         .lookup(&sub_module_name_first_value_full_name)
-        //         .is_some(),
-        //     "%top.and::v0 should be present name to lookup in ECS."
-        // );
-        // assert!(
-        //     llhd_world
-        //         .world()
-        //         .lookup(&sub_module_name_last_value_full_name)
-        //         .is_some(),
-        //     "%top.and::v9 should be present name to lookup in ECS."
-        // );
-        // assert!(
-        //     llhd_world
-        //         .world()
-        //         .lookup(&top_module_name_first_value_full_name)
-        //         .is_some(),
-        //     "@top::v0 should be present name to lookup in ECS."
-        // );
-        // assert!(
-        //     llhd_world
-        //         .world()
-        //         .lookup(&top_module_name_last_value_full_name)
-        //         .is_some(),
-        //     "@top::v9 should be present name to lookup in ECS."
-        // );
-        //
-        // let sub_module_name_first_inst = "i0";
-        // let sub_module_name_last_inst = "i7";
-        // let top_module_name_first_inst = "i0";
-        // let top_module_name_last_inst = "i8";
-        // let sub_module_name_first_inst_full_name =
-        //     sub_module_name.to_owned() + "::" + sub_module_name_first_inst;
-        // let sub_module_name_last_inst_full_name =
-        //     sub_module_name.to_owned() + "::" + sub_module_name_last_inst;
-        // let top_module_name_first_inst_full_name =
-        //     top_module_name.to_owned() + "::" + top_module_name_first_inst;
-        // let top_module_name_last_inst_full_name =
-        //     top_module_name.to_owned() + "::" + top_module_name_last_inst;
-        // assert!(
-        //     llhd_world
-        //         .world()
-        //         .lookup(&sub_module_name_first_inst_full_name)
-        //         .is_some(),
-        //     "%top.and::i0 should be present name to lookup in ECS."
-        // );
-        // assert!(
-        //     llhd_world
-        //         .world()
-        //         .lookup(&sub_module_name_last_inst_full_name)
-        //         .is_some(),
-        //     "%top.and::i7 should be present name to lookup in ECS."
-        // );
-        // assert!(
-        //     llhd_world
-        //         .world()
-        //         .lookup(&top_module_name_first_inst_full_name)
-        //         .is_some(),
-        //     "@top::i0 should be present name to lookup in ECS."
-        // );
-        // assert!(
-        //     llhd_world
-        //         .world()
-        //         .lookup(&top_module_name_last_inst_full_name)
-        //         .is_some(),
-        //     "@top::i8 should be present name to lookup in ECS."
-        // );
-        //
+        let sub_module_name = "%top.and";
+        let top_module_name = "@top";
+        assert!(
+            llhd_world.slow_lookup(&sub_module_name).is_some(),
+            "%top.and should be present name to lookup in ECS."
+        );
+        assert!(
+            llhd_world.slow_lookup(&top_module_name).is_some(),
+            "@top should be present name to lookup in ECS."
+        );
+
+        let sub_module_name_first_value = "v0";
+        let sub_module_name_last_value = "v9";
+        let top_module_name_first_value = "v0";
+        let top_module_name_last_value = "v7";
+        let sub_module_name_first_value_full_name =
+            sub_module_name.to_owned() + "." + sub_module_name_first_value;
+        let sub_module_name_last_value_full_name =
+            sub_module_name.to_owned() + "." + sub_module_name_last_value;
+        let top_module_name_first_value_full_name =
+            top_module_name.to_owned() + "." + top_module_name_first_value;
+        let top_module_name_last_value_full_name =
+            top_module_name.to_owned() + "." + top_module_name_last_value;
+        assert!(
+            llhd_world
+                .slow_lookup(&sub_module_name_first_value_full_name)
+                .is_some(),
+            "%top.and.v0 should be present name to lookup in ECS."
+        );
+        assert!(
+            llhd_world
+                .slow_lookup(&sub_module_name_last_value_full_name)
+                .is_some(),
+            "%top.and.v9 should be present name to lookup in ECS."
+        );
+        assert!(
+            llhd_world
+                .slow_lookup(&top_module_name_first_value_full_name)
+                .is_some(),
+            "@top.v0 should be present name to lookup in ECS."
+        );
+        assert!(
+            llhd_world
+                .slow_lookup(&top_module_name_last_value_full_name)
+                .is_some(),
+            "@top.v9 should be present name to lookup in ECS."
+        );
+
+        let sub_module_name_first_inst = "i1";
+        let sub_module_name_last_inst = "i7";
+        let top_module_name_first_inst = "i1";
+        let top_module_name_last_inst = "i8";
+        let sub_module_name_first_inst_full_name =
+            sub_module_name.to_owned() + "." + sub_module_name_first_inst;
+        let sub_module_name_last_inst_full_name =
+            sub_module_name.to_owned() + "." + sub_module_name_last_inst;
+        let top_module_name_first_inst_full_name =
+            top_module_name.to_owned() + "." + top_module_name_first_inst;
+        let top_module_name_last_inst_full_name =
+            top_module_name.to_owned() + "." + top_module_name_last_inst;
+        assert!(
+            llhd_world
+                .slow_lookup(&sub_module_name_first_inst_full_name)
+                .is_some(),
+            "%top.and.i0 should be present name to lookup in ECS."
+        );
+        assert!(
+            llhd_world
+                .slow_lookup(&sub_module_name_last_inst_full_name)
+                .is_some(),
+            "%top.and.i7 should be present name to lookup in ECS."
+        );
+        assert!(
+            llhd_world
+                .slow_lookup(&top_module_name_first_inst_full_name)
+                .is_some(),
+            "@top.i0 should be present name to lookup in ECS."
+        );
+        assert!(
+            llhd_world
+                .slow_lookup(&top_module_name_last_inst_full_name)
+                .is_some(),
+            "@top.i8 should be present name to lookup in ECS."
+        );
+
         // let mut units: HashSet<String> = Default::default();
         // llhd_world
         //     .world()
