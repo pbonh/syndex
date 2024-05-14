@@ -1,7 +1,7 @@
 use llhd::ir::{Inst, InstData};
 
-#[derive(Debug, Default)]
-pub(crate) struct InstComponent {
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct InstComponent {
     pub(crate) id: Option<Inst>,
     pub(crate) data: InstData,
 }
@@ -14,14 +14,6 @@ impl From<&(Inst, InstData)> for InstComponent {
         }
     }
 }
-
-impl PartialEq for InstComponent {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-
-impl Eq for InstComponent {}
 
 #[cfg(test)]
 mod tests {

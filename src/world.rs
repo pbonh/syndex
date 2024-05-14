@@ -3,14 +3,8 @@ use std::ops::{Deref, DerefMut};
 use flecs::World;
 
 /// New-Type Wrapper for an LLHD Module
-#[derive(Debug)]
+#[derive(Debug,Default)]
 pub struct LWorld(World);
-
-impl Default for LWorld {
-    fn default() -> Self {
-        Self(World::new())
-    }
-}
 
 impl Deref for LWorld {
     type Target = World;

@@ -5,10 +5,10 @@ pub mod enode;
 pub mod common;
 
 /// World Component Data for LLHD Unit
-pub mod unit;
+// pub mod unit;
 
 /// World Component Data for LLHD Nets/Instructions
-pub mod inst;
+// pub mod inst;
 
 /// LLHD Module Type Wrapper
 pub mod module;

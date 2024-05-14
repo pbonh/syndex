@@ -1,7 +1,7 @@
 use llhd::ir::{ValueData,Value};
 
 #[derive(Debug,Default)]
-pub(crate) struct ValueComponent {
+pub struct ValueComponent {
     pub(crate) id: Option<Value>,
     pub(crate) data: ValueData,
 }
@@ -17,7 +17,11 @@ impl From<&(Value,ValueData)> for ValueComponent {
 
 impl PartialEq for ValueComponent {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        if self.id.is_some() && other.id.is_some() {
+            self.id.unwrap() == other.id.unwrap()
+        } else {
+            false
+        }
     }
 }
 
