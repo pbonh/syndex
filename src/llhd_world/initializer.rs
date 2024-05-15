@@ -2,7 +2,7 @@ use crate::llhd_world::components::{
     block::LLHDBlockComponent, inst::LLHDInstComponent, unit::LLHDUnitComponent,
     value::LLHDValueComponent,
 };
-use llhd::ir::{Module, Unit};
+use llhd::ir::{Block, Module, Unit};
 
 pub(crate) fn build_units(module: &Module) -> impl Iterator<Item = LLHDUnitComponent> + '_ {
     module.units().map(|unit| LLHDUnitComponent {
@@ -36,8 +36,9 @@ pub(crate) fn build_values<'unit>(
 
 pub(crate) fn build_insts<'unit>(
     unit: &'unit Unit,
+    block_id: Block,
 ) -> impl Iterator<Item = LLHDInstComponent> + 'unit {
-    unit.all_insts().map(|inst| {
+    unit.insts(block_id).map(|inst| {
         let inst_data = &unit[inst];
         LLHDInstComponent {
             id: Some(inst),
@@ -156,7 +157,8 @@ mod tests {
     fn create_inst_component() {
         let unit_data = build_entity(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
-        let inst_components: Vec<LLHDInstComponent> = build_insts(&unit).collect();
+        let block_id = Block::new(0);
+        let inst_components: Vec<LLHDInstComponent> = build_insts(&unit, block_id).collect();
         assert_eq!(
             6,
             inst_components.len(),

@@ -45,7 +45,7 @@ impl LLHDWorld {
                                     .spawn(block_component)
                                     .insert(block_name)
                                     .with_children(|parent_block| {
-                                        build_insts(&module.unit(unit_id)).for_each(
+                                        build_insts(&module.unit(unit_id), block_id).for_each(
                                             |inst_component| {
                                                 if let Some(inst_id) = inst_component.id {
                                                     let inst_name = unit_name.to_owned()
@@ -105,6 +105,7 @@ mod tests {
         block::LLHDBlockComponent, inst::LLHDInstComponent, unit::LLHDUnitComponent,
     };
     use bevy_hierarchy::{Children, Parent};
+    use itertools::Itertools;
     use pretty_assertions::assert_eq;
 
     use super::*;
@@ -430,6 +431,10 @@ mod tests {
 
         let magic_entity_name = "@magic";
         let func_name = "@foo";
+        let func_entry_name = "entry";
+        let func_next_name = "next";
+        let func_entry_full_name = func_name.to_owned() + "." + func_entry_name;
+        let func_next_full_name = func_name.to_owned() + "." + func_next_name;
         assert!(
             llhd_world.slow_lookup(&magic_entity_name).is_some(),
             "@magic should be present name to lookup in ECS."
@@ -438,17 +443,52 @@ mod tests {
             llhd_world.slow_lookup(&func_name).is_some(),
             "@foo should be present name to lookup in ECS."
         );
+        assert!(
+            llhd_world.slow_lookup(&func_entry_full_name).is_some(),
+            "@foo.entry should be present name to lookup in ECS."
+        );
+        assert!(
+            llhd_world.slow_lookup(&func_next_full_name).is_some(),
+            "@foo.next should be present name to lookup in ECS."
+        );
 
         let mut blocks: Vec<LLHDBlockComponent> = Default::default();
+        let mut block1_insts: Vec<LLHDInstComponent> = Default::default();
+        let mut block2_insts: Vec<LLHDInstComponent> = Default::default();
         let mut block_query = llhd_world.query::<(Entity, &Parent, &LLHDBlockComponent)>();
         block_query.iter(llhd_world.world()).for_each(
-            |(_block_entity, parent_unit_entity, block_component)| {
+            |(block_entity, parent_unit_entity, block_component)| {
                 let parent_unit_component = llhd_world
                     .world()
                     .get::<LLHDUnitComponent>(**parent_unit_entity);
                 let parent_unit_name = parent_unit_component.unwrap().name.to_string();
                 if parent_unit_name == func_name {
                     blocks.push(block_component.to_owned());
+                    let block_id = block_component.id.unwrap();
+                    let block_name = block_component
+                        .data
+                        .name
+                        .clone()
+                        .unwrap_or_else(|| block_id.to_string());
+                    let insts = llhd_world
+                        .world()
+                        .get::<Children>(block_entity)
+                        .unwrap()
+                        .to_vec()
+                        .iter()
+                        .map(|inst_entity| {
+                            llhd_world
+                                .world()
+                                .get::<LLHDInstComponent>(*inst_entity)
+                                .unwrap()
+                                .to_owned()
+                        })
+                        .collect_vec();
+                    if block_name == func_entry_name {
+                        block1_insts = insts;
+                    } else if block_name == func_next_name {
+                        block2_insts = insts;
+                    }
                 }
             },
         );
@@ -456,6 +496,16 @@ mod tests {
             2,
             blocks.len(),
             "2 Blocks should be present in @foo function."
+        );
+        assert_eq!(
+            12,
+            block1_insts.len(),
+            "12 Insts should be present in @foo.entry block."
+        );
+        assert_eq!(
+            8,
+            block2_insts.len(),
+            "8 Insts should be present in @foo.next block."
         );
     }
 }
