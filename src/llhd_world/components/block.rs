@@ -2,7 +2,7 @@ use bevy_ecs::prelude::*;
 use llhd::ir::prelude::*;
 use llhd::ir::BlockData;
 
-#[derive(Debug, Default, Component)]
+#[derive(Debug, Clone, Default, Component)]
 pub struct LLHDBlockComponent {
     pub(crate) id: Option<Block>,
     pub(crate) data: BlockData,

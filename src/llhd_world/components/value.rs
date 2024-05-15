@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::*;
 use llhd::ir::{Value, ValueData};
 
-#[derive(Debug, Default, Component)]
+#[derive(Debug, Clone, Default, Component)]
 pub struct LLHDValueComponent {
     pub(crate) id: Option<Value>,
     pub(crate) data: ValueData,

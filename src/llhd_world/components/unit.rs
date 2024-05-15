@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::*;
 use llhd::ir::prelude::{UnitData, UnitId, UnitKind, UnitName};
 
-#[derive(Debug, PartialEq, Eq, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Component)]
 pub struct LLHDUnitComponent {
     pub(crate) id: Option<UnitId>,
     pub(crate) name: UnitName,

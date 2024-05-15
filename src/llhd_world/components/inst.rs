@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::*;
 use llhd::ir::{Inst, InstData};
 
-#[derive(Debug, Default, PartialEq, Eq, Component)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Component)]
 pub struct LLHDInstComponent {
     pub(crate) id: Option<Inst>,
     pub(crate) data: InstData,

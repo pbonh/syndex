@@ -3,7 +3,7 @@ use bevy_ecs::query::QueryData;
 use bevy_hierarchy::BuildWorldChildren;
 use std::ops::Add;
 
-use crate::llhd_world::initializer::{build_insts, build_units, build_values};
+use crate::llhd_world::initializer::{build_blocks, build_insts, build_units, build_values};
 use crate::{llhd::module::LLHDModule, world::LWorld};
 
 #[derive(Debug, Clone, Default, Component)]
@@ -30,20 +30,42 @@ impl LLHDWorld {
                     .spawn(unit_component)
                     .insert(unit_name.to_owned())
                     .with_children(|parent_unit| {
+                        build_blocks(&module.unit(unit_id)).for_each(|block_component| {
+                            if let Some(block_id) = block_component.id {
+                                let block_name = unit_name.to_owned()
+                                    + ECSEntityName(".".to_string())
+                                    + ECSEntityName(
+                                        block_component
+                                            .to_owned()
+                                            .data
+                                            .name
+                                            .unwrap_or(block_id.to_string()),
+                                    );
+                                parent_unit
+                                    .spawn(block_component)
+                                    .insert(block_name)
+                                    .with_children(|parent_block| {
+                                        build_insts(&module.unit(unit_id)).for_each(
+                                            |inst_component| {
+                                                if let Some(inst_id) = inst_component.id {
+                                                    let inst_name = unit_name.to_owned()
+                                                        + ECSEntityName(".".to_string())
+                                                        + ECSEntityName(inst_id.to_string());
+                                                    parent_block
+                                                        .spawn(inst_component)
+                                                        .insert(inst_name);
+                                                }
+                                            },
+                                        );
+                                    });
+                            }
+                        });
                         build_values(&module.unit(unit_id)).for_each(|value_component| {
                             if let Some(value_id) = value_component.id {
                                 let value_name = unit_name.to_owned()
                                     + ECSEntityName(".".to_string())
                                     + ECSEntityName(value_id.to_string());
                                 parent_unit.spawn(value_component).insert(value_name);
-                            }
-                        });
-                        build_insts(&module.unit(unit_id)).for_each(|inst_component| {
-                            if let Some(inst_id) = inst_component.id {
-                                let inst_name = unit_name.to_owned()
-                                    + ECSEntityName(".".to_string())
-                                    + ECSEntityName(inst_id.to_string());
-                                parent_unit.spawn(inst_component).insert(inst_name);
                             }
                         });
                     });
@@ -79,13 +101,12 @@ impl From<LLHDModule> for LLHDWorld {
 
 #[cfg(test)]
 mod tests {
-    // use crate::llhd_world::components::{
-    //     inst::LLHDInstComponent, unit::LLHDUnitComponent, value::LLHDValueComponent,
-    // };
-    // use std::collections::HashSet;
-
-    use crate::llhd_world::components::{inst::LLHDInstComponent, unit::LLHDUnitComponent};
-    use bevy_hierarchy::Children;
+    use crate::llhd_world::components::{
+        block::LLHDBlockComponent, inst::LLHDInstComponent, unit::LLHDUnitComponent,
+        value::LLHDValueComponent,
+    };
+    use bevy_hierarchy::{Children, Parent};
+    use pretty_assertions::assert_eq;
 
     use super::*;
 
@@ -183,6 +204,25 @@ mod tests {
             "@top.v9 should be present name to lookup in ECS."
         );
 
+        let sub_module_name_first_block = "init";
+        let top_module_name_first_block = "bb0";
+        let sub_module_name_first_block_full_name =
+            sub_module_name.to_owned() + "." + sub_module_name_first_block;
+        let top_module_name_first_block_full_name =
+            top_module_name.to_owned() + "." + top_module_name_first_block;
+        let sub_module_name_first_block_entity =
+            llhd_world.slow_lookup(&sub_module_name_first_block_full_name);
+        let top_module_name_first_block_entity =
+            llhd_world.slow_lookup(&top_module_name_first_block_full_name);
+        assert!(
+            sub_module_name_first_block_entity.is_some(),
+            "%top.and.init should be present name to lookup in ECS."
+        );
+        assert!(
+            top_module_name_first_block_entity.is_some(),
+            "@top.bb0 should be present name to lookup in ECS."
+        );
+
         let sub_module_name_first_inst = "i0";
         let sub_module_name_last_inst = "i7";
         let top_module_name_first_inst = "i2";
@@ -266,10 +306,9 @@ mod tests {
             "Last Instruction in top-module should be Inst."
         );
 
-        let mut parent_query = llhd_world.query::<(Entity, &Children)>();
-        parent_query
-            .iter(llhd_world.world())
-            .for_each(|(parent_unit_entity, child_entity)| {
+        let mut parent_query = llhd_world.query::<(Entity, &Children, &LLHDUnitComponent)>();
+        parent_query.iter(llhd_world.world()).for_each(
+            |(parent_unit_entity, child_entity, _unit_component)| {
                 let unit_name = llhd_world
                     .world()
                     .get::<LLHDUnitComponent>(parent_unit_entity)
@@ -278,19 +317,96 @@ mod tests {
                     .to_string();
                 if unit_name == sub_module_name {
                     assert_eq!(
-                        18,
+                        11,
                         child_entity.len(),
-                        "There should be 18 child nodes(8 Values + 10 Insts) in @top module."
+                        "There should be 11 child nodes(10 Values + 1 Block) in %top.and module."
                     );
                 } else if unit_name == top_module_name {
                     assert_eq!(
-                        20,
+                        10,
                         child_entity.len(),
-                        "There should be 20 child nodes(9 Values + 11 Insts) in @top module."
+                        "There should be 10 child nodes(9 Values + 1 Block) in @top module."
                     );
                 } else {
                     panic!("Unknown module name: {}", unit_name);
                 }
-            });
+            },
+        );
+
+        let mut value_query = llhd_world.query::<(Entity, &Parent, &LLHDValueComponent)>();
+        value_query
+            .iter(llhd_world.world())
+            .for_each(|(_value_entity, _parent_unit_entity, _value_component)| {});
+    }
+
+    #[test]
+    fn create_llhd_world_with_blocks() {
+        let input = indoc::indoc! {"
+            declare @bar (i32, i9) i32
+
+            func @foo (i32 %x, i8 %y) i32 {
+            %entry:
+                %asdf0 = const i32 42
+                %1 = const time 1.489ns 10d 9e
+                %hello = alias i32 %asdf0
+                %2 = not i32 %asdf0
+                %3 = neg i32 %2
+                %4 = add i32 %2, %3
+                %5 = sub i32 %2, %3
+                %6 = and i32 %2, %3
+                %7 = or i32 %2, %3
+                %8 = xor i32 %2, %3
+                %cmp = eq i32 %7, %7
+                br %cmp, %entry, %next
+            %next:
+                %a = exts i9, i32 %7, 4, 9
+                %b = neg i9 %a
+                %r = call i32 @bar (i32 %8, i9 %b)
+                %many = [32 x i9 %b]
+                %some = exts [9 x i9], [32 x i9] %many, 2, 9
+                %one = extf i9, [9 x i9] %some, 3
+                neg i9 %one
+                ret i32 %3
+            }
+
+            entity @magic (i32$ %data, i1$ %clk) -> (i32$ %out) {
+                %datap = prb i32$ %data
+                %cmp = const i1 0
+                reg i32$ %out, [%datap, rise %cmp]
+            }
+        "};
+
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let mut llhd_world = LLHDWorld::new(LLHDModule::from(module));
+
+        let magic_entity_name = "@magic";
+        let func_name = "@foo";
+        assert!(
+            llhd_world.slow_lookup(&magic_entity_name).is_some(),
+            "@magic should be present name to lookup in ECS."
+        );
+        assert!(
+            llhd_world.slow_lookup(&func_name).is_some(),
+            "@foo should be present name to lookup in ECS."
+        );
+
+        let mut blocks: Vec<LLHDBlockComponent> = Default::default();
+        let mut block_query = llhd_world.query::<(Entity, &Parent, &LLHDBlockComponent)>();
+        block_query.iter(llhd_world.world()).for_each(
+            |(_block_entity, parent_unit_entity, block_component)| {
+                let parent_unit_component = llhd_world
+                    .world()
+                    .get::<LLHDUnitComponent>(**parent_unit_entity);
+                let parent_unit_name = parent_unit_component.unwrap().name.to_string();
+                if parent_unit_name == func_name {
+                    blocks.push(block_component.to_owned());
+                }
+            },
+        );
+        assert_eq!(
+            2,
+            blocks.len(),
+            "2 Blocks should be present in @foo function."
+        );
     }
 }

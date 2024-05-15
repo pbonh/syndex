@@ -1,5 +1,6 @@
 use crate::llhd_world::components::{
-    inst::LLHDInstComponent, unit::LLHDUnitComponent, value::LLHDValueComponent,
+    block::LLHDBlockComponent, inst::LLHDInstComponent, unit::LLHDUnitComponent,
+    value::LLHDValueComponent,
 };
 use llhd::ir::{Module, Unit};
 
@@ -41,6 +42,18 @@ pub(crate) fn build_insts<'unit>(
         LLHDInstComponent {
             id: Some(inst),
             data: inst_data.clone(),
+        }
+    })
+}
+
+pub(crate) fn build_blocks<'unit>(
+    unit: &'unit Unit,
+) -> impl Iterator<Item = LLHDBlockComponent> + 'unit {
+    unit.blocks().map(|block| {
+        let block_data = &unit[block];
+        LLHDBlockComponent {
+            id: Some(block),
+            data: block_data.clone(),
         }
     })
 }
@@ -168,5 +181,46 @@ mod tests {
             "Last Id should be Inst with Id: 3"
         );
         assert!(matches!(opcode, Opcode::Add), "Inst should be Add type.");
+    }
+
+    #[test]
+    fn create_block_component() {
+        let input = indoc::indoc! {"
+            declare @bar (i32, i9) i32
+
+            func @foo (i32 %x, i8 %y) i32 {
+            %entry:
+                %asdf0 = const i32 42
+                %1 = const time 1.489ns 10d 9e
+                %hello = alias i32 %asdf0
+                %2 = not i32 %asdf0
+                %3 = neg i32 %2
+                %4 = add i32 %2, %3
+                %5 = sub i32 %2, %3
+                %6 = and i32 %2, %3
+                %7 = or i32 %2, %3
+                %8 = xor i32 %2, %3
+                %cmp = eq i32 %7, %7
+                br %cmp, %entry, %next
+            %next:
+                %a = exts i9, i32 %7, 4, 9
+                %b = neg i9 %a
+                %r = call i32 @bar (i32 %8, i9 %b)
+                %many = [32 x i9 %b]
+                %some = exts [9 x i9], [32 x i9] %many, 2, 9
+                %one = extf i9, [9 x i9] %some, 3
+                neg i9 %one
+                ret i32 %3
+            }
+        "};
+
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let func_unit = module.units().next().unwrap();
+        let block_components: Vec<LLHDBlockComponent> = build_blocks(&func_unit).collect();
+        assert_eq!(
+            2,
+            block_components.len(),
+            "There should be 2 Blocks defined in Unit."
+        );
     }
 }
