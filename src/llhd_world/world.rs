@@ -103,7 +103,6 @@ impl From<LLHDModule> for LLHDWorld {
 mod tests {
     use crate::llhd_world::components::{
         block::LLHDBlockComponent, inst::LLHDInstComponent, unit::LLHDUnitComponent,
-        value::LLHDValueComponent,
     };
     use bevy_hierarchy::{Children, Parent};
     use pretty_assertions::assert_eq;
@@ -306,8 +305,8 @@ mod tests {
             "Last Instruction in top-module should be Inst."
         );
 
-        let mut parent_query = llhd_world.query::<(Entity, &Children, &LLHDUnitComponent)>();
-        parent_query.iter(llhd_world.world()).for_each(
+        let mut unit_query = llhd_world.query::<(Entity, &Children, &LLHDUnitComponent)>();
+        unit_query.iter(llhd_world.world()).for_each(
             |(parent_unit_entity, child_entity, _unit_component)| {
                 let unit_name = llhd_world
                     .world()
@@ -333,10 +332,60 @@ mod tests {
             },
         );
 
-        let mut value_query = llhd_world.query::<(Entity, &Parent, &LLHDValueComponent)>();
-        value_query
+        let mut block_query = llhd_world.query::<(&Children, &LLHDBlockComponent)>();
+        block_query
             .iter(llhd_world.world())
-            .for_each(|(_value_entity, _parent_unit_entity, _value_component)| {});
+            .for_each(|(child_entity, block_component)| {
+                let block_id = block_component.id.unwrap();
+                let block_name = block_component
+                    .data
+                    .name
+                    .clone()
+                    .unwrap_or_else(|| block_id.to_string());
+                if block_name == sub_module_name_first_block {
+                    assert_eq!(
+                        8,
+                        child_entity.len(),
+                        "There should be 8 child nodes(8 Insts) in %top.and.init block."
+                    );
+                    let const_int_inst =
+                        llhd_world.world().get::<LLHDInstComponent>(child_entity[0]);
+                    let const_int_inst_opcode = const_int_inst.unwrap().data.opcode();
+                    assert!(
+                        matches!(const_int_inst_opcode, llhd::ir::Opcode::ConstTime),
+                        "First Inst of %top.and should have Opcode ConstTime."
+                    );
+                    let wait_inst =
+                        llhd_world.world().get::<LLHDInstComponent>(child_entity[7]);
+                    let wait_inst_opcode = wait_inst.unwrap().data.opcode();
+                    assert!(
+                        matches!(wait_inst_opcode, llhd::ir::Opcode::WaitTime),
+                        "Last Inst of %top.and should have Opcode WaitTime."
+                    );
+                } else if block_name == top_module_name_first_block {
+                    assert_eq!(
+                        11,
+                        child_entity.len(),
+                        "There should be 11 child nodes(11 Insts) in %top.and.bb0 block."
+                    );
+                    let const_int_inst =
+                        llhd_world.world().get::<LLHDInstComponent>(child_entity[0]);
+                    let const_int_inst_opcode = const_int_inst.unwrap().data.opcode();
+                    assert!(
+                        matches!(const_int_inst_opcode, llhd::ir::Opcode::ConstTime),
+                        "First Inst of @top should have Opcode ConstTime."
+                    );
+                    let instantiation_inst =
+                        llhd_world.world().get::<LLHDInstComponent>(child_entity[9]);
+                    let instantiation_inst_opcode = instantiation_inst.unwrap().data.opcode();
+                    assert!(
+                        matches!(instantiation_inst_opcode, llhd::ir::Opcode::Inst),
+                        "Last Inst(not include the very last, which is nullary) of @top should have Opcode Inst."
+                    );
+                } else {
+                    panic!("Unknown module name: {}", block_name);
+                }
+            });
     }
 
     #[test]
