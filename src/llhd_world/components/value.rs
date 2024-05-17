@@ -2,12 +2,12 @@ use bevy_ecs::prelude::*;
 use llhd::ir::{Value, ValueData};
 
 #[derive(Debug, Clone, Default, Component)]
-pub struct LLHDValueComponent {
+pub struct LLHDValueDefComponent {
     pub(crate) id: Option<Value>,
     pub(crate) data: ValueData,
 }
 
-impl From<&(Value, ValueData)> for LLHDValueComponent {
+impl From<&(Value, ValueData)> for LLHDValueDefComponent {
     fn from(value: &(Value, ValueData)) -> Self {
         Self {
             id: Some(value.0),
@@ -16,7 +16,7 @@ impl From<&(Value, ValueData)> for LLHDValueComponent {
     }
 }
 
-impl PartialEq for LLHDValueComponent {
+impl PartialEq for LLHDValueDefComponent {
     fn eq(&self, other: &Self) -> bool {
         if self.id.is_some() && other.id.is_some() {
             self.id.unwrap() == other.id.unwrap()
@@ -26,7 +26,7 @@ impl PartialEq for LLHDValueComponent {
     }
 }
 
-impl Eq for LLHDValueComponent {}
+impl Eq for LLHDValueDefComponent {}
 
 #[cfg(test)]
 mod tests {
@@ -56,22 +56,22 @@ mod tests {
 
     #[test]
     fn create_value_component_default() {
-        let _unit_component = LLHDValueComponent::default();
+        let _unit_component = LLHDValueDefComponent::default();
     }
 
     #[test]
     fn create_value_component() {
         let entity_data = build_entity(UnitName::anonymous(0));
         let entity = Unit::new(UnitId::new(0), &entity_data);
-        let mut value_components: Vec<LLHDValueComponent> = Default::default();
+        let mut value_components: Vec<LLHDValueDefComponent> = Default::default();
         entity.args().for_each(|value| {
             let value_data = entity[value].clone();
-            value_components.push(LLHDValueComponent::from(&(value, value_data)));
+            value_components.push(LLHDValueDefComponent::from(&(value, value_data)));
         });
         entity.all_insts().for_each(|inst| {
             if let Some(value) = entity.get_inst_result(inst) {
                 let value_data = entity[value].clone();
-                value_components.push(LLHDValueComponent::from(&(value, value_data)));
+                value_components.push(LLHDValueDefComponent::from(&(value, value_data)));
             }
         });
         assert_eq!(

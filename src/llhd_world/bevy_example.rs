@@ -115,7 +115,7 @@ mod tests {
     struct LLHDUnitComponent(Option<UnitId>, UnitName, UnitKind);
 
     #[derive(Debug, Clone, Component)]
-    struct LLHDValueComponent(Option<Value>, ValueData);
+    struct LLHDValueDefComponent(Option<Value>, ValueData);
 
     impl Default for LLHDUnitComponent {
         fn default() -> Self {
@@ -123,7 +123,7 @@ mod tests {
         }
     }
 
-    impl PartialEq for LLHDValueComponent {
+    impl PartialEq for LLHDValueDefComponent {
         fn eq(&self, other: &Self) -> bool {
             if self.0.is_some() && other.0.is_some() {
                 self.0.unwrap() == other.0.unwrap()
@@ -133,7 +133,7 @@ mod tests {
         }
     }
 
-    impl Eq for LLHDValueComponent {}
+    impl Eq for LLHDValueDefComponent {}
 
     #[test]
     fn bevy_llhd_example() {
@@ -146,7 +146,7 @@ mod tests {
         let llhd_entity_arg1 = llhd_entity.input_arg(0);
         let llhd_entity_arg1_data = &llhd_entity[llhd_entity_arg1];
         let llhd_value_component =
-            LLHDValueComponent(Some(llhd_entity_arg1), llhd_entity_arg1_data.to_owned());
+            LLHDValueDefComponent(Some(llhd_entity_arg1), llhd_entity_arg1_data.to_owned());
         let _ecs_entity = world
             .spawn(LLHDUnitComponent(
                 Some(llhd_entity_id),
