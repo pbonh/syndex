@@ -1,8 +1,8 @@
 use crate::llhd_world::components::{
     block::LLHDBlockComponent, inst::LLHDInstComponent, unit::LLHDUnitComponent,
-    value::LLHDValueDefComponent,
+    value::LLHDValueDefComponent, value::LLHDValueRefComponent,
 };
-use llhd::ir::{Block, Module, Unit};
+use llhd::ir::{Block, Inst, InstData, Module, Unit};
 
 pub(crate) fn build_units(module: &Module) -> impl Iterator<Item = LLHDUnitComponent> + '_ {
     module.units().map(|unit| LLHDUnitComponent {
@@ -12,7 +12,7 @@ pub(crate) fn build_units(module: &Module) -> impl Iterator<Item = LLHDUnitCompo
     })
 }
 
-pub(crate) fn build_values<'unit>(
+pub(crate) fn build_value_defs<'unit>(
     unit: &'unit Unit,
 ) -> impl Iterator<Item = LLHDValueDefComponent> + 'unit {
     unit.args()
@@ -32,6 +32,19 @@ pub(crate) fn build_values<'unit>(
                     }
                 }),
         )
+}
+
+pub(crate) fn build_value_refs<'unit>(
+    inst_id: Inst,
+    inst_data: &'unit InstData,
+) -> impl Iterator<Item = LLHDValueRefComponent> + 'unit {
+    inst_data
+        .args()
+        .iter()
+        .map(move |inst_arg| LLHDValueRefComponent {
+            id: Some(*inst_arg),
+            inst: Some(inst_id),
+        })
 }
 
 pub(crate) fn build_insts<'unit>(
@@ -119,27 +132,27 @@ mod tests {
     }
 
     #[test]
-    fn create_value_component() {
+    fn create_value_def_component() {
         let unit_data = build_entity(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
-        let value_components: Vec<LLHDValueDefComponent> = build_values(&unit).collect();
+        let value_def_components: Vec<LLHDValueDefComponent> = build_value_defs(&unit).collect();
         assert_eq!(
             9,
-            value_components.len(),
+            value_def_components.len(),
             "There should be 9 Values defined in Unit."
         );
         assert_eq!(
             Value::new(0),
-            value_components[0].id.unwrap(),
+            value_def_components[0].id.unwrap(),
             "First Id should be Arg with Id: 0"
         );
         assert_eq!(
             Value::new(1),
-            value_components[1].id.unwrap(),
+            value_def_components[1].id.unwrap(),
             "Second Id should be Arg with Id: 1"
         );
-        let add_value_component = value_components.last().unwrap();
-        if let ValueData::Inst { inst, .. } = add_value_component.data {
+        let add_value_def_component = value_def_components.last().unwrap();
+        if let ValueData::Inst { inst, .. } = add_value_def_component.data {
             let add_inst_data = &unit[inst];
             let opcode = add_inst_data.opcode();
             assert!(matches!(opcode, Opcode::Add), "Inst should be Add type.");
@@ -148,9 +161,32 @@ mod tests {
         }
         assert_eq!(
             Value::new(8),
-            add_value_component.id.unwrap(),
+            add_value_def_component.id.unwrap(),
             "Last Id should be Value with Id: 7"
         );
+    }
+
+    #[test]
+    fn create_value_ref_component() {
+        let unit_data = build_entity(UnitName::anonymous(0));
+        let unit = Unit::new(UnitId::new(0), &unit_data);
+        let value_def_components: Vec<LLHDValueDefComponent> = build_value_defs(&unit).collect();
+        let add_value_def_component = value_def_components.last().unwrap();
+        if let ValueData::Inst { inst, .. } = add_value_def_component.data {
+            let add_inst_id = inst;
+            let add_inst_data = &unit[add_inst_id];
+            let opcode = add_inst_data.opcode();
+            assert!(matches!(opcode, Opcode::Add), "Inst should be Add type.");
+            let value_ref_components: Vec<LLHDValueRefComponent> =
+                build_value_refs(add_inst_id, &add_inst_data).collect();
+            assert_eq!(
+                2,
+                value_ref_components.len(),
+                "There should be 2 Value Refs defined in Add Instruction."
+            );
+        } else {
+            panic!("Value(7) should correspond to an add inst.");
+        }
     }
 
     #[test]

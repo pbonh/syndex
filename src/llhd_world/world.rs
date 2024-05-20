@@ -3,8 +3,10 @@ use bevy_ecs::query::QueryData;
 use bevy_hierarchy::BuildWorldChildren;
 use std::ops::Add;
 
-use crate::llhd_world::initializer::{build_blocks, build_insts, build_units, build_values};
+use crate::llhd_world::initializer::{build_blocks, build_insts, build_units, build_value_defs};
 use crate::{llhd::module::LLHDModule, world::LWorld};
+
+use super::initializer::build_value_refs;
 
 #[derive(Debug, Clone, Default, Component)]
 pub struct ECSEntityName(String);
@@ -51,16 +53,24 @@ impl LLHDWorld {
                                                     let inst_name = unit_name.to_owned()
                                                         + ECSEntityName(".".to_string())
                                                         + ECSEntityName(inst_id.to_string());
+                                                    let inst_data = inst_component.data.to_owned();
                                                     parent_block
                                                         .spawn(inst_component)
-                                                        .insert(inst_name);
+                                                        .insert(inst_name)
+                                                        .with_children(|parent_inst| {
+                                                            build_value_refs(inst_id, &inst_data)
+                                                                .for_each(|value_ref_component| {
+                                                                    parent_inst
+                                                                        .spawn(value_ref_component);
+                                                                });
+                                                        });
                                                 }
                                             },
                                         );
                                     });
                             }
                         });
-                        build_values(&module.unit(unit_id)).for_each(|value_component| {
+                        build_value_defs(&module.unit(unit_id)).for_each(|value_component| {
                             if let Some(value_id) = value_component.id {
                                 let value_name = unit_name.to_owned()
                                     + ECSEntityName(".".to_string())
@@ -103,6 +113,7 @@ impl From<LLHDModule> for LLHDWorld {
 mod tests {
     use crate::llhd_world::components::{
         block::LLHDBlockComponent, inst::LLHDInstComponent, unit::LLHDUnitComponent,
+        value::LLHDValueRefComponent,
     };
     use bevy_hierarchy::{Children, Parent};
     use itertools::Itertools;
@@ -408,11 +419,18 @@ mod tests {
             "There should be 1 Block Components present in @top."
         );
 
-        let mut inst_component_count = 0;
-        let mut inst_query = llhd_world.query::<(&Children, &LLHDInstComponent)>();
-        inst_query
+        let inst_count = llhd_world
+            .query::<&LLHDInstComponent>()
             .iter(llhd_world.world())
-            .for_each(|(child_value_refs, inst_component)| {
+            .count();
+        assert_eq!(
+            19, inst_count,
+            "There should be 19 total Insts in ECS & Module."
+        );
+        let mut inst_component_count = 0;
+        let mut inst_with_args_query = llhd_world.query::<(&Children, &LLHDInstComponent)>();
+        inst_with_args_query.iter(llhd_world.world()).for_each(
+            |(child_value_refs, inst_component)| {
                 inst_component_count += 1;
                 let inst_opcode = inst_component.data.opcode();
                 if inst_opcode == Opcode::ConstTime {
@@ -427,13 +445,68 @@ mod tests {
                         child_value_refs.len(),
                         "There should be 1 child nodes(1 Args) in Prb Insts."
                     );
+                    let _value_ref_component = llhd_world
+                        .world()
+                        .get::<LLHDValueRefComponent>(child_value_refs[0])
+                        .unwrap();
+                } else if inst_opcode == Opcode::And {
+                    assert_eq!(
+                        2,
+                        child_value_refs.len(),
+                        "There should be 2 child nodes(2 Args) in And Insts."
+                    );
+                    let _value_ref_component = llhd_world
+                        .world()
+                        .get::<LLHDValueRefComponent>(child_value_refs[0])
+                        .unwrap();
+                } else if inst_opcode == Opcode::Drv {
+                    assert_eq!(
+                        3,
+                        child_value_refs.len(),
+                        "There should be 3 child nodes(3 Args) in Drv Insts."
+                    );
+                    let _value_ref_component = llhd_world
+                        .world()
+                        .get::<LLHDValueRefComponent>(child_value_refs[0])
+                        .unwrap();
+                } else if inst_opcode == Opcode::WaitTime {
+                    assert_eq!(
+                        1,
+                        child_value_refs.len(),
+                        "There should be 1 child nodes(1 Args) in WaitTime Insts."
+                    );
+                    let _value_ref_component = llhd_world
+                        .world()
+                        .get::<LLHDValueRefComponent>(child_value_refs[0])
+                        .unwrap();
+                } else if inst_opcode == Opcode::Sig {
+                    assert_eq!(
+                        1,
+                        child_value_refs.len(),
+                        "There should be 1 child nodes(1 Args) in Sig Insts."
+                    );
+                    let _value_ref_component = llhd_world
+                        .world()
+                        .get::<LLHDValueRefComponent>(child_value_refs[0])
+                        .unwrap();
+                } else if inst_opcode == Opcode::Inst {
+                    assert_eq!(
+                        4,
+                        child_value_refs.len(),
+                        "There should be 4 child nodes(4 Args) in Inst Insts."
+                    );
+                    let _value_ref_component = llhd_world
+                        .world()
+                        .get::<LLHDValueRefComponent>(child_value_refs[0])
+                        .unwrap();
                 } else {
                     panic!("Unknown Inst Opcode: {}", inst_opcode);
                 }
-            });
+            },
+        );
         assert_eq!(
-            18, inst_component_count,
-            "There should be 18 Inst Components present in Module."
+            12, inst_component_count,
+            "There should be 12 Inst Components(w/ Child Nodes) present in Module."
         );
     }
 
