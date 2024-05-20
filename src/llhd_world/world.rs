@@ -306,9 +306,11 @@ mod tests {
             "Last Instruction in top-module should be Inst."
         );
 
+        let mut unit_component_count = 0;
         let mut unit_query = llhd_world.query::<(Entity, &Children, &LLHDUnitComponent)>();
         unit_query.iter(llhd_world.world()).for_each(
             |(parent_unit_entity, child_entity, _unit_component)| {
+                unit_component_count += 1;
                 let unit_name = llhd_world
                     .world()
                     .get::<LLHDUnitComponent>(parent_unit_entity)
@@ -332,7 +334,13 @@ mod tests {
                 }
             },
         );
+        assert_eq!(
+            2, unit_component_count,
+            "There should be 2 Unit Components present in Module."
+        );
 
+        let mut sub_block_component_count = 0;
+        let mut top_block_component_count = 0;
         let mut block_query = llhd_world.query::<(&Children, &LLHDBlockComponent)>();
         block_query
             .iter(llhd_world.world())
@@ -344,6 +352,7 @@ mod tests {
                     .clone()
                     .unwrap_or_else(|| block_id.to_string());
                 if block_name == sub_module_name_first_block {
+                    sub_block_component_count += 1;
                     assert_eq!(
                         8,
                         child_entity.len(),
@@ -364,6 +373,7 @@ mod tests {
                         "Last Inst of %top.and should have Opcode WaitTime."
                     );
                 } else if block_name == top_module_name_first_block {
+                    top_block_component_count += 1;
                     assert_eq!(
                         11,
                         child_entity.len(),
@@ -386,7 +396,57 @@ mod tests {
                 } else {
                     panic!("Unknown module name: {}", block_name);
                 }
-            });
+            }
+        );
+        assert_eq!(
+            1, sub_block_component_count,
+            "There should be 1 Block Components present in %top.and."
+        );
+        assert_eq!(
+            1, top_block_component_count,
+            "There should be 1 Block Components present in @top."
+        );
+
+        // let mut sub_inst_component_count = 0;
+        // let mut top_inst_component_count = 0;
+        // let mut inst_query = llhd_world.query::<(Entity, &Children, &LLHDInstComponent)>();
+        // inst_query.iter(llhd_world.world()).for_each(
+        //     |(parent_block_entity, child_value_refs, _unit_component)| {
+        //         let block_name = llhd_world
+        //             .world()
+        //             .get::<LLHDBlockComponent>(parent_block_entity)
+        //             .unwrap()
+        //             .data
+        //             .name
+        //             .clone()
+        //             .unwrap();
+        //         if block_name == sub_module_name_first_block {
+        //             sub_inst_component_count = child_value_refs.len();
+        //             assert_eq!(
+        //                 8,
+        //                 sub_inst_component_count,
+        //                 "There should be 8 child nodes(8 Insts) in %top.and module."
+        //             );
+        //         } else if block_name == top_module_name_first_block {
+        //             top_inst_component_count = child_value_refs.len();
+        //             assert_eq!(
+        //                 10,
+        //                 top_inst_component_count,
+        //                 "There should be 10 child nodes(10 Insts) in %top.and module."
+        //             );
+        //         } else {
+        //             panic!("Unknown module name: {}", block_name);
+        //         }
+        //     },
+        // );
+        // assert_eq!(
+        //     8, sub_inst_component_count,
+        //     "There should be 8 Inst Components present in %top.and."
+        // );
+        // assert_eq!(
+        //     10, top_inst_component_count,
+        //     "There should be 10 Inst Components present in @top."
+        // );
     }
 
     #[test]
