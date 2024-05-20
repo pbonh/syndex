@@ -106,6 +106,7 @@ mod tests {
     };
     use bevy_hierarchy::{Children, Parent};
     use itertools::Itertools;
+    use llhd::ir::Opcode;
     use pretty_assertions::assert_eq;
 
     use super::*;
@@ -122,7 +123,7 @@ mod tests {
     }
 
     #[test]
-    fn create_llhd_world() {
+    fn create_llhd_world_hierarchy() {
         let input = indoc::indoc! {"
             proc %top.and (i1$ %in1, i1$ %in2, i1$ %in3) -> (i1$ %out1) {
             %init:
@@ -344,7 +345,7 @@ mod tests {
         let mut block_query = llhd_world.query::<(&Children, &LLHDBlockComponent)>();
         block_query
             .iter(llhd_world.world())
-            .for_each(|(child_entity, block_component)| {
+            .for_each(|(child_insts, block_component)| {
                 let block_id = block_component.id.unwrap();
                 let block_name = block_component
                     .data
@@ -355,18 +356,18 @@ mod tests {
                     sub_block_component_count += 1;
                     assert_eq!(
                         8,
-                        child_entity.len(),
+                        child_insts.len(),
                         "There should be 8 child nodes(8 Insts) in %top.and.init block."
                     );
                     let const_int_inst =
-                        llhd_world.world().get::<LLHDInstComponent>(child_entity[0]);
+                        llhd_world.world().get::<LLHDInstComponent>(child_insts[0]);
                     let const_int_inst_opcode = const_int_inst.unwrap().data.opcode();
                     assert!(
                         matches!(const_int_inst_opcode, llhd::ir::Opcode::ConstTime),
                         "First Inst of %top.and should have Opcode ConstTime."
                     );
                     let wait_inst =
-                        llhd_world.world().get::<LLHDInstComponent>(child_entity[7]);
+                        llhd_world.world().get::<LLHDInstComponent>(child_insts[7]);
                     let wait_inst_opcode = wait_inst.unwrap().data.opcode();
                     assert!(
                         matches!(wait_inst_opcode, llhd::ir::Opcode::WaitTime),
@@ -376,18 +377,18 @@ mod tests {
                     top_block_component_count += 1;
                     assert_eq!(
                         11,
-                        child_entity.len(),
+                        child_insts.len(),
                         "There should be 11 child nodes(11 Insts) in %top.and.bb0 block."
                     );
                     let const_int_inst =
-                        llhd_world.world().get::<LLHDInstComponent>(child_entity[0]);
+                        llhd_world.world().get::<LLHDInstComponent>(child_insts[0]);
                     let const_int_inst_opcode = const_int_inst.unwrap().data.opcode();
                     assert!(
                         matches!(const_int_inst_opcode, llhd::ir::Opcode::ConstTime),
                         "First Inst of @top should have Opcode ConstTime."
                     );
                     let instantiation_inst =
-                        llhd_world.world().get::<LLHDInstComponent>(child_entity[9]);
+                        llhd_world.world().get::<LLHDInstComponent>(child_insts[9]);
                     let instantiation_inst_opcode = instantiation_inst.unwrap().data.opcode();
                     assert!(
                         matches!(instantiation_inst_opcode, llhd::ir::Opcode::Inst),
@@ -407,46 +408,33 @@ mod tests {
             "There should be 1 Block Components present in @top."
         );
 
-        // let mut sub_inst_component_count = 0;
-        // let mut top_inst_component_count = 0;
-        // let mut inst_query = llhd_world.query::<(Entity, &Children, &LLHDInstComponent)>();
-        // inst_query.iter(llhd_world.world()).for_each(
-        //     |(parent_block_entity, child_value_refs, _unit_component)| {
-        //         let block_name = llhd_world
-        //             .world()
-        //             .get::<LLHDBlockComponent>(parent_block_entity)
-        //             .unwrap()
-        //             .data
-        //             .name
-        //             .clone()
-        //             .unwrap();
-        //         if block_name == sub_module_name_first_block {
-        //             sub_inst_component_count = child_value_refs.len();
-        //             assert_eq!(
-        //                 8,
-        //                 sub_inst_component_count,
-        //                 "There should be 8 child nodes(8 Insts) in %top.and module."
-        //             );
-        //         } else if block_name == top_module_name_first_block {
-        //             top_inst_component_count = child_value_refs.len();
-        //             assert_eq!(
-        //                 10,
-        //                 top_inst_component_count,
-        //                 "There should be 10 child nodes(10 Insts) in %top.and module."
-        //             );
-        //         } else {
-        //             panic!("Unknown module name: {}", block_name);
-        //         }
-        //     },
-        // );
-        // assert_eq!(
-        //     8, sub_inst_component_count,
-        //     "There should be 8 Inst Components present in %top.and."
-        // );
-        // assert_eq!(
-        //     10, top_inst_component_count,
-        //     "There should be 10 Inst Components present in @top."
-        // );
+        let mut inst_component_count = 0;
+        let mut inst_query = llhd_world.query::<(&Children, &LLHDInstComponent)>();
+        inst_query
+            .iter(llhd_world.world())
+            .for_each(|(child_value_refs, inst_component)| {
+                inst_component_count += 1;
+                let inst_opcode = inst_component.data.opcode();
+                if inst_opcode == Opcode::ConstTime {
+                    assert_eq!(
+                        0,
+                        child_value_refs.len(),
+                        "There should be 0 child nodes(0 Args) in ConstTime Insts."
+                    );
+                } else if inst_opcode == Opcode::Prb {
+                    assert_eq!(
+                        1,
+                        child_value_refs.len(),
+                        "There should be 1 child nodes(1 Args) in Prb Insts."
+                    );
+                } else {
+                    panic!("Unknown Inst Opcode: {}", inst_opcode);
+                }
+            });
+        assert_eq!(
+            18, inst_component_count,
+            "There should be 18 Inst Components present in Module."
+        );
     }
 
     #[test]
