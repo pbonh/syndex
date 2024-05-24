@@ -78,6 +78,9 @@ pub(crate) mod world;
 /// `LibrEDA` Trait Implementations
 mod libreda;
 
+/// DB Rewrites via the Ascent Datalog Engine
+mod engine;
+
 pub use config::CONFIG;
 
 #[cfg(test)]
