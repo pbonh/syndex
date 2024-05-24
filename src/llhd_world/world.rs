@@ -1,19 +1,27 @@
 use bevy_ecs::prelude::{Component, Entity, QueryState};
 use bevy_ecs::query::QueryData;
-use bevy_hierarchy::BuildWorldChildren;
+use bevy_hierarchy::{BuildWorldChildren, Children};
 use llhd::ir::{Inst, UnitId, Value};
 use std::collections::HashMap;
 use std::ops::Add;
 
-use crate::llhd_world::initializer::{build_blocks, build_insts, build_units, build_value_defs};
+use crate::llhd_world::initializer::{
+    build_blocks, build_insts, build_units, build_value_defs, build_value_refs,
+};
 use crate::{llhd::module::LLHDModule, world::LWorld};
 
-use super::initializer::build_value_refs;
+// use super::components::inst::LLHDInstComponent;
+// use super::components::unit::LLHDUnitComponent;
+// use super::components::block::LLHDBlockComponent;
+use super::components::inst::LLHDInstComponent;
 
+pub type InstIndex = (UnitId, Inst);
+pub type ValueDefIndex = (UnitId, Value);
+pub type ValueRefIndex = (UnitId, Inst, Value);
 type UnitMapper = HashMap<UnitId, Entity>;
-type InstMapper = HashMap<(UnitId, Inst), Entity>;
-type ValueDefMapper = HashMap<(UnitId, Value), Entity>;
-type ValueRefMapper = HashMap<(UnitId, Inst, Value), Entity>;
+type InstMapper = HashMap<InstIndex, Entity>;
+type ValueDefMapper = HashMap<ValueDefIndex, Entity>;
+type ValueRefMapper = HashMap<ValueRefIndex, Entity>;
 
 #[derive(Debug, Clone, Default, Component)]
 pub struct ECSEntityName(String);
@@ -163,8 +171,38 @@ impl LLHDWorld {
         self.world.query::<D>()
     }
 
-    // pub fn unit_program(unit_id: UnitId) -> impl Iterator<Item = LLHDUnitComponent> + '_ {
-    // }
+    pub fn unit_program_inst<T: Component>(
+        &self,
+        unit_id: UnitId,
+    ) -> impl Iterator<Item = (InstIndex, &T)> + '_ {
+        let unit_entity = self.unit_map[&unit_id];
+        let unit_children = self
+            .world
+            .get::<Children>(unit_entity)
+            .expect("Unit should contain child entities.");
+        unit_children
+            .iter()
+            .filter(|block_entity| self.world.get::<Children>(**block_entity).is_some())
+            .flat_map(move |block_entity| {
+                let block_children = self
+                    .world
+                    .get::<Children>(*block_entity)
+                    .expect("Block should contain child entities.");
+                block_children.iter().map(move |inst_entity| {
+                    let inst_id = self
+                        .world
+                        .get::<LLHDInstComponent>(*inst_entity)
+                        .expect("Inst entity should be present.")
+                        .id
+                        .expect("Inst should have Id.");
+                    let inst_data = self
+                        .world
+                        .get::<T>(*inst_entity)
+                        .expect("Inst Component data should be present.");
+                    ((unit_id, inst_id), inst_data)
+                })
+            })
+    }
 }
 
 impl From<LLHDModule> for LLHDWorld {
@@ -746,23 +784,28 @@ mod tests {
         }
     }
 
-    // struct UnitProgramBasic(Inst, u32);
-    //
-    // #[test]
-    // fn llhd_world_unit_program() {
-    //     let input = indoc::indoc! {"
-    //         entity @test_entity (i1 %in1, i1 %in2, i1 %in3, i1 %in4) -> (i1$ %out1) {
-    //             %null = const time 0s 1e
-    //             %and1 = and i1 %in1, %in2
-    //             %and2 = and i1 %in3, %in4
-    //             %or1 = or i1 %and1, %and2
-    //             drv i1$ %out1, %or1, %null
-    //         }
-    //     "};
-    //
-    //     let module = llhd::assembly::parse_module(input).unwrap();
-    //     let llhd_world = LLHDWorld::new(LLHDModule::from(module));
-    //     let unit_id = UnitId::new(0);
-    //     let unit_program: Vec<UnitProgramBasic> = llhd_world.unit_program(unit_id).collect();
-    // }
+    #[test]
+    fn llhd_world_unit_program() {
+        let input = indoc::indoc! {"
+            entity @test_entity (i1 %in1, i1 %in2, i1 %in3, i1 %in4) -> (i1$ %out1) {
+                %null = const time 0s 1e
+                %and1 = and i1 %in1, %in2
+                %and2 = and i1 %in3, %in4
+                %or1 = or i1 %and1, %and2
+                drv i1$ %out1, %or1, %null
+            }
+        "};
+
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let llhd_world = LLHDWorld::new(LLHDModule::from(module));
+        let unit_id = UnitId::new(0);
+        let unit_program_inst: Vec<(InstIndex, &LLHDInstComponent)> = llhd_world
+            .unit_program_inst::<LLHDInstComponent>(unit_id)
+            .collect();
+        assert_eq!(
+            6,
+            unit_program_inst.len(),
+            "There should be 6 Instructions in the Unit Program."
+        );
+    }
 }
