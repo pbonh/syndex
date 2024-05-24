@@ -1,12 +1,19 @@
 use bevy_ecs::prelude::{Component, Entity, QueryState};
 use bevy_ecs::query::QueryData;
 use bevy_hierarchy::BuildWorldChildren;
+use llhd::ir::{Inst, UnitId, Value};
+use std::collections::HashMap;
 use std::ops::Add;
 
 use crate::llhd_world::initializer::{build_blocks, build_insts, build_units, build_value_defs};
 use crate::{llhd::module::LLHDModule, world::LWorld};
 
 use super::initializer::build_value_refs;
+
+type UnitMapper = HashMap<UnitId, Entity>;
+type InstMapper = HashMap<(UnitId, Inst), Entity>;
+type ValueDefMapper = HashMap<(UnitId, Value), Entity>;
+type ValueRefMapper = HashMap<(UnitId, Inst, Value), Entity>;
 
 #[derive(Debug, Clone, Default, Component)]
 pub struct ECSEntityName(String);
@@ -20,16 +27,26 @@ impl Add for ECSEntityName {
 }
 
 #[derive(Debug, Default)]
-pub struct LLHDWorld(LWorld);
+pub struct LLHDWorld {
+    world: LWorld,
+    unit_map: UnitMapper,
+    inst_map: InstMapper,
+    value_def_map: ValueDefMapper,
+    value_ref_map: ValueRefMapper,
+}
 
 impl LLHDWorld {
     pub fn new(module: LLHDModule) -> Self {
         let mut world = LWorld::default();
+        let mut unit_map = UnitMapper::default();
+        let mut inst_map = InstMapper::default();
+        let mut value_def_map = ValueDefMapper::default();
+        let mut value_ref_map = ValueRefMapper::default();
         build_units(&module).for_each(|unit_component| {
             if let Some(unit_id) = unit_component.id {
                 let unit_name = ECSEntityName(unit_component.name.to_string());
-                let _unit_entity = world
-                    .spawn(unit_component)
+                let mut unit_entity = world.spawn(unit_component);
+                unit_entity
                     .insert(unit_name.to_owned())
                     .with_children(|parent_unit| {
                         build_blocks(&module.unit(unit_id)).for_each(|block_component| {
@@ -54,16 +71,26 @@ impl LLHDWorld {
                                                         + ECSEntityName(".".to_string())
                                                         + ECSEntityName(inst_id.to_string());
                                                     let inst_data = inst_component.data.to_owned();
-                                                    parent_block
-                                                        .spawn(inst_component)
-                                                        .insert(inst_name)
-                                                        .with_children(|parent_inst| {
+                                                    let mut inst_entity =
+                                                        parent_block.spawn(inst_component);
+                                                    inst_entity.insert(inst_name).with_children(
+                                                        |parent_inst| {
                                                             build_value_refs(inst_id, &inst_data)
                                                                 .for_each(|value_ref_component| {
-                                                                    parent_inst
-                                                                        .spawn(value_ref_component);
+                                                                    let value_def_id = value_ref_component.id.expect("Unexpected missing Value Def in ValueRef Component.");
+                                                                    let value_ref_entity =
+                                                                        parent_inst.spawn(
+                                                                            value_ref_component,
+                                                                        );
+                                                                    value_ref_map.insert(
+                                                                        (unit_id, inst_id, value_def_id),
+                                                                        value_ref_entity.id(),
+                                                                    );
                                                                 });
-                                                        });
+                                                        },
+                                                    );
+                                                    inst_map
+                                                        .insert((unit_id, inst_id), inst_entity.id());
                                                 }
                                             },
                                         );
@@ -75,32 +102,69 @@ impl LLHDWorld {
                                 let value_name = unit_name.to_owned()
                                     + ECSEntityName(".".to_string())
                                     + ECSEntityName(value_id.to_string());
-                                parent_unit.spawn(value_component).insert(value_name);
+                                let mut value_def_entity = parent_unit.spawn(value_component);
+                                value_def_entity.insert(value_name);
+                                value_def_map.insert((unit_id, value_id), value_def_entity.id());
                             }
                         });
                     });
+                unit_map.insert(unit_id, unit_entity.id());
             }
         });
         world.insert_resource(module);
-        Self(world)
+        Self {
+            world,
+            unit_map,
+            inst_map,
+            value_def_map,
+            value_ref_map,
+        }
     }
 
     pub const fn world(&self) -> &LWorld {
-        &self.0
+        &self.world
+    }
+
+    pub fn get_unit<T: Component>(&self, unit_id: UnitId) -> Option<&T> {
+        let entity = self.unit_map[&unit_id];
+        self.world.get::<T>(entity)
+    }
+
+    pub fn get_inst<T: Component>(&self, unit_id: UnitId, inst_id: Inst) -> Option<&T> {
+        let entity = self.inst_map[&(unit_id, inst_id)];
+        self.world.get::<T>(entity)
+    }
+
+    pub fn get_value_def<T: Component>(&self, unit_id: UnitId, value_id: Value) -> Option<&T> {
+        let entity = self.value_def_map[&(unit_id, value_id)];
+        self.world.get::<T>(entity)
+    }
+
+    pub fn get_value_ref<T: Component>(
+        &self,
+        unit_id: UnitId,
+        inst_id: Inst,
+        value_id: Value,
+    ) -> Option<&T> {
+        let entity = self.value_ref_map[&(unit_id, inst_id, value_id)];
+        self.world.get::<T>(entity)
     }
 
     pub fn slow_lookup(&mut self, name: &str) -> Option<Entity> {
-        let mut entity_name_query = self.0.query::<(Entity, &ECSEntityName)>();
+        let mut entity_name_query = self.world.query::<(Entity, &ECSEntityName)>();
         entity_name_query
-            .iter(&self.0)
+            .iter(&self.world)
             .find(|(_entity, ecs_entity_name_component)| ecs_entity_name_component.0 == name)
             .unzip()
             .0
     }
 
     pub fn query<D: QueryData>(&mut self) -> QueryState<D, ()> {
-        self.0.query::<D>()
+        self.world.query::<D>()
     }
+
+    // pub fn unit_program(unit_id: UnitId) -> impl Iterator<Item = LLHDUnitComponent> + '_ {
+    // }
 }
 
 impl From<LLHDModule> for LLHDWorld {
@@ -113,11 +177,14 @@ impl From<LLHDModule> for LLHDWorld {
 mod tests {
     use crate::llhd_world::components::{
         block::LLHDBlockComponent, inst::LLHDInstComponent, unit::LLHDUnitComponent,
-        value::LLHDValueRefComponent,
+        value::LLHDValueDefComponent, value::LLHDValueRefComponent,
     };
     use bevy_hierarchy::{Children, Parent};
     use itertools::Itertools;
-    use llhd::ir::Opcode;
+    use llhd::{
+        ir::{Inst, InstData, Opcode},
+        table::TableKey,
+    };
     use pretty_assertions::assert_eq;
 
     use super::*;
@@ -629,4 +696,73 @@ mod tests {
             "8 Insts should be present in @foo.next block."
         );
     }
+
+    #[test]
+    fn get_llhd_world_entity_components() {
+        let input = indoc::indoc! {"
+            entity @test_entity (i1 %in1, i1 %in2, i1 %in3, i1 %in4) -> (i1$ %out1) {
+                %null = const time 0s 1e
+                %and1 = and i1 %in1, %in2
+                %and2 = and i1 %in3, %in4
+                %or1 = or i1 %and1, %and2
+                drv i1$ %out1, %or1, %null
+            }
+        "};
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let llhd_world = LLHDWorld::new(LLHDModule::from(module));
+        let unit_id = UnitId::new(0);
+        let unit_component = llhd_world.get_unit::<LLHDUnitComponent>(unit_id).unwrap();
+        assert_eq!(
+            "@test_entity",
+            unit_component.name.to_string(),
+            "Unit name should be '@test_entity'"
+        );
+
+        let inst_id = Inst::new(4);
+        let inst_component = llhd_world
+            .get_inst::<LLHDInstComponent>(unit_id, inst_id)
+            .unwrap();
+        if let InstData::Binary { opcode, args } = inst_component.data {
+            assert!(
+                matches!(opcode, llhd::ir::Opcode::Or),
+                "Fourth Instruction in sub-module should be Or."
+            );
+
+            let value_def = args[0];
+            let value_def_component = llhd_world
+                .get_value_def::<LLHDValueDefComponent>(unit_id, value_def)
+                .unwrap();
+
+            let value_ref_component = llhd_world
+                .get_value_ref::<LLHDValueRefComponent>(unit_id, inst_id, value_def)
+                .unwrap();
+            assert_eq!(
+                value_ref_component.id.unwrap(),
+                value_def_component.id.unwrap(),
+                "Def stored in ValueRef should match original Id Value."
+            );
+        } else {
+            panic!("Unknown Inst");
+        }
+    }
+
+    // struct UnitProgramBasic(Inst, u32);
+    //
+    // #[test]
+    // fn llhd_world_unit_program() {
+    //     let input = indoc::indoc! {"
+    //         entity @test_entity (i1 %in1, i1 %in2, i1 %in3, i1 %in4) -> (i1$ %out1) {
+    //             %null = const time 0s 1e
+    //             %and1 = and i1 %in1, %in2
+    //             %and2 = and i1 %in3, %in4
+    //             %or1 = or i1 %and1, %and2
+    //             drv i1$ %out1, %or1, %null
+    //         }
+    //     "};
+    //
+    //     let module = llhd::assembly::parse_module(input).unwrap();
+    //     let llhd_world = LLHDWorld::new(LLHDModule::from(module));
+    //     let unit_id = UnitId::new(0);
+    //     let unit_program: Vec<UnitProgramBasic> = llhd_world.unit_program(unit_id).collect();
+    // }
 }
