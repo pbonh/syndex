@@ -107,6 +107,11 @@ mod tests {
     }
 
     #[test]
+    fn create_value_ref_component_refault() {
+        let _unit_component = LLHDValueRefComponent::default();
+    }
+
+    #[test]
     fn create_value_def_component() {
         let entity_data = build_entity(UnitName::anonymous(0));
         let entity = Unit::new(UnitId::new(0), &entity_data);
@@ -132,6 +137,12 @@ mod tests {
             "There should be 9 Values defined in Unit."
         );
         assert_eq!(
+            5,
+            value_ref_components.len(),
+            "There should be 5 Value References in Unit."
+        );
+
+        assert_eq!(
             Value::new(0),
             value_def_components[0].id.unwrap(),
             "First Id should be Arg with Id: 0"
@@ -152,12 +163,6 @@ mod tests {
             Value::new(8),
             value_def_components[8].id.unwrap(),
             "Last Id should be Value with Id: 8"
-        );
-
-        assert_eq!(
-            5,
-            value_ref_components.len(),
-            "There should be 5 Value References in Unit."
         );
     }
 }
