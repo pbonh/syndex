@@ -1,6 +1,7 @@
 use ascent::ascent;
 
 mod lattice;
+mod program_builder;
 
 ascent! {
     relation edge(i32, i32);
