@@ -82,6 +82,17 @@ mod tests {
             unit_program_or_inst.len(),
             "There should be 1 Or instruction before program optimization."
         );
+        let mut area_before = 0;
+        for inst in &unit_program_and_inst {
+            area_before += inst.3;
+        }
+        for inst in &unit_program_or_inst {
+            area_before += inst.3;
+        }
+        assert_eq!(
+            12, area_before,
+            "Area-Before should be 12, with 2 And's and 1 Or."
+        );
         let mut prog = AscentProgram {
             andi: unit_program_and_inst,
             ori: unit_program_or_inst,
@@ -151,6 +162,17 @@ mod tests {
             2,
             unit_program_or_inst.len(),
             "There should be 2 Or instruction before program optimization."
+        );
+        let mut area_before = 0;
+        for inst in &unit_program_and_inst {
+            area_before += inst.3;
+        }
+        for inst in &unit_program_or_inst {
+            area_before += inst.3;
+        }
+        assert_eq!(
+            9, area_before,
+            "Area-Before should be 9, with 2 Or's and 1 And."
         );
         let mut prog = AscentProgram {
             andi: unit_program_and_inst,
