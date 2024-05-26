@@ -171,10 +171,10 @@ impl LLHDWorld {
         self.world.query::<D>()
     }
 
-    pub fn unit_program_inst<T: Component>(
+    pub fn unit_program_inst<T: Component + Clone>(
         &self,
         unit_id: UnitId,
-    ) -> impl Iterator<Item = (InstIndex, &T)> + '_ {
+    ) -> impl Iterator<Item = (InstIndex, T)> + '_ {
         let unit_entity = self.unit_map[&unit_id];
         let unit_children = self
             .world
@@ -198,6 +198,7 @@ impl LLHDWorld {
                     let inst_data = self
                         .world
                         .get::<T>(*inst_entity)
+                        .cloned()
                         .expect("Inst Component data should be present.");
                     ((unit_id, inst_id), inst_data)
                 })
@@ -785,7 +786,7 @@ mod tests {
     }
 
     #[test]
-    fn llhd_world_unit_program() {
+    fn llhd_world_unit_inst_program() {
         let input = indoc::indoc! {"
             entity @test_entity (i1 %in1, i1 %in2, i1 %in3, i1 %in4) -> (i1$ %out1) {
                 %null = const time 0s 1e
@@ -799,9 +800,9 @@ mod tests {
         let module = llhd::assembly::parse_module(input).unwrap();
         let llhd_world = LLHDWorld::new(LLHDModule::from(module));
         let unit_id = UnitId::new(0);
-        let unit_program_inst: Vec<(InstIndex, &LLHDInstComponent)> = llhd_world
+        let unit_program_inst = llhd_world
             .unit_program_inst::<LLHDInstComponent>(unit_id)
-            .collect();
+            .collect::<Vec<(InstIndex, LLHDInstComponent)>>();
         assert_eq!(
             6,
             unit_program_inst.len(),
