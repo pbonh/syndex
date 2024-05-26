@@ -1,5 +1,5 @@
 mod bevy_example;
-mod components;
+pub(crate) mod components;
 mod example_hierarchy;
 mod example_relations;
 mod initializer;

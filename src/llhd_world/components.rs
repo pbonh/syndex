@@ -1,4 +1,4 @@
-pub(super) mod unit;
-pub(super) mod block;
-pub(super) mod value;
-pub(super) mod inst;
+pub(crate) mod unit;
+pub(crate) mod block;
+pub(crate) mod value;
+pub(crate) mod inst;
