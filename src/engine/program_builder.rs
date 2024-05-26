@@ -6,7 +6,7 @@ mod bevy_ecs_to_ascent_program_example {
     type LLHDInstRelation = (InstIndex, LLHDInstComponent);
 
     ascent! {
-        relation llhd_unit_inst(Vec<LLHDInstRelation>);
+        relation llhd_unit_inst(LLHDInstRelation);
 
         llhd_unit_inst(inst_info) <-- llhd_unit_inst(inst_info);
     }
@@ -33,12 +33,13 @@ mod bevy_ecs_to_ascent_program_example {
             let module = llhd::assembly::parse_module(input).unwrap();
             let llhd_world = LLHDWorld::new(LLHDModule::from(module));
             let unit_id = UnitId::new(0);
-            let unit_program_inst: Vec<LLHDInstRelation> = llhd_world
+            let unit_program_inst: Vec<(LLHDInstRelation,)> = llhd_world
                 .unit_program_inst::<LLHDInstComponent>(unit_id)
+                .map(|inst_component| (inst_component,))
                 .collect();
 
             let mut prog = AscentProgram {
-                llhd_unit_inst: vec![(unit_program_inst,)],
+                llhd_unit_inst: unit_program_inst,
                 ..Default::default()
             };
             prog.run();
