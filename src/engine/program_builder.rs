@@ -98,6 +98,16 @@ mod tests {
             ori: unit_program_or_inst,
             ..Default::default()
         };
+        assert_eq!(
+            2,
+            prog.andi.len(),
+            "There should be 2 And instructions before running the engine."
+        );
+        assert_eq!(
+            1,
+            prog.ori.len(),
+            "There should be 1 Or instructions before running the engine."
+        );
         prog.run();
         assert_eq!(
             3,
@@ -107,7 +117,7 @@ mod tests {
         assert_eq!(
             3,
             prog.ori.len(),
-            "There should be 3 And instructions after running the engine."
+            "There should be 3 Or instructions after running the engine."
         );
     }
 
@@ -179,6 +189,16 @@ mod tests {
             ori: unit_program_or_inst,
             ..Default::default()
         };
+        assert_eq!(
+            1,
+            prog.andi.len(),
+            "There should be 1 And instructions before running the engine."
+        );
+        assert_eq!(
+            2,
+            prog.ori.len(),
+            "There should be 2 And instructions before running the engine."
+        );
         prog.run();
         assert_eq!(
             1,
