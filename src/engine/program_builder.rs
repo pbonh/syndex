@@ -212,7 +212,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn rewrite_llhd_inst_via_ascent_engine_no_op_2or_1and() {
         let input = indoc::indoc! {"
