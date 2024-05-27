@@ -52,9 +52,11 @@ pub(crate) fn build_insts<'unit>(
     block_id: Block,
 ) -> impl Iterator<Item = LLHDInstComponent> + 'unit {
     unit.insts(block_id).map(|inst| {
+        let inst_value = &unit.get_inst_result(inst);
         let inst_data = &unit[inst];
         LLHDInstComponent {
             id: Some(inst),
+            value: *inst_value,
             data: inst_data.clone(),
         }
     })

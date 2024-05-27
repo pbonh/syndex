@@ -1,17 +1,19 @@
 use bevy_ecs::prelude::*;
-use llhd::ir::{Inst, InstData};
+use llhd::ir::{Inst, InstData, Value};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Component, Hash)]
 pub struct LLHDInstComponent {
     pub(crate) id: Option<Inst>,
+    pub(crate) value: Option<Value>,
     pub(crate) data: InstData,
 }
 
-impl From<&(Inst, InstData)> for LLHDInstComponent {
-    fn from(inst: &(Inst, InstData)) -> Self {
+impl From<&(Inst, Value, InstData)> for LLHDInstComponent {
+    fn from(inst: &(Inst, Value, InstData)) -> Self {
         Self {
             id: Some(inst.0),
-            data: inst.1.clone(),
+            value: Some(inst.1),
+            data: inst.2.clone(),
         }
     }
 }
@@ -57,7 +59,8 @@ mod tests {
             .filter(|inst| filter_nullary(&unit, *inst))
             .for_each(|inst| {
                 let inst_data = unit[inst].clone();
-                inst_components.push(LLHDInstComponent::from(&(inst, inst_data)));
+                let inst_value = unit.inst_result(inst);
+                inst_components.push(LLHDInstComponent::from(&(inst, inst_value, inst_data)));
             });
         assert_eq!(
             5,
