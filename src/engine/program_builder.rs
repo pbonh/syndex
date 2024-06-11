@@ -1,4 +1,4 @@
-use ascent::*;
+use ascent::ascent;
 use llhd::ir::prelude::*;
 
 ascent! {
