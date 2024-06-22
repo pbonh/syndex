@@ -149,6 +149,15 @@ impl LLHDWorld {
         self.world.get::<T>(entity)
     }
 
+    pub fn set_inst<T: Component>(&mut self, unit_id: UnitId, inst_id: Inst, value: T) {
+        let entity = self.inst_map[&(unit_id, inst_id)];
+        let mut entity_mut = self
+            .world
+            .get_entity_mut(entity)
+            .expect("Unexpected missing entity.");
+        entity_mut.insert(value);
+    }
+
     pub fn get_value_def<T: Component>(&self, unit_id: UnitId, value_id: Value) -> Option<&T> {
         let entity = self.value_def_map[&(unit_id, value_id)];
         self.world.get::<T>(entity)
@@ -194,19 +203,27 @@ impl LLHDWorld {
                     .world
                     .get::<Children>(*block_entity)
                     .expect("Block should contain child entities.");
-                block_children.iter().map(move |inst_entity| {
-                    let inst_component = self
-                        .world
-                        .get::<LLHDInstComponent>(*inst_entity)
-                        .expect("Inst entity should be present.");
-                    let inst_id = inst_component.id.expect("Inst should have Id.");
-                    let inst_data = self
-                        .world
-                        .get::<T>(*inst_entity)
-                        .cloned()
-                        .expect("Inst Component data should be present.");
-                    ((unit_id, inst_id), inst_component.to_owned(), inst_data)
-                })
+                block_children
+                    .iter()
+                    .map(move |inst_entity| {
+                        let inst_component = self
+                            .world
+                            .get::<LLHDInstComponent>(*inst_entity)
+                            .expect("Inst entity should be present.");
+                        let inst_id = inst_component.id.expect("Inst should have Id.");
+                        (inst_id, inst_entity, inst_component.to_owned())
+                    })
+                    .filter(|(_inst_id, inst_entity, _inst_component)| {
+                        self.world.get::<T>(**inst_entity).is_some()
+                    })
+                    .map(move |(inst_id, inst_entity, inst_component)| {
+                        let inst_data = self
+                            .world
+                            .get::<T>(*inst_entity)
+                            .cloned()
+                            .expect("Inst Component data should be present.");
+                        ((unit_id, inst_id), inst_component.to_owned(), inst_data)
+                    })
             })
     }
 }
