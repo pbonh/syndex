@@ -41,27 +41,22 @@ fn run_divisor_extraction(llhd_world: &LLHDWorld, unit_id: UnitId) -> LLHDProgra
         relation andi(Value, Value, Value, LLHDInstLocation) = unit_program_and_inst;
         relation ori(Value, Value, Value, LLHDInstLocation) = unit_program_or_inst;
         relation noti(Value, Value, Value, LLHDInstLocation) = unit_program_not_inst;
+        relation div_andi(Value, Value, Value, LLHDInstLocation);
+        relation div_ori(Value, Value, Value, LLHDInstLocation);
+        relation div_noti(Value, Value, Value, LLHDInstLocation);
 
-        andi(or_idx, and1_idx, and2_idx, and1_area),
-        ori(and1_idx, and1_in1, and1_in2, or_area),
-        ori(and2_idx, and2_in1, and2_in2, or_area)
-        <-- ori(or_idx, and1_idx, and2_idx, or_area),
-            andi(and1_idx, and1_in1, and1_in2, and1_area),
-            andi(and2_idx, and2_in1, and2_in2, and2_area);
-
-        ori(and_idx, or1_idx, or2_idx, or1_area),
-        andi(or1_idx, or1_in1, or1_in2, and_area),
-        andi(or2_idx, or2_in1, or2_in2, and_area)
-        <-- andi(and_idx, or1_idx, or2_idx, and_area),
-            ori(or1_idx, or1_in1, or1_in2, or1_area),
-            ori(or2_idx, or2_in1, or2_in2, or2_area);
+        div_andi(and1_idx, a, or_idx, and1_loc),
+        div_ori(or_idx, b, c, or_loc)
+        <-- ori(or_idx, and1_idx, and2_idx, or_loc),
+            andi(and1_idx, a, b, and1_loc),
+            andi(and2_idx, a, c, and2_loc);
     };
 
     ascent_program
-        .noti
+        .div_noti
         .into_iter()
-        .chain(ascent_program.andi)
-        .chain(ascent_program.ori)
+        .chain(ascent_program.div_andi)
+        .chain(ascent_program.div_ori)
         .collect_vec()
 }
 
@@ -230,15 +225,14 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_divisor_extraction() {
         // Replace a*b + a*c
         // with    a*(b + c)
         let input = indoc::indoc! {"
-                entity @test_extraction (i1 %in1, i1 %in2, i1 %in3, i1 %in4) -> (i1$ %out1) {
+                entity @test_extraction (i1 %in1, i1 %in2, i1 %in3) -> (i1$ %out1) {
                     %instant = const time 0s 1e
                     %and1 = and i1 %in1, %in2
-                    %and2 = and i1 %in3, %in4
+                    %and2 = and i1 %in1, %in3
                     %or1 = or i1 %and1, %and2
                     drv i1$ %out1, %or1, %instant
                 }
