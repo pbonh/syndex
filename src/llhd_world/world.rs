@@ -129,6 +129,12 @@ impl LLHDWorld {
         }
     }
 
+    pub fn module(&self) -> &LLHDModule {
+        self.world()
+            .get_resource::<LLHDModule>()
+            .expect("Missing LLHDModule")
+    }
+
     pub const fn world(&self) -> &LWorld {
         &self.world
     }
