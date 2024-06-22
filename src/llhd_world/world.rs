@@ -174,7 +174,7 @@ impl LLHDWorld {
     pub fn unit_program_inst<T: Component + Clone>(
         &self,
         unit_id: UnitId,
-    ) -> impl Iterator<Item = (InstIndex, T)> + '_ {
+    ) -> impl Iterator<Item = (InstIndex, LLHDInstComponent, T)> + '_ {
         let unit_entity = self.unit_map[&unit_id];
         let unit_children = self
             .world
@@ -189,18 +189,17 @@ impl LLHDWorld {
                     .get::<Children>(*block_entity)
                     .expect("Block should contain child entities.");
                 block_children.iter().map(move |inst_entity| {
-                    let inst_id = self
+                    let inst_component = self
                         .world
                         .get::<LLHDInstComponent>(*inst_entity)
-                        .expect("Inst entity should be present.")
-                        .id
-                        .expect("Inst should have Id.");
+                        .expect("Inst entity should be present.");
+                    let inst_id = inst_component.id.expect("Inst should have Id.");
                     let inst_data = self
                         .world
                         .get::<T>(*inst_entity)
                         .cloned()
                         .expect("Inst Component data should be present.");
-                    ((unit_id, inst_id), inst_data)
+                    ((unit_id, inst_id), inst_component.to_owned(), inst_data)
                 })
             })
     }
@@ -802,7 +801,7 @@ mod tests {
         let unit_id = UnitId::new(0);
         let unit_program_inst = llhd_world
             .unit_program_inst::<LLHDInstComponent>(unit_id)
-            .collect::<Vec<(InstIndex, LLHDInstComponent)>>();
+            .collect::<Vec<(InstIndex, LLHDInstComponent, LLHDInstComponent)>>();
         assert_eq!(
             6,
             unit_program_inst.len(),

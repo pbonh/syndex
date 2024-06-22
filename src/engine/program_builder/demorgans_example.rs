@@ -47,10 +47,10 @@ mod tests {
         let unit_id = UnitId::new(0);
         let unit_program_and_inst: Vec<(Value, Value, Value, u64)> = llhd_world
             .unit_program_inst::<LLHDInstComponent>(unit_id)
-            .filter(|((_unit_id, _inst_id), inst_component)| {
+            .filter(|((_unit_id, _inst_id), inst_component, _inst_data)| {
                 Opcode::And == inst_component.data.opcode()
             })
-            .map(|(_inst_idx, inst_component)| {
+            .map(|(_inst_idx, inst_component, _inst_data)| {
                 let inst_value = inst_component.value.unwrap();
                 let args = inst_component.data.args();
                 let input1 = args[0];
@@ -60,10 +60,10 @@ mod tests {
             .collect();
         let unit_program_or_inst: Vec<(Value, Value, Value, u64)> = llhd_world
             .unit_program_inst::<LLHDInstComponent>(unit_id)
-            .filter(|((_unit_id, _inst_id), inst_component)| {
+            .filter(|((_unit_id, _inst_id), inst_component, _inst_data)| {
                 Opcode::Or == inst_component.data.opcode()
             })
-            .map(|(_inst_idx, inst_component)| {
+            .map(|(_inst_idx, inst_component, _inst_data)| {
                 let inst_value = inst_component.value.unwrap();
                 let args = inst_component.data.args();
                 let input1 = args[0];
@@ -138,10 +138,10 @@ mod tests {
         let unit_id = UnitId::new(0);
         let unit_program_and_inst: Vec<(Value, Value, Value, u64)> = llhd_world
             .unit_program_inst::<LLHDInstComponent>(unit_id)
-            .filter(|((_unit_id, _inst_id), inst_component)| {
+            .filter(|((_unit_id, _inst_id), inst_component, _inst_data)| {
                 Opcode::And == inst_component.data.opcode()
             })
-            .map(|(_inst_idx, inst_component)| {
+            .map(|(_inst_idx, inst_component, _inst_data)| {
                 let inst_value = inst_component.value.unwrap();
                 let args = inst_component.data.args();
                 let input1 = args[0];
@@ -151,10 +151,10 @@ mod tests {
             .collect();
         let unit_program_or_inst: Vec<(Value, Value, Value, u64)> = llhd_world
             .unit_program_inst::<LLHDInstComponent>(unit_id)
-            .filter(|((_unit_id, _inst_id), inst_component)| {
+            .filter(|((_unit_id, _inst_id), inst_component, _inst_data)| {
                 Opcode::Or == inst_component.data.opcode()
             })
-            .map(|(_inst_idx, inst_component)| {
+            .map(|(_inst_idx, inst_component, _inst_data)| {
                 let inst_value = inst_component.value.unwrap();
                 let args = inst_component.data.args();
                 let input1 = args[0];
@@ -229,10 +229,10 @@ mod tests {
         let unit_id = UnitId::new(0);
         let unit_program_and_inst: Vec<(Value, Value, Value, u64)> = llhd_world
             .unit_program_inst::<LLHDInstComponent>(unit_id)
-            .filter(|((_unit_id, _inst_id), inst_component)| {
+            .filter(|((_unit_id, _inst_id), inst_component, _inst_data)| {
                 Opcode::And == inst_component.data.opcode()
             })
-            .map(|(_inst_idx, inst_component)| {
+            .map(|(_inst_idx, inst_component, _inst_data)| {
                 let inst_value = inst_component.value.unwrap();
                 let args = inst_component.data.args();
                 let input1 = args[0];
@@ -242,10 +242,10 @@ mod tests {
             .collect();
         let unit_program_or_inst: Vec<(Value, Value, Value, u64)> = llhd_world
             .unit_program_inst::<LLHDInstComponent>(unit_id)
-            .filter(|((_unit_id, _inst_id), inst_component)| {
+            .filter(|((_unit_id, _inst_id), inst_component, _inst_data)| {
                 Opcode::Or == inst_component.data.opcode()
             })
-            .map(|(_inst_idx, inst_component)| {
+            .map(|(_inst_idx, inst_component, _inst_data)| {
                 let inst_value = inst_component.value.unwrap();
                 let args = inst_component.data.args();
                 let input1 = args[0];
@@ -320,10 +320,10 @@ mod tests {
         let unit_id = UnitId::new(0);
         let unit_program_and_inst: Vec<(Value, Value, Value, u64)> = llhd_world
             .unit_program_inst::<LLHDInstComponent>(unit_id)
-            .filter(|((_unit_id, _inst_id), inst_component)| {
+            .filter(|((_unit_id, _inst_id), inst_component, _inst_data)| {
                 Opcode::And == inst_component.data.opcode()
             })
-            .map(|(_inst_idx, inst_component)| {
+            .map(|(_inst_idx, inst_component, _inst_data)| {
                 let inst_value = inst_component.value.unwrap();
                 let args = inst_component.data.args();
                 let input1 = args[0];
@@ -333,10 +333,10 @@ mod tests {
             .collect();
         let unit_program_or_inst: Vec<(Value, Value, Value, u64)> = llhd_world
             .unit_program_inst::<LLHDInstComponent>(unit_id)
-            .filter(|((_unit_id, _inst_id), inst_component)| {
+            .filter(|((_unit_id, _inst_id), inst_component, _inst_data)| {
                 Opcode::Or == inst_component.data.opcode()
             })
-            .map(|(_inst_idx, inst_component)| {
+            .map(|(_inst_idx, inst_component, _inst_data)| {
                 let inst_value = inst_component.value.unwrap();
                 let args = inst_component.data.args();
                 let input1 = args[0];
