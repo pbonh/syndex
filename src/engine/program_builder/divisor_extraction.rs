@@ -45,9 +45,9 @@ fn run_divisor_extraction(llhd_world: &LLHDWorld, unit_id: UnitId) -> LLHDProgra
         relation div_ori(Value, Value, Value, LLHDInstLocation);
         relation div_noti(Value, Value, Value, LLHDInstLocation);
 
-        div_andi(and1_idx, a, or_idx, and1_loc),
-        div_ori(or_idx, b, c, or_loc)
-        <-- ori(or_idx, and1_idx, and2_idx, or_loc),
+        div_andi(out_idx, a, and1_idx, and1_loc),
+        div_ori(and1_idx, b, c, or_loc)
+        <-- ori(out_idx, and1_idx, and2_idx, or_loc),
             andi(and1_idx, a, b, and1_loc),
             andi(and2_idx, a, c, and2_loc);
     };
