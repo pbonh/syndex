@@ -11,10 +11,7 @@ struct LLHDInstLocation(usize, usize);
 type LLHDProgramWithInstLocation = Vec<(Value, Value, Value, LLHDInstLocation)>;
 type LLHDProgramWithInstOpAndLocation = Vec<(Opcode, Value, Value, Value, LLHDInstLocation)>;
 
-fn get_all_llhd_insts(
-    llhd_world: &LLHDWorld,
-    unit_id: UnitId,
-) -> LLHDProgramWithInstOpAndLocation {
+fn get_all_llhd_insts(llhd_world: &LLHDWorld, unit_id: UnitId) -> LLHDProgramWithInstOpAndLocation {
     llhd_world
         .unit_program_inst::<LLHDInstLocation>(unit_id)
         .map(|(_inst_idx, inst_component, inst_data)| {
@@ -48,7 +45,13 @@ fn get_llhd_insts(
         .collect()
 }
 
-fn run_divisor_extraction(llhd_world: &LLHDWorld, unit_id: UnitId) -> (LLHDProgramWithInstLocation, LLHDProgramWithInstOpAndLocation) {
+fn run_divisor_extraction(
+    llhd_world: &LLHDWorld,
+    unit_id: UnitId,
+) -> (
+    LLHDProgramWithInstLocation,
+    LLHDProgramWithInstOpAndLocation,
+) {
     let unit_program_and_inst = get_llhd_insts(llhd_world, unit_id, Opcode::And);
     let unit_program_or_inst = get_llhd_insts(llhd_world, unit_id, Opcode::Or);
     let unit_program_not_inst = get_llhd_insts(llhd_world, unit_id, Opcode::Not);
@@ -79,13 +82,15 @@ fn run_divisor_extraction(llhd_world: &LLHDWorld, unit_id: UnitId) -> (LLHDProgr
             llhd_inst(Opcode::And, and2_idx, a, c, and2_loc);
     };
 
-    (ascent_program
-        .div_noti
-        .into_iter()
-        .chain(ascent_program.div_andi)
-        .chain(ascent_program.div_ori)
-        .collect_vec(),
-        ascent_program.div_llhd_inst.into_iter().collect_vec())
+    (
+        ascent_program
+            .div_noti
+            .into_iter()
+            .chain(ascent_program.div_andi)
+            .chain(ascent_program.div_ori)
+            .collect_vec(),
+        ascent_program.div_llhd_inst.into_iter().collect_vec(),
+    )
 }
 
 #[cfg(test)]
@@ -233,23 +238,34 @@ mod tests {
         let unit_id = llhd_world.module().units().next().unwrap().id();
         initialize_llhd_unit_relative_locations(&mut llhd_world, unit_id, (5, 5));
         let unit = llhd_world.module().unit(unit_id);
-        let unit_insts = llhd_world.module().unit(unit_id).all_insts()
+        let unit_insts = llhd_world
+            .module()
+            .unit(unit_id)
+            .all_insts()
             .filter(|inst| unit.has_result(*inst))
             .filter(|inst| {
                 let inst_value = unit.inst_result(*inst);
                 unit.get_const(inst_value).is_none()
-            }).collect_vec();
-        assert_eq!(expected_locations.len(), unit_insts.len(), "Expecgted Locations count mismatches Inst count.");
-        let actual_locations = 
-        unit_insts
+            })
+            .collect_vec();
+        assert_eq!(
+            expected_locations.len(),
+            unit_insts.len(),
+            "Expecgted Locations count mismatches Inst count."
+        );
+        let actual_locations = unit_insts
             .iter()
             .map(|inst| {
                 let inst_rel_location = llhd_world
                     .get_inst::<LLHDInstLocation>(unit_id, *inst)
                     .unwrap();
                 (inst_rel_location.0, inst_rel_location.1)
-            }).collect_vec();
-        assert_eq!(expected_locations, actual_locations, "Incorrect Placements.");
+            })
+            .collect_vec();
+        assert_eq!(
+            expected_locations, actual_locations,
+            "Incorrect Placements."
+        );
     }
 
     #[test]
