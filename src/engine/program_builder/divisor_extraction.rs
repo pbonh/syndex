@@ -9,6 +9,24 @@ use crate::llhd_world::world::LLHDWorld;
 struct LLHDInstLocation(usize, usize);
 
 type LLHDProgramWithInstLocation = Vec<(Value, Value, Value, LLHDInstLocation)>;
+type LLHDProgramWithInstOpAndLocation = Vec<(Opcode, Value, Value, Value, LLHDInstLocation)>;
+
+fn get_all_llhd_insts(
+    llhd_world: &LLHDWorld,
+    unit_id: UnitId,
+) -> LLHDProgramWithInstOpAndLocation {
+    llhd_world
+        .unit_program_inst::<LLHDInstLocation>(unit_id)
+        .map(|(_inst_idx, inst_component, inst_data)| {
+            let opcode = inst_component.data.opcode();
+            let inst_value = inst_component.value.unwrap();
+            let args = inst_component.data.args();
+            let input1 = args[0];
+            let input2 = args[1];
+            (opcode, inst_value, input1, input2, inst_data)
+        })
+        .collect()
+}
 
 fn get_llhd_insts(
     llhd_world: &LLHDWorld,
@@ -30,14 +48,17 @@ fn get_llhd_insts(
         .collect()
 }
 
-fn run_divisor_extraction(llhd_world: &LLHDWorld, unit_id: UnitId) -> LLHDProgramWithInstLocation {
+fn run_divisor_extraction(llhd_world: &LLHDWorld, unit_id: UnitId) -> (LLHDProgramWithInstLocation, LLHDProgramWithInstOpAndLocation) {
     let unit_program_and_inst = get_llhd_insts(llhd_world, unit_id, Opcode::And);
     let unit_program_or_inst = get_llhd_insts(llhd_world, unit_id, Opcode::Or);
     let unit_program_not_inst = get_llhd_insts(llhd_world, unit_id, Opcode::Not);
+    let unit_program_all_inst = get_all_llhd_insts(llhd_world, unit_id);
 
     // Replace a*b + a*c
     // with    a*(b + c)
     let ascent_program = ascent_run! {
+        relation llhd_inst(Opcode, Value, Value, Value, LLHDInstLocation) = unit_program_all_inst;
+        relation div_llhd_inst(Opcode, Value, Value, Value, LLHDInstLocation);
         relation andi(Value, Value, Value, LLHDInstLocation) = unit_program_and_inst;
         relation ori(Value, Value, Value, LLHDInstLocation) = unit_program_or_inst;
         relation noti(Value, Value, Value, LLHDInstLocation) = unit_program_not_inst;
@@ -50,14 +71,21 @@ fn run_divisor_extraction(llhd_world: &LLHDWorld, unit_id: UnitId) -> LLHDProgra
         <-- ori(out_idx, and1_idx, and2_idx, or_loc),
             andi(and1_idx, a, b, and1_loc),
             andi(and2_idx, a, c, and2_loc);
+
+        div_llhd_inst(Opcode::And, out_idx, a, and1_idx, and1_loc),
+        div_llhd_inst(Opcode::Or, and1_idx, b, c, or_loc)
+        <-- llhd_inst(Opcode::Or, out_idx, and1_idx, and2_idx, or_loc),
+            llhd_inst(Opcode::And, and1_idx, a, b, and1_loc),
+            llhd_inst(Opcode::And, and2_idx, a, c, and2_loc);
     };
 
-    ascent_program
+    (ascent_program
         .div_noti
         .into_iter()
         .chain(ascent_program.div_andi)
         .chain(ascent_program.div_ori)
-        .collect_vec()
+        .collect_vec(),
+        ascent_program.div_llhd_inst.into_iter().collect_vec())
 }
 
 #[cfg(test)]
@@ -249,10 +277,18 @@ mod tests {
             "There should be 6 Instructions in original Unit."
         );
 
-        let extracted_divisor_program = run_divisor_extraction(&llhd_world, unit_id);
+        let extracted_divisor_program_all = run_divisor_extraction(&llhd_world, unit_id);
+        let extracted_divisor_program_opcode_types = extracted_divisor_program_all.0;
         assert_eq!(
             2,
-            extracted_divisor_program.len(),
+            extracted_divisor_program_opcode_types.len(),
+            "There should be 2 instructions remaining in the extracted program(`a*b + a*c` -> `a*(b + c)`)."
+        );
+
+        let extracted_divisor_program_plain = extracted_divisor_program_all.1;
+        assert_eq!(
+            2,
+            extracted_divisor_program_plain.len(),
             "There should be 2 instructions remaining in the extracted program(`a*b + a*c` -> `a*(b + c)`)."
         );
     }
