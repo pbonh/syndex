@@ -75,6 +75,9 @@ pub(crate) mod llhd;
 /// Types & Utilities for Managing FLECS Worlds
 pub(crate) mod world;
 
+/// Analog Circuit Data Structure
+pub(crate) mod circuit;
+
 /// `LibrEDA` Trait Implementations
 mod libreda;
 

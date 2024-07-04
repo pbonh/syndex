@@ -31,6 +31,8 @@ rayon = "1.8.1"
 bevy_ecs = "0.13.2"
 bevy_hierarchy = "0.13.2"
 ascent = "0.6.0"
+hypergraph = "2.1.2"
+evalexpr = "11.3.0"
 
 [dev-dependencies]
 criterion = "0.4"

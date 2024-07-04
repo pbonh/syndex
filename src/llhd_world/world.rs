@@ -1,8 +1,9 @@
 use bevy_ecs::prelude::{Component, Entity, QueryState};
 use bevy_ecs::query::QueryData;
 use bevy_hierarchy::{BuildWorldChildren, Children};
+use hypergraph::VertexIndex;
 use llhd::ir::{Inst, UnitId, Value};
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::ops::Add;
 
 use crate::llhd_world::initializer::{
@@ -18,6 +19,7 @@ use super::components::inst::LLHDInstComponent;
 pub type InstIndex = (UnitId, Inst);
 pub type ValueDefIndex = (UnitId, Value);
 pub type ValueRefIndex = (UnitId, Inst, Value);
+pub type AnalogCircuitIndex = BTreeSet<VertexIndex>;
 type UnitMapper = HashMap<UnitId, Entity>;
 type InstMapper = HashMap<InstIndex, Entity>;
 type ValueDefMapper = HashMap<ValueDefIndex, Entity>;
