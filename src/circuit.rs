@@ -1,3 +1,4 @@
+#[macro_use]
 pub mod macros;
 pub(crate) mod graph;
 pub(crate) mod equations;

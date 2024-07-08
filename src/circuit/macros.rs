@@ -1,17 +1,17 @@
-// use super::graph::*;
+use crate::circuit::graph::LCircuit;
 
 // Define a macro for the DSL
 #[allow(unused_macros)]
-macro_rules! netlist {
+macro_rules! circuit {
     // Entry point for the macro
     ($($name:ident { $($field:ident = $value:expr;)* })*) => {{
-        let mut netlist = Netlist::new();
+        let mut circuit = LCircuit::default();
         $(
-            netlist.add_component(stringify!($name), vec![
+            circuit.add_component(stringify!($name), vec![
                 $((stringify!($field).to_string(), $value.to_string()),)*
             ]);
         )*
-        netlist
+        circuit
     }};
 }
 
@@ -63,7 +63,7 @@ mod tests {
     #[test]
     fn simple_inverter_netlist() {
         // Simple CMOS inverter with RLC parasitics and transistor I-V equations
-        let cmos_inverter = netlist! {
+        let cmos_inverter = circuit! {
             transistor {
                 name = "M1";
                 drain = "out";

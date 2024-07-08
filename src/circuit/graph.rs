@@ -1,3 +1,4 @@
+use bevy_ecs::prelude::Resource;
 use hypergraph::Hypergraph;
 use std::fmt::{Display, Formatter, Result};
 
@@ -51,7 +52,10 @@ impl<'eq_str> Into<usize> for CircuitElement<'eq_str> {
     }
 }
 
-pub(crate) type Circuit<'node_str, 'eq_str> = Hypergraph<VoltageNode<'node_str>, CircuitElement<'eq_str>>;
+#[derive(Debug, Default, Resource)]
+pub struct LCircuit<'node_str, 'eq_str>(
+    Hypergraph<VoltageNode<'node_str>, CircuitElement<'eq_str>>,
+);
 
 #[cfg(test)]
 mod tests {
@@ -59,6 +63,48 @@ mod tests {
 
     #[test]
     fn default_circuit() {
-        let _circuit = Circuit::default();
+        let _circuit = LCircuit::default();
+    }
+
+    #[test]
+    fn simple_inverter_macro() {
+        let cmos_inverter = circuit! {
+            transistor {
+                name = "M1";
+                drain = "out";
+                gate = "in";
+                source = "vss";
+                body = "vss";
+                type_ = "NMOS";
+                model = "NMOS_IV";
+            }
+            transistor {
+                name = "M2";
+                drain = "out";
+                gate = "in";
+                source = "vdd";
+                body = "vdd";
+                type_ = "PMOS";
+                model = "PMOS_IV";
+            }
+            resistor {
+                name = "R1";
+                n1 = "out";
+                n2 = "vdd";
+                value = "10k";
+            }
+            inductor {
+                name = "L1";
+                n1 = "out";
+                n2 = "vdd";
+                value = "10mH";
+            }
+            capacitor {
+                name = "C1";
+                n1 = "out";
+                n2 = "vdd";
+                value = "100nF";
+            }
+        };
     }
 }
