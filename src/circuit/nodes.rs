@@ -7,7 +7,6 @@ impl FromStr for CircuitNode {
     type Err = String;
 
     fn from_str(node_str: &str) -> Result<Self, Self::Err> {
-        let mut error_str: String = "Invalid Node String: ".to_owned();
         if !node_str.contains(char::is_whitespace)
             && !node_str
                 .chars()
@@ -17,6 +16,7 @@ impl FromStr for CircuitNode {
         {
             Ok(Self(node_str.to_owned()))
         } else {
+            let mut error_str: String = "Invalid Node String: ".to_owned();
             error_str.push_str(node_str);
             Err(error_str)
         }
