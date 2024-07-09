@@ -1,9 +1,9 @@
-use bevy_ecs::prelude::Resource;
+use crate::circuit::equations::CircuitEquation;
+use crate::circuit::nodes::CircuitNode;
 use bevy_ecs::prelude::Entity;
+use bevy_ecs::prelude::Resource;
 use hypergraph::Hypergraph;
 use std::fmt::{Display, Formatter, Result};
-use crate::circuit::nodes::CircuitNode;
-use crate::circuit::equations::CircuitEquation;
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 pub struct VoltageNode<'node_str> {
@@ -42,14 +42,18 @@ impl<'eq_str> Display for CircuitHyperEdge<'eq_str> {
         write!(
             f,
             "element_id: {} equations: {}",
-            self.entity_id.to_bits(), self.equations
+            self.entity_id.to_bits(),
+            self.equations
         )
     }
 }
 
 impl<'eq_str> Into<usize> for CircuitHyperEdge<'eq_str> {
     fn into(self) -> usize {
-        self.entity_id.to_bits().try_into().expect("Unable to convert u64 to usize.")
+        self.entity_id
+            .to_bits()
+            .try_into()
+            .expect("Unable to convert u64 to usize.")
     }
 }
 
@@ -80,14 +84,15 @@ mod tests {
             I = Is*(e^(vd/(eta*Vt)) - 1)
         "};
         let dev_eq = DeviceEquation::from_str(eq).unwrap();
-        let node_eq = DeviceEquation::from_str("n1 - n2").unwrap();
-        let ctx = VariableContextMap::from([("vd".to_string(), node_eq)]);
-        let circuit_eq = CircuitEquation::new(dev_eq, ctx);
         let x1 = CircuitElement::from_str("x1").unwrap();
         let n1 = CircuitNode::from_str("n1").unwrap();
         let n2 = CircuitNode::from_str("n2").unwrap();
         let n3 = CircuitNode::from_str("n3").unwrap();
         let n4 = CircuitNode::from_str("n4").unwrap();
+        let node_eq_str: String = "(".to_owned() + &n1.to_string() + " - " + &n2.to_string() + ")";
+        let node_eq = DeviceEquation::from_str(&node_eq_str).unwrap();
+        let ctx = VariableContextMap::from([("vd".to_string(), node_eq)]);
+        let circuit_eq = CircuitEquation::new(dev_eq, ctx);
         let _transistor = transistor::Transistor::builder()
             .name(x1)
             .equations(circuit_eq)
@@ -116,23 +121,23 @@ mod tests {
         //         model = "PMOS_IV";
         //     }
         // };
-            // resistor {
-            //     name = "R1";
-            //     n1 = "out";
-            //     n2 = "vdd";
-            //     value = "10k";
-            // }
-            // inductor {
-            //     name = "L1";
-            //     n1 = "out";
-            //     n2 = "vdd";
-            //     value = "10mH";
-            // }
-            // capacitor {
-            //     name = "C1";
-            //     n1 = "out";
-            //     n2 = "vdd";
-            //     value = "100nF";
-            // }
+        // resistor {
+        //     name = "R1";
+        //     n1 = "out";
+        //     n2 = "vdd";
+        //     value = "10k";
+        // }
+        // inductor {
+        //     name = "L1";
+        //     n1 = "out";
+        //     n2 = "vdd";
+        //     value = "10mH";
+        // }
+        // capacitor {
+        //     name = "C1";
+        //     n1 = "out";
+        //     n2 = "vdd";
+        //     value = "100nF";
+        // }
     }
 }
