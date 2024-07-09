@@ -2,14 +2,16 @@ use bevy_ecs::prelude::Resource;
 use bevy_ecs::prelude::Entity;
 use hypergraph::Hypergraph;
 use std::fmt::{Display, Formatter, Result};
+use crate::circuit::nodes::CircuitNode;
+use crate::circuit::equations::CircuitEquation;
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 pub struct VoltageNode<'node_str> {
-    node: &'node_str str,
+    node: &'node_str CircuitNode,
 }
 
 impl<'node_str> VoltageNode<'node_str> {
-    pub const fn new(node: &'node_str str) -> Self {
+    pub const fn new(node: &'node_str CircuitNode) -> Self {
         Self { node }
     }
 }
@@ -23,11 +25,11 @@ impl<'node_str> Display for VoltageNode<'node_str> {
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 pub(crate) struct CircuitHyperEdge<'eq_str> {
     entity_id: Entity,
-    equations: &'eq_str str,
+    equations: &'eq_str CircuitEquation,
 }
 
 impl<'eq_str> CircuitHyperEdge<'eq_str> {
-    pub const fn new(equations: &'eq_str str, entity_id: Entity) -> Self {
+    pub const fn new(equations: &'eq_str CircuitEquation, entity_id: Entity) -> Self {
         Self {
             entity_id,
             equations,

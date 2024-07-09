@@ -2,7 +2,7 @@ use evalexpr::build_operator_tree;
 use std::fmt;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub(crate) struct CircuitEquation(String);
 
 impl FromStr for CircuitEquation {
