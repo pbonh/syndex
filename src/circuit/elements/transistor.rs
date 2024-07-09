@@ -31,16 +31,15 @@ mod tests {
             I = Is*(e^(vd/(eta*Vt)) - 1)
         "};
         let circuit_eq = CircuitEquation::from_str(eq).unwrap();
-        let context = context_map! {
-            "five" => 5,
-            "twelve" => 12,
-        }
-        .unwrap();
         let x1 = CircuitElement::from_str("x1").unwrap();
         let n1 = CircuitNode::from_str("n1").unwrap();
         let n2 = CircuitNode::from_str("n2").unwrap();
         let n3 = CircuitNode::from_str("n3").unwrap();
         let n4 = CircuitNode::from_str("n4").unwrap();
+        let context = context_map! {
+            "vd" => n1.to_string() + " - " + &n2.to_string(),
+        }
+        .unwrap();
         let _transistor = Transistor::builder()
             .name(x1)
             .context(context)

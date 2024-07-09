@@ -1,3 +1,4 @@
+use std::fmt;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Default)]
@@ -23,9 +24,16 @@ impl FromStr for CircuitNode {
     }
 }
 
+impl fmt::Display for CircuitNode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn valid_node() {
@@ -34,6 +42,7 @@ mod tests {
             CircuitNode::from_str(node).is_ok(),
             "Node is valid circuit node, should be able to create CircuitNode type."
         );
+        assert_eq!("f_1", node.to_string(), "String should match.");
     }
 
     #[test]

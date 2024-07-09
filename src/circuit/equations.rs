@@ -1,4 +1,5 @@
 use evalexpr::build_operator_tree;
+use std::fmt;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Default)]
@@ -12,6 +13,12 @@ impl FromStr for CircuitEquation {
             Ok(_) => Ok(Self(eq_str.to_owned())),
             Err(error) => Err(error.to_string()),
         }
+    }
+}
+
+impl fmt::Display for CircuitEquation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
