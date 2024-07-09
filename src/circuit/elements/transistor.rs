@@ -1,3 +1,4 @@
+use crate::circuit::elements::CircuitElement;
 use crate::circuit::equations::CircuitEquation;
 use crate::circuit::nodes::CircuitNode;
 use evalexpr::HashMapContext;
@@ -5,6 +6,7 @@ use typed_builder::TypedBuilder;
 
 #[derive(Debug, Clone, Default, TypedBuilder)]
 pub struct Transistor {
+    name: CircuitElement,
     context: HashMapContext,
     equations: CircuitEquation,
     gate: CircuitNode,
@@ -34,11 +36,13 @@ mod tests {
             "twelve" => 12,
         }
         .unwrap();
+        let x1 = CircuitElement::from_str("x1").unwrap();
         let n1 = CircuitNode::from_str("n1").unwrap();
         let n2 = CircuitNode::from_str("n2").unwrap();
         let n3 = CircuitNode::from_str("n3").unwrap();
         let n4 = CircuitNode::from_str("n4").unwrap();
         let _transistor = Transistor::builder()
+            .name(x1)
             .context(context)
             .equations(circuit_eq)
             .gate(n1)

@@ -21,12 +21,12 @@ impl<'node_str> Display for VoltageNode<'node_str> {
 }
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
-pub(crate) struct CircuitElement<'eq_str> {
+pub(crate) struct CircuitHyperEdge<'eq_str> {
     entity_id: Entity,
     equations: &'eq_str str,
 }
 
-impl<'eq_str> CircuitElement<'eq_str> {
+impl<'eq_str> CircuitHyperEdge<'eq_str> {
     pub const fn new(equations: &'eq_str str, entity_id: Entity) -> Self {
         Self {
             entity_id,
@@ -35,7 +35,7 @@ impl<'eq_str> CircuitElement<'eq_str> {
     }
 }
 
-impl<'eq_str> Display for CircuitElement<'eq_str> {
+impl<'eq_str> Display for CircuitHyperEdge<'eq_str> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
@@ -45,7 +45,7 @@ impl<'eq_str> Display for CircuitElement<'eq_str> {
     }
 }
 
-impl<'eq_str> Into<usize> for CircuitElement<'eq_str> {
+impl<'eq_str> Into<usize> for CircuitHyperEdge<'eq_str> {
     fn into(self) -> usize {
         self.entity_id.to_bits().try_into().expect("Unable to convert u64 to usize.")
     }
@@ -53,7 +53,7 @@ impl<'eq_str> Into<usize> for CircuitElement<'eq_str> {
 
 #[derive(Debug, Default, Resource)]
 pub struct LCircuit<'node_str, 'eq_str>(
-    Hypergraph<VoltageNode<'node_str>, CircuitElement<'eq_str>>,
+    Hypergraph<VoltageNode<'node_str>, CircuitHyperEdge<'eq_str>>,
 );
 
 #[cfg(test)]
@@ -86,24 +86,24 @@ mod tests {
     //             type_ = "PMOS";
     //             model = "PMOS_IV";
     //         }
-    //         resistor {
-    //             name = "R1";
-    //             n1 = "out";
-    //             n2 = "vdd";
-    //             value = "10k";
-    //         }
-    //         inductor {
-    //             name = "L1";
-    //             n1 = "out";
-    //             n2 = "vdd";
-    //             value = "10mH";
-    //         }
-    //         capacitor {
-    //             name = "C1";
-    //             n1 = "out";
-    //             n2 = "vdd";
-    //             value = "100nF";
-    //         }
     //     };
+    //         // resistor {
+    //         //     name = "R1";
+    //         //     n1 = "out";
+    //         //     n2 = "vdd";
+    //         //     value = "10k";
+    //         // }
+    //         // inductor {
+    //         //     name = "L1";
+    //         //     n1 = "out";
+    //         //     n2 = "vdd";
+    //         //     value = "10mH";
+    //         // }
+    //         // capacitor {
+    //         //     name = "C1";
+    //         //     n1 = "out";
+    //         //     n2 = "vdd";
+    //         //     value = "100nF";
+    //         // }
     // }
 }
