@@ -61,51 +61,78 @@ pub struct LCircuit<'node_str, 'eq_str>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::circuit::elements::*;
+    use crate::circuit::equations::*;
+    use std::str::FromStr;
 
     #[test]
     fn default_circuit() {
         let _circuit = LCircuit::default();
     }
 
-    // #[test]
-    // fn simple_inverter_macro() {
-    //     let cmos_inverter = circuit! {
-    //         transistor {
-    //             name = "M1";
-    //             drain = "out";
-    //             gate = "in";
-    //             source = "vss";
-    //             body = "vss";
-    //             type_ = "NMOS";
-    //             model = "NMOS_IV";
-    //         }
-    //         transistor {
-    //             name = "M2";
-    //             drain = "out";
-    //             gate = "in";
-    //             source = "vdd";
-    //             body = "vdd";
-    //             type_ = "PMOS";
-    //             model = "PMOS_IV";
-    //         }
-    //     };
-    //         // resistor {
-    //         //     name = "R1";
-    //         //     n1 = "out";
-    //         //     n2 = "vdd";
-    //         //     value = "10k";
-    //         // }
-    //         // inductor {
-    //         //     name = "L1";
-    //         //     n1 = "out";
-    //         //     n2 = "vdd";
-    //         //     value = "10mH";
-    //         // }
-    //         // capacitor {
-    //         //     name = "C1";
-    //         //     n1 = "out";
-    //         //     n2 = "vdd";
-    //         //     value = "100nF";
-    //         // }
-    // }
+    #[test]
+    fn simple_inverter_macro() {
+        let eq = indoc::indoc! {"
+            e = 2.718281828459045;
+            Is = 1e-12;
+            eta = 1.5;
+            Vt = T/11586;
+            I = Is*(e^(vd/(eta*Vt)) - 1)
+        "};
+        let dev_eq = DeviceEquation::from_str(eq).unwrap();
+        let node_eq = DeviceEquation::from_str("n1 - n2").unwrap();
+        let ctx = VariableContextMap::from([("vd".to_string(), node_eq)]);
+        let circuit_eq = CircuitEquation::new(dev_eq, ctx);
+        let x1 = CircuitElement::from_str("x1").unwrap();
+        let n1 = CircuitNode::from_str("n1").unwrap();
+        let n2 = CircuitNode::from_str("n2").unwrap();
+        let n3 = CircuitNode::from_str("n3").unwrap();
+        let n4 = CircuitNode::from_str("n4").unwrap();
+        let _transistor = transistor::Transistor::builder()
+            .name(x1)
+            .equations(circuit_eq)
+            .gate(n1)
+            .source(n2)
+            .drain(n3)
+            .body(n4)
+            .build();
+        // let cmos_inverter = circuit! {
+        //     transistor {
+        //         name = "M1";
+        //         drain = "out";
+        //         gate = "in";
+        //         source = "vss";
+        //         body = "vss";
+        //         type_ = "NMOS";
+        //         model = "NMOS_IV";
+        //     }
+        //     transistor {
+        //         name = "M2";
+        //         drain = "out";
+        //         gate = "in";
+        //         source = "vdd";
+        //         body = "vdd";
+        //         type_ = "PMOS";
+        //         model = "PMOS_IV";
+        //     }
+        // };
+            // resistor {
+            //     name = "R1";
+            //     n1 = "out";
+            //     n2 = "vdd";
+            //     value = "10k";
+            // }
+            // inductor {
+            //     name = "L1";
+            //     n1 = "out";
+            //     n2 = "vdd";
+            //     value = "10mH";
+            // }
+            // capacitor {
+            //     name = "C1";
+            //     n1 = "out";
+            //     n2 = "vdd";
+            //     value = "100nF";
+            // }
+    }
 }
