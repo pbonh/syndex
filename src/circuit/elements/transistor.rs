@@ -15,11 +15,9 @@ pub struct Transistor {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use evalexpr::context_map;
-
     use super::*;
+    use evalexpr::context_map;
+    use std::str::FromStr;
 
     #[test]
     fn build_transistor_simple() {
