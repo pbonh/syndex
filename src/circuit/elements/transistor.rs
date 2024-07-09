@@ -44,6 +44,7 @@ mod tests {
             .gate(n1)
             .source(n2)
             .drain(n3)
-            .body(n4);
+            .body(n4)
+            .build();
     }
 }
