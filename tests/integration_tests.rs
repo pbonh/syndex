@@ -29,5 +29,5 @@ fn simple_flow_load() {
         "};
 
     let module = llhd::assembly::parse_module(input).unwrap();
-    let _ = Flow::load(module.into());
+    let _technology_flow = Flow::load(module.into());
 }

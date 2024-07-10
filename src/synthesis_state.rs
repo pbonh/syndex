@@ -20,13 +20,12 @@ pub mod builder {
     pub struct Synthesis;
 
     pub trait Design {
-        fn setup(self) -> Technology;
-        fn load(module: LLHDModule) -> Design;
+        fn load(module: LLHDModule) -> Technology;
         fn export(self);
     }
 
     pub trait Technology {
-        fn load_rules(self) -> Synthesis;
+        fn constrain(self) -> Synthesis;
     }
 
     pub trait Synthesis {
@@ -34,15 +33,11 @@ pub mod builder {
     }
 
     impl DesignState for Flow<Design> {
-        fn setup(self) -> Flow<Technology> {
-            todo!()
-        }
-
-        fn load(module: LLHDModule) -> Flow<Design> {
+        fn load(module: LLHDModule) -> Flow<Technology> {
             let world = LLHDWorld::new(module);
-            Self {
+            Flow::<Technology> {
                 world,
-                state: Design,
+                state: Technology,
             }
         }
 
@@ -52,7 +47,7 @@ pub mod builder {
     }
 
     impl TechnologyState for Flow<Technology> {
-        fn load_rules(self) -> Flow<Synthesis> {
+        fn constrain(self) -> Flow<Synthesis> {
             todo!()
         }
     }
