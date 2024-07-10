@@ -121,44 +121,41 @@ mod tests {
             I = Is*(e^(vd/(eta*Vt)) - 1)
         "};
         let dev_eq = DeviceEquation::from_str(eq).unwrap();
-        let n1 = CircuitNode::from_str("n1").unwrap();
-        let n2 = CircuitNode::from_str("n2").unwrap();
-        let n3 = CircuitNode::from_str("n3").unwrap();
-        let n4 = CircuitNode::from_str("n4").unwrap();
+        let input = CircuitNode::from_str("input").unwrap();
+        let out = CircuitNode::from_str("out").unwrap();
+        let ground = CircuitNode::from_str("ground").unwrap();
+        let vsupply = CircuitNode::from_str("vsupply").unwrap();
 
-        let n1_voltage = VoltageNode::new(&n1);
-        let n2_voltage = VoltageNode::new(&n2);
-        let n3_voltage = VoltageNode::new(&n3);
-        let n4_voltage = VoltageNode::new(&n4);
-        let n1_id = circuit.add_vertex(n1_voltage).unwrap();
-        let n2_id = circuit.add_vertex(n2_voltage).unwrap();
-        let n3_id = circuit.add_vertex(n3_voltage).unwrap();
-        let n4_id = circuit.add_vertex(n4_voltage).unwrap();
+        let input_voltage = VoltageNode::new(&input);
+        let out_voltage = VoltageNode::new(&out);
+        let ground_voltage = VoltageNode::new(&ground);
+        let vsupply_voltage = VoltageNode::new(&vsupply);
+        let input_id = circuit.add_vertex(input_voltage).unwrap();
+        let out_id = circuit.add_vertex(out_voltage).unwrap();
+        let ground_id = circuit.add_vertex(ground_voltage).unwrap();
+        let vsupply_id = circuit.add_vertex(vsupply_voltage).unwrap();
         assert_eq!(circuit.count_vertices(), 4);
-        // let n1_entity_id = Entity::from_raw(n1_id.0.try_into().unwrap());
-        // let n2_entity_id = Entity::from_raw(n2_id.0.try_into().unwrap());
-        // let n3_entity_id = Entity::from_raw(n3_id.0.try_into().unwrap());
-        // let n4_entity_id = Entity::from_raw(n4_id.0.try_into().unwrap());
 
         // let x1 = CircuitElement::from_str("x1").unwrap();
-        let node_eq_str: String = "(".to_owned() + &n1.to_string() + " - " + &n2.to_string() + ")";
-        let node_eq = DeviceEquation::from_str(&node_eq_str).unwrap();
-        let ctx = VariableContextMap::from([("vd".to_string(), node_eq)]);
-        let transistor_eq = CircuitEquation::new(dev_eq, ctx);
-        // let transistor = transistor::Transistor::builder()
-        //     .name(x1)
-        //     .equations(circuit_eq)
-        //     .gate(n1)
-        //     .source(n2)
-        //     .drain(n3)
-        //     .body(n4)
-        //     .build();
+        let x1_nmos_node_eq_str: String = "(".to_owned() + &input.to_string() + " - " + &out.to_string() + ")";
+        let x1_nmos_node_eq = DeviceEquation::from_str(&x1_nmos_node_eq_str).unwrap();
+        let x1_nmos_ctx = VariableContextMap::from([("vd".to_string(), x1_nmos_node_eq)]);
+        let x1_nmos_transistor_eq = CircuitEquation::new(dev_eq.clone(), x1_nmos_ctx);
+        let x2_nmos_node_eq_str: String = "(".to_owned() + &input.to_string() + " - " + &out.to_string() + ")";
+        let x2_nmos_node_eq = DeviceEquation::from_str(&x2_nmos_node_eq_str).unwrap();
+        let x2_nmos_ctx = VariableContextMap::from([("vd".to_string(), x2_nmos_node_eq)]);
+        let x2_nmos_transistor_eq = CircuitEquation::new(dev_eq, x2_nmos_ctx);
 
-        let transistor_entity_id = Entity::from_raw(0);
-        let transistor_hyperedge = CircuitHyperEdge::new(&transistor_eq, transistor_entity_id);
-        let transistor_id =
-            circuit.add_hyperedge(vec![n1_id, n2_id, n3_id, n4_id], transistor_hyperedge).unwrap();
-        assert_eq!(transistor_id, HyperedgeIndex(0));
+        let x1_nmos_transistor_entity_id = Entity::from_raw(0);
+        let x2_nmos_transistor_entity_id = Entity::from_raw(1);
+        let x1_nmos_transistor_hyperedge = CircuitHyperEdge::new(&x1_nmos_transistor_eq, x1_nmos_transistor_entity_id);
+        let x2_nmos_transistor_hyperedge = CircuitHyperEdge::new(&x2_nmos_transistor_eq, x2_nmos_transistor_entity_id);
+        let x1_nmos_transistor_id =
+            circuit.add_hyperedge(vec![input_id, out_id, ground_id, ground_id], x1_nmos_transistor_hyperedge).unwrap();
+        let x2_nmos_transistor_id =
+            circuit.add_hyperedge(vec![input_id, vsupply_id, out_id, vsupply_id], x2_nmos_transistor_hyperedge).unwrap();
+        assert_eq!(x1_nmos_transistor_id, HyperedgeIndex(0));
+        assert_eq!(x2_nmos_transistor_id, HyperedgeIndex(1));
         // let cmos_inverter = circuit! {
         //     transistor {
         //         name = "M1";
