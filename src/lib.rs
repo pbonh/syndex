@@ -84,6 +84,9 @@ mod libreda;
 /// DB Rewrites via the Ascent Datalog Engine
 mod engine;
 
+/// Synthesis Flow State Machine
+pub mod synthesis_state;
+
 pub use config::CONFIG;
 
 #[cfg(test)]
