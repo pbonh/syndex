@@ -26,6 +26,10 @@ check *FLAGS:
 test *FLAGS:
     cargo nextest run --all-features --workspace {{FLAGS}}
 
+# Run doc tests.
+test-doc *FLAGS:
+    cargo test --doc -- --show-output
+
 # Build and run.
 run *FLAGS:
     cargo run {{FLAGS}}
