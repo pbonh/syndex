@@ -42,9 +42,17 @@ mod tests {
         }
         let unit1_nets = VertexIndex::from(1);
         let unit_loc = Point2D::zero();
-        let unit1 = DesignUnitIndex(UnitId::new(1), BTreeSet::from([unit1_nets]), Box2D::new(unit_loc, unit_loc));
+        let unit1 = DesignUnitIndex(
+            UnitId::new(1),
+            BTreeSet::from([unit1_nets]),
+            Box2D::new(unit_loc, unit_loc),
+        );
         let unit2_nets = VertexIndex::from(2);
-        let unit2 = DesignUnitIndex(UnitId::new(2), BTreeSet::from([unit2_nets]), Box2D::new(unit_loc, unit_loc));
+        let unit2 = DesignUnitIndex(
+            UnitId::new(2),
+            BTreeSet::from([unit2_nets]),
+            Box2D::new(unit_loc, unit_loc),
+        );
         let mut prog = AscentProgram::default();
         prog.edge = vec![(unit1, unit2)];
         prog.run();
@@ -63,9 +71,23 @@ mod tests {
         }
         let node1_nets = VertexIndex::from(1);
         let node_loc = Point2D::zero();
-        let node1 = DesignNodeIndex(UnitId::new(1), Block::new(0), Inst::new(1), Value::new(usize::max_value()), BTreeSet::from([node1_nets]), Box2D::new(node_loc, node_loc));
+        let node1 = DesignNodeIndex(
+            UnitId::new(1),
+            Block::new(0),
+            Inst::new(1),
+            Value::new(usize::max_value()),
+            BTreeSet::from([node1_nets]),
+            Box2D::new(node_loc, node_loc),
+        );
         let node2_nets = VertexIndex::from(2);
-        let node2 = DesignNodeIndex(UnitId::new(1), Block::new(0), Inst::new(2), Value::new(usize::max_value()), BTreeSet::from([node2_nets]), Box2D::new(node_loc, node_loc));
+        let node2 = DesignNodeIndex(
+            UnitId::new(1),
+            Block::new(0),
+            Inst::new(2),
+            Value::new(usize::max_value()),
+            BTreeSet::from([node2_nets]),
+            Box2D::new(node_loc, node_loc),
+        );
         let mut prog = AscentProgram::default();
         prog.edge = vec![(node1, node2)];
         prog.run();
