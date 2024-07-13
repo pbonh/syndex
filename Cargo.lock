@@ -754,6 +754,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "euclid"
+version = "0.22.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0f0eb73b934648cd7a4a61f1b15391cd95dab0b4da6e2e66c2a072c144b4a20"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "evalexpr"
 version = "11.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1719,6 +1728,7 @@ dependencies = [
  "criterion",
  "derive-getters",
  "envy",
+ "euclid",
  "evalexpr",
  "flecs",
  "hypergraph",
