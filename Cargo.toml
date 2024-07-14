@@ -37,6 +37,7 @@ typed-builder = "0.18.2"
 derive-getters = "0.4.0"
 typestate = "0.8.0"
 euclid = "0.22.10"
+mhgl = "0.2.2"
 
 [dev-dependencies]
 criterion = "0.4"
