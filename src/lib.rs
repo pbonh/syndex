@@ -66,7 +66,24 @@ mod config;
 /// Index/Database for Design
 pub mod llhd_world;
 
-/// Index/Database for Design
+/// Index/Database for Design, driven by Datalog Relation Tables
+///
+/// Module
+/// |
+/// |--> Unit(UnitId)
+///      |
+///      |--> DFG Node
+///      |    |
+///      |    |--> DesignDGate(UnitId, Inst, InstData)
+///      |    |
+///      |    |--> DesignDNet(UnitId, Inst, Value)
+///      |
+///      |--> CFG Node
+///           |
+///           |--> (UnitId, Inst, InstData)
+///           |
+///           |--> (UnitId, Inst, Block)
+///
 pub mod index;
 
 /// Types & Utilities for Managing LLHD Modules
