@@ -1,7 +1,7 @@
 pub mod macros;
 
 use crate::circuit::graph::VertexIndex;
-use euclid::Box2D;
+use euclid::default::Box2D;
 use llhd::ir::prelude::*;
 use llhd::ir::InstData;
 use std::collections::BTreeSet;
@@ -12,7 +12,7 @@ pub trait FlatIndex: Clone + PartialEq + Eq + Hash {}
 
 /// `FlatIndex` for Design Units
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DesignUnitIndex(UnitId, BTreeSet<VertexIndex>, Box2D<usize, ()>);
+pub struct DesignUnitIndex(UnitId, BTreeSet<VertexIndex>, Box2D<usize>);
 
 /// `FlatIndex` for Design Gates
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -21,7 +21,7 @@ pub struct DesignDGateIndex(
     Inst,
     InstData,
     BTreeSet<VertexIndex>,
-    Box2D<usize, ()>,
+    Box2D<usize>,
 );
 
 /// `FlatIndex` for Design Nets
