@@ -1,7 +1,7 @@
 pub mod macros;
 
+use crate::circuit::graph::VertexIndex;
 use euclid::Box2D;
-use hypergraph::VertexIndex;
 use llhd::ir::prelude::*;
 use llhd::ir::InstData;
 use std::collections::BTreeSet;
@@ -47,14 +47,14 @@ mod tests {
               for y in neighbors.iter(),
               if *x != *y;
         }
-        let unit1_nets = VertexIndex::from(1);
+        let unit1_nets = 1;
         let unit_loc = Point2D::zero();
         let unit1 = DesignUnitIndex(
             UnitId::new(1),
             BTreeSet::from([unit1_nets]),
             Box2D::new(unit_loc, unit_loc),
         );
-        let unit2_nets = VertexIndex::from(2);
+        let unit2_nets = 2;
         let unit2 = DesignUnitIndex(
             UnitId::new(2),
             BTreeSet::from([unit2_nets]),
@@ -76,7 +76,7 @@ mod tests {
               for y in neighbors.iter(),
               if *x != *y;
         }
-        let node1_nets = VertexIndex::from(1);
+        let node1_nets = 1;
         let node_loc = Point2D::zero();
         let node1_data = InstData::default();
         let node1 = DesignDGateIndex(
@@ -86,7 +86,7 @@ mod tests {
             BTreeSet::from([node1_nets]),
             Box2D::new(node_loc, node_loc),
         );
-        let node2_nets = VertexIndex::from(2);
+        let node2_nets = 2;
         let node2_data = InstData::default();
         let node2 = DesignDGateIndex(
             UnitId::new(1),
@@ -111,7 +111,7 @@ mod tests {
               for y in neighbors.iter(),
               if *x != *y;
         }
-        let node1_nets = VertexIndex::from(1);
+        let node1_nets = 1;
         let node_loc = Point2D::zero();
         let node1_net = Value::new(0);
         let node1 = DesignDNetIndex(
@@ -121,7 +121,7 @@ mod tests {
             BTreeSet::from([node1_nets]),
             Box2D::new(node_loc, node_loc),
         );
-        let node2_nets = VertexIndex::from(2);
+        let node2_nets = 2;
         let node2_net = Value::new(0);
         let node2 = DesignDNetIndex(
             UnitId::new(1),

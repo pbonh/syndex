@@ -68,7 +68,7 @@ pub mod llhd_world;
 
 /// Index/Database for Design, driven by Datalog Relation Tables
 ///
-/// Module
+/// LLHD Module
 /// |
 /// |--> Unit(UnitId)
 ///      |

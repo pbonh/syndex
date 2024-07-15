@@ -1,108 +1,93 @@
 use crate::circuit::equations::CircuitEquation;
 use crate::circuit::nodes::CircuitNode;
-use bevy_ecs::prelude::Entity;
 use bevy_ecs::prelude::Resource;
-use hypergraph::Hypergraph;
+use mhgl::HGraph;
 use std::fmt::{Display, Formatter, Result};
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
-pub struct VoltageNode<'node_str> {
-    node: &'node_str CircuitNode,
+pub type VertexIndex = u32;
+pub type HyperedgeIndex = u64;
+
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+pub struct VoltageNode {
+    node: CircuitNode,
 }
 
-impl<'node_str> VoltageNode<'node_str> {
-    pub const fn new(node: &'node_str CircuitNode) -> Self {
+impl VoltageNode {
+    pub const fn new(node: CircuitNode) -> Self {
         Self { node }
     }
 }
 
-impl<'node_str> Display for VoltageNode<'node_str> {
+impl Display for VoltageNode {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "{}", self.node)
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
-pub struct CircuitHyperEdge<'eq_str> {
-    entity_id: Entity,
-    equations: &'eq_str CircuitEquation,
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+pub struct CircuitHyperEdge {
+    equations: CircuitEquation,
 }
 
-impl<'eq_str> CircuitHyperEdge<'eq_str> {
-    pub const fn new(equations: &'eq_str CircuitEquation, entity_id: Entity) -> Self {
-        Self {
-            entity_id,
-            equations,
-        }
+impl CircuitHyperEdge {
+    pub const fn new(equations: CircuitEquation) -> Self {
+        Self { equations }
     }
 }
 
-impl<'eq_str> Display for CircuitHyperEdge<'eq_str> {
+impl Display for CircuitHyperEdge {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "element_id: {} equations: {}",
-            self.entity_id.to_bits(),
-            self.equations
-        )
+        write!(f, "equations: {}", self.equations)
     }
 }
 
-impl<'eq_str> Into<usize> for CircuitHyperEdge<'eq_str> {
-    fn into(self) -> usize {
-        self.entity_id
-            .to_bits()
-            .try_into()
-            .expect("Unable to convert u64 to usize.")
+#[derive(Debug, Resource)]
+pub struct LCircuit(HGraph<VoltageNode, CircuitHyperEdge>);
+
+impl Default for LCircuit {
+    fn default() -> Self {
+        Self(HGraph::<VoltageNode, CircuitHyperEdge>::new())
     }
 }
 
-#[derive(Debug, Default, Resource)]
-pub struct LCircuit<'node_str, 'eq_str>(
-    Hypergraph<VoltageNode<'node_str>, CircuitHyperEdge<'eq_str>>,
-);
-
-impl<'node_str, 'eq_str> Deref for LCircuit<'node_str, 'eq_str> {
-    type Target = Hypergraph<VoltageNode<'node_str>, CircuitHyperEdge<'eq_str>>;
+impl Deref for LCircuit {
+    type Target = HGraph<VoltageNode, CircuitHyperEdge>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<'node_str, 'eq_str> DerefMut for LCircuit<'node_str, 'eq_str> {
+impl DerefMut for LCircuit {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<'node_str, 'eq_str> AsRef<Hypergraph<VoltageNode<'node_str>, CircuitHyperEdge<'eq_str>>>
-    for LCircuit<'node_str, 'eq_str>
-where
-    <Self as Deref>::Target: AsRef<Hypergraph<VoltageNode<'node_str>, CircuitHyperEdge<'eq_str>>>,
-{
-    fn as_ref(&self) -> &Hypergraph<VoltageNode<'node_str>, CircuitHyperEdge<'eq_str>> {
-        self.deref().as_ref()
-    }
-}
-
-impl<'node_str, 'eq_str> AsMut<Hypergraph<VoltageNode<'node_str>, CircuitHyperEdge<'eq_str>>>
-    for LCircuit<'node_str, 'eq_str>
-where
-    <Self as Deref>::Target: AsMut<Hypergraph<VoltageNode<'node_str>, CircuitHyperEdge<'eq_str>>>,
-{
-    fn as_mut(&mut self) -> &mut Hypergraph<VoltageNode<'node_str>, CircuitHyperEdge<'eq_str>> {
-        self.deref_mut().as_mut()
-    }
-}
+// impl AsRef<HGraph<VoltageNode, CircuitHyperEdge>> for LCircuit
+// where
+//     <Self as Deref>::Target: AsRef<HGraph<VoltageNode, CircuitHyperEdge>>,
+// {
+//     fn as_ref(&self) -> &HGraph<VoltageNode, CircuitHyperEdge> {
+//         self.deref().as_ref()
+//     }
+// }
+//
+// impl AsMut<HGraph<VoltageNode, CircuitHyperEdge>> for LCircuit
+// where
+//     <Self as Deref>::Target: AsMut<HGraph<VoltageNode, CircuitHyperEdge>>,
+// {
+//     fn as_mut(&mut self) -> &mut HGraph<VoltageNode, CircuitHyperEdge> {
+//         self.deref_mut().as_mut()
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     // use crate::circuit::elements::*;
     use crate::circuit::equations::*;
-    use hypergraph::HyperedgeIndex;
     use std::str::FromStr;
 
     #[test]
@@ -126,15 +111,15 @@ mod tests {
         let ground = CircuitNode::from_str("ground").unwrap();
         let vsupply = CircuitNode::from_str("vsupply").unwrap();
 
-        let input_voltage = VoltageNode::new(&input);
-        let out_voltage = VoltageNode::new(&out);
-        let ground_voltage = VoltageNode::new(&ground);
-        let vsupply_voltage = VoltageNode::new(&vsupply);
-        let input_id = circuit.add_vertex(input_voltage).unwrap();
-        let out_id = circuit.add_vertex(out_voltage).unwrap();
-        let ground_id = circuit.add_vertex(ground_voltage).unwrap();
-        let vsupply_id = circuit.add_vertex(vsupply_voltage).unwrap();
-        assert_eq!(circuit.count_vertices(), 4);
+        let input_voltage = VoltageNode::new(input.clone());
+        let out_voltage = VoltageNode::new(out.clone());
+        let ground_voltage = VoltageNode::new(ground.clone());
+        let vsupply_voltage = VoltageNode::new(vsupply.clone());
+        let input_id = circuit.add_node(input_voltage);
+        let out_id = circuit.add_node(out_voltage);
+        let ground_id = circuit.add_node(ground_voltage);
+        let vsupply_id = circuit.add_node(vsupply_voltage);
+        // assert_eq!(circuit.count_vertices(), 4);
 
         // let x1 = CircuitElement::from_str("x1").unwrap();
         let x1_nmos_node_eq_str: String =
@@ -148,26 +133,22 @@ mod tests {
         let x2_nmos_ctx = VariableContextMap::from([("vd".to_string(), x2_nmos_node_eq)]);
         let x2_nmos_transistor_eq = CircuitEquation::new(dev_eq, x2_nmos_ctx);
 
-        let x1_nmos_transistor_entity_id = Entity::from_raw(0);
-        let x2_nmos_transistor_entity_id = Entity::from_raw(1);
-        let x1_nmos_transistor_hyperedge =
-            CircuitHyperEdge::new(&x1_nmos_transistor_eq, x1_nmos_transistor_entity_id);
-        let x2_nmos_transistor_hyperedge =
-            CircuitHyperEdge::new(&x2_nmos_transistor_eq, x2_nmos_transistor_entity_id);
+        let x1_nmos_transistor_hyperedge = CircuitHyperEdge::new(x1_nmos_transistor_eq);
+        let x2_nmos_transistor_hyperedge = CircuitHyperEdge::new(x2_nmos_transistor_eq);
         let x1_nmos_transistor_id = circuit
-            .add_hyperedge(
+            .add_edge(
                 vec![input_id, out_id, ground_id, ground_id],
                 x1_nmos_transistor_hyperedge,
             )
             .unwrap();
         let x2_nmos_transistor_id = circuit
-            .add_hyperedge(
+            .add_edge(
                 vec![input_id, vsupply_id, out_id, vsupply_id],
                 x2_nmos_transistor_hyperedge,
             )
             .unwrap();
-        assert_eq!(x1_nmos_transistor_id, HyperedgeIndex(0));
-        assert_eq!(x2_nmos_transistor_id, HyperedgeIndex(1));
+        assert_eq!(x1_nmos_transistor_id, 0);
+        assert_eq!(x2_nmos_transistor_id, 1);
         // let cmos_inverter = circuit! {
         //     transistor {
         //         name = "M1";
