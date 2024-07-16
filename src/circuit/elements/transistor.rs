@@ -1,8 +1,9 @@
+use derive_getters::Getters;
+use typed_builder::TypedBuilder;
+
 use crate::circuit::elements::CircuitElement;
 use crate::circuit::equations::CircuitEquation;
 use crate::circuit::nodes::CircuitNode;
-use derive_getters::Getters;
-use typed_builder::TypedBuilder;
 
 #[derive(Debug, Clone, Default, TypedBuilder, Getters)]
 pub struct Transistor {
@@ -16,9 +17,10 @@ pub struct Transistor {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
     use crate::circuit::equations::*;
-    use std::str::FromStr;
 
     #[test]
     fn build_transistor_simple() {

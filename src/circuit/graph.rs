@@ -1,9 +1,11 @@
-use crate::circuit::equations::CircuitEquation;
-use crate::circuit::nodes::CircuitNode;
-use bevy_ecs::prelude::Resource;
-use mhgl::HGraph;
 use std::fmt::{Display, Formatter, Result};
 use std::ops::{Deref, DerefMut};
+
+use bevy_ecs::prelude::Resource;
+use mhgl::HGraph;
+
+use crate::circuit::equations::CircuitEquation;
+use crate::circuit::nodes::CircuitNode;
 
 pub type VertexIndex = u32;
 pub type HyperedgeIndex = u64;
@@ -85,10 +87,11 @@ impl DerefMut for LCircuit {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
     // use crate::circuit::elements::*;
     use crate::circuit::equations::*;
-    use std::str::FromStr;
 
     #[test]
     fn default_circuit() {
@@ -125,12 +128,14 @@ mod tests {
         let x1_nmos_node_eq_str: String =
             "(".to_owned() + &input.to_string() + " - " + &out.to_string() + ")";
         let x1_nmos_node_eq = DeviceEquation::from_str(&x1_nmos_node_eq_str).unwrap();
-        let x1_nmos_ctx = VariableContextMap::from([(CircuitNode::from_str("vd").unwrap(), x1_nmos_node_eq)]);
+        let x1_nmos_ctx =
+            VariableContextMap::from([(CircuitNode::from_str("vd").unwrap(), x1_nmos_node_eq)]);
         let x1_nmos_transistor_eq = CircuitEquation::new(dev_eq.clone(), &x1_nmos_ctx);
         let x2_nmos_node_eq_str: String =
             "(".to_owned() + &input.to_string() + " - " + &out.to_string() + ")";
         let x2_nmos_node_eq = DeviceEquation::from_str(&x2_nmos_node_eq_str).unwrap();
-        let x2_nmos_ctx = VariableContextMap::from([(CircuitNode::from_str("vd").unwrap(), x2_nmos_node_eq)]);
+        let x2_nmos_ctx =
+            VariableContextMap::from([(CircuitNode::from_str("vd").unwrap(), x2_nmos_node_eq)]);
         let x2_nmos_transistor_eq = CircuitEquation::new(dev_eq, &x2_nmos_ctx);
 
         let x1_nmos_transistor_hyperedge = CircuitHyperEdge::new(x1_nmos_transistor_eq);

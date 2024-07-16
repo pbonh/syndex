@@ -1,8 +1,9 @@
-use bevy_ecs::prelude::Resource;
-use llhd::ir::Module;
 use std::fmt;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
+
+use bevy_ecs::prelude::Resource;
+use llhd::ir::Module;
 
 #[derive(Resource)]
 pub struct LLHDModule(Module);

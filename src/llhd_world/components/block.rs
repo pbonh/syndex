@@ -31,8 +31,9 @@ impl Eq for LLHDBlockComponent {}
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use llhd::table::TableKey;
+
+    use super::*;
 
     fn build_function(name: UnitName) -> UnitData {
         let mut sig = Signature::new();

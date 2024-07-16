@@ -32,8 +32,9 @@ impl fmt::Display for CircuitNode {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use super::*;
 
     #[test]
     fn valid_node() {

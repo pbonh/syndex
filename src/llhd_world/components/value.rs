@@ -1,6 +1,7 @@
+use std::cmp::Ordering;
+
 use bevy_ecs::prelude::*;
 use llhd::ir::{Inst, Value, ValueData};
-use std::cmp::Ordering;
 
 #[derive(Debug, Clone, Default, Component)]
 pub struct LLHDValueDefComponent {
@@ -76,10 +77,12 @@ impl Eq for LLHDValueRefComponent {}
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::collections::BTreeSet;
+
     use llhd::ir::prelude::*;
     use llhd::table::TableKey;
-    use std::collections::BTreeSet;
+
+    use super::*;
 
     fn build_entity(name: UnitName) -> UnitData {
         let mut sig = Signature::new();

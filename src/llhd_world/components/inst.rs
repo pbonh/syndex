@@ -20,10 +20,11 @@ impl From<&(Inst, Value, InstData)> for LLHDInstComponent {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::llhd::common::filter_nullary;
     use llhd::ir::prelude::*;
     use llhd::table::TableKey;
+
+    use super::*;
+    use crate::llhd::common::filter_nullary;
 
     fn build_entity(name: UnitName) -> UnitData {
         let mut sig = Signature::new();

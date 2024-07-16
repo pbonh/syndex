@@ -35,8 +35,9 @@ mod lattice_ascent_doc_example {
 }
 
 mod clause_ascent_doc_example {
-    use ascent::ascent;
     use std::rc::Rc;
+
+    use ascent::ascent;
 
     ascent! {
         relation node(i32, Rc<Vec<i32>>);
@@ -177,11 +178,13 @@ mod chatterjee_brayton_physical_synthesis_example {
             );
             assert!(
                 !prog.optimum_region.contains(&(0, 0, 0)),
-                "The input regions of this example should produce an optimum region, not a null value(0, 0, 0)."
+                "The input regions of this example should produce an optimum region, not a null \
+                 value(0, 0, 0)."
             );
             assert!(
                 prog.optimum_region.contains(&(12, 12, 22)),
-                "Optimal region should be (12, 12) between edges 6 and 7 with Cost = -(4+4) + (12+18) = 22."
+                "Optimal region should be (12, 12) between edges 6 and 7 with Cost = -(4+4) + \
+                 (12+18) = 22."
             );
         }
     }

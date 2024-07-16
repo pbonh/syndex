@@ -24,11 +24,12 @@ ascent! {
 
 #[cfg(test)]
 mod tests {
+    use llhd::table::TableKey;
+
     use super::*;
     use crate::llhd::module::*;
     use crate::llhd_world::components::inst::LLHDInstComponent;
     use crate::llhd_world::world::*;
-    use llhd::table::TableKey;
 
     #[test]
     fn rewrite_llhd_inst_via_ascent_engine_2and_1or() {

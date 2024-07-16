@@ -45,8 +45,9 @@ impl<'a> Into<usize> for Relation<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use hypergraph::{HyperedgeIndex, Hypergraph, VertexIndex};
+
+    use super::*;
 
     #[test]
     fn test_doc_main() -> std::result::Result<(), Box<dyn std::error::Error>> {

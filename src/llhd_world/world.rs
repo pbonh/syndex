@@ -1,20 +1,21 @@
+use std::collections::{BTreeSet, HashMap};
+use std::ops::Add;
+
 use bevy_ecs::prelude::{Component, Entity, QueryState};
 use bevy_ecs::query::QueryData;
 use bevy_hierarchy::{BuildWorldChildren, Children};
 use hypergraph::VertexIndex;
 use llhd::ir::{Inst, UnitId, Value};
-use std::collections::{BTreeSet, HashMap};
-use std::ops::Add;
-
-use crate::llhd_world::initializer::{
-    build_blocks, build_insts, build_units, build_value_defs, build_value_refs,
-};
-use crate::{llhd::module::LLHDModule, world::LWorld};
 
 // use super::components::inst::LLHDInstComponent;
 // use super::components::unit::LLHDUnitComponent;
 // use super::components::block::LLHDBlockComponent;
 use super::components::inst::LLHDInstComponent;
+use crate::llhd::module::LLHDModule;
+use crate::llhd_world::initializer::{
+    build_blocks, build_insts, build_units, build_value_defs, build_value_refs,
+};
+use crate::world::LWorld;
 
 pub type InstIndex = (UnitId, Inst);
 pub type ValueDefIndex = (UnitId, Value);
@@ -87,20 +88,34 @@ impl LLHDWorld {
                                                         |parent_inst| {
                                                             build_value_refs(inst_id, &inst_data)
                                                                 .for_each(|value_ref_component| {
-                                                                    let value_def_id = value_ref_component.id.expect("Unexpected missing Value Def in ValueRef Component.");
+                                                                    let value_def_id =
+                                                                        value_ref_component
+                                                                            .id
+                                                                            .expect(
+                                                                                "Unexpected \
+                                                                                 missing Value \
+                                                                                 Def in ValueRef \
+                                                                                 Component.",
+                                                                            );
                                                                     let value_ref_entity =
                                                                         parent_inst.spawn(
                                                                             value_ref_component,
                                                                         );
                                                                     value_ref_map.insert(
-                                                                        (unit_id, inst_id, value_def_id),
+                                                                        (
+                                                                            unit_id,
+                                                                            inst_id,
+                                                                            value_def_id,
+                                                                        ),
                                                                         value_ref_entity.id(),
                                                                     );
                                                                 });
                                                         },
                                                     );
-                                                    inst_map
-                                                        .insert((unit_id, inst_id), inst_entity.id());
+                                                    inst_map.insert(
+                                                        (unit_id, inst_id),
+                                                        inst_entity.id(),
+                                                    );
                                                 }
                                             },
                                         );
@@ -238,19 +253,17 @@ impl From<LLHDModule> for LLHDWorld {
 
 #[cfg(test)]
 mod tests {
-    use crate::llhd_world::components::{
-        block::LLHDBlockComponent, inst::LLHDInstComponent, unit::LLHDUnitComponent,
-        value::LLHDValueDefComponent, value::LLHDValueRefComponent,
-    };
     use bevy_hierarchy::{Children, Parent};
     use itertools::Itertools;
-    use llhd::{
-        ir::{Inst, InstData, Opcode},
-        table::TableKey,
-    };
+    use llhd::ir::{Inst, InstData, Opcode};
+    use llhd::table::TableKey;
     use pretty_assertions::assert_eq;
 
     use super::*;
+    use crate::llhd_world::components::block::LLHDBlockComponent;
+    use crate::llhd_world::components::inst::LLHDInstComponent;
+    use crate::llhd_world::components::unit::LLHDUnitComponent;
+    use crate::llhd_world::components::value::{LLHDValueDefComponent, LLHDValueRefComponent};
 
     #[test]
     fn create_default_llhd_world() {
@@ -507,8 +520,7 @@ mod tests {
                         matches!(const_int_inst_opcode, llhd::ir::Opcode::ConstTime),
                         "First Inst of %top.and should have Opcode ConstTime."
                     );
-                    let wait_inst =
-                        llhd_world.world().get::<LLHDInstComponent>(child_insts[7]);
+                    let wait_inst = llhd_world.world().get::<LLHDInstComponent>(child_insts[7]);
                     let wait_inst_opcode = wait_inst.unwrap().data.opcode();
                     assert!(
                         matches!(wait_inst_opcode, llhd::ir::Opcode::WaitTime),
@@ -533,13 +545,13 @@ mod tests {
                     let instantiation_inst_opcode = instantiation_inst.unwrap().data.opcode();
                     assert!(
                         matches!(instantiation_inst_opcode, llhd::ir::Opcode::Inst),
-                        "Last Inst(not include the very last, which is nullary) of @top should have Opcode Inst."
+                        "Last Inst(not include the very last, which is nullary) of @top should \
+                         have Opcode Inst."
                     );
                 } else {
                     panic!("Unknown module name: {}", block_name);
                 }
-            }
-        );
+            });
         assert_eq!(
             1, sub_block_component_count,
             "There should be 1 Block Components present in %top.and."

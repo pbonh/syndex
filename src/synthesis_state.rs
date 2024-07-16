@@ -4,7 +4,8 @@ use typestate::typestate;
 
 #[typestate]
 pub mod builder {
-    use crate::{llhd::module::LLHDModule, llhd_world::world::LLHDWorld};
+    use crate::llhd::module::LLHDModule;
+    use crate::llhd_world::world::LLHDWorld;
 
     #[derive(Debug)]
     #[automaton]

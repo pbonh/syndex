@@ -1,8 +1,9 @@
-use crate::llhd_world::components::{
-    block::LLHDBlockComponent, inst::LLHDInstComponent, unit::LLHDUnitComponent,
-    value::LLHDValueDefComponent, value::LLHDValueRefComponent,
-};
 use llhd::ir::{Block, Inst, InstData, Module, Unit};
+
+use crate::llhd_world::components::block::LLHDBlockComponent;
+use crate::llhd_world::components::inst::LLHDInstComponent;
+use crate::llhd_world::components::unit::LLHDUnitComponent;
+use crate::llhd_world::components::value::{LLHDValueDefComponent, LLHDValueRefComponent};
 
 pub(crate) fn build_units(module: &Module) -> impl Iterator<Item = LLHDUnitComponent> + '_ {
     module.units().map(|unit| LLHDUnitComponent {
@@ -76,10 +77,11 @@ pub(crate) fn build_blocks<'unit>(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use llhd::ir::prelude::*;
     use llhd::ir::ValueData;
     use llhd::table::TableKey;
+
+    use super::*;
 
     #[test]
     fn build_unit_component() {

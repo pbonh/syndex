@@ -30,9 +30,10 @@ impl Default for LLHDUnitComponent {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use llhd::ir::prelude::*;
     use llhd::table::TableKey;
+
+    use super::*;
 
     fn build_entity(name: UnitName) -> UnitData {
         let mut sig = Signature::new();

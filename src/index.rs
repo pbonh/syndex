@@ -1,11 +1,13 @@
 pub mod macros;
 
-use crate::circuit::graph::VertexIndex;
+use std::collections::BTreeSet;
+use std::hash::Hash;
+
 use euclid::default::Box2D;
 use llhd::ir::prelude::*;
 use llhd::ir::InstData;
-use std::collections::BTreeSet;
-use std::hash::Hash;
+
+use crate::circuit::graph::VertexIndex;
 
 /// Type Constraint for Use in a Datalog Relation Column
 pub trait FlatIndex: Clone + PartialEq + Eq + Hash {}
@@ -16,13 +18,7 @@ pub struct DesignUnitIndex(UnitId, BTreeSet<VertexIndex>, Box2D<usize>);
 
 /// `FlatIndex` for Design Gates
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DesignDGateIndex(
-    UnitId,
-    Inst,
-    InstData,
-    BTreeSet<VertexIndex>,
-    Box2D<usize>,
-);
+pub struct DesignDGateIndex(UnitId, Inst, InstData, BTreeSet<VertexIndex>, Box2D<usize>);
 
 /// `FlatIndex` for Design Nets
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -30,11 +26,13 @@ pub struct DesignDNetIndex(UnitId, Inst, Value, BTreeSet<VertexIndex>, Box2D<usi
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::rc::Rc;
+
     use ascent::*;
     use euclid::Point2D;
     use llhd::table::TableKey;
-    use std::rc::Rc;
+
+    use super::*;
 
     #[test]
     fn ascent_column_compatability_design_unit_index() {

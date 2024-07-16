@@ -70,7 +70,7 @@ mod config;
 /// 3) Apply Synthesis Rules to Design
 ///
 /// ```rust
-/// # use syndex::synthesis_state::builder::*;
+/// # use syndex::{Flow, DesignState, TechnologyState, SynthesisState};
 /// # let input = indoc::indoc! {"
 /// #         entity @test_entity (i1 %in1, i1 %in2, i1 %in3, i1 %in4) -> (i1$ %out1) {
 /// #             %null = const time 0s 1e
@@ -85,13 +85,25 @@ mod config;
 /// let _technology_flow = Flow::load(module.into());
 /// ```
 pub mod synthesis_state;
+pub use synthesis_state::builder::{DesignState, Flow, SynthesisState, TechnologyState};
 
 /// Library Technology Representation
 ///
-/// Build a representation of the underlying technology via
+/// Build a representation of the underlying technology
+///
+/// Inputs
 /// 1) LLHDModule -> Cells/Memories are LLHD Units with digital signal declarations
 /// 2) LCircuit -> Analog Circuit Representation of all Library Units
-/// 3) 
+/// 3) LLefLibrary -> Abstract Representation of Library Units
+/// 4) LGdsLibrary -> Physical Representation of Library Units
+///
+/// Build A Technology Flow via a State Machine
+///
+/// 1) Load an Abstract View(LEF)
+/// 2) Build Analog Circuits
+/// 3) Load Layout Information
+/// 4) Build LLHD Unit Representation
+///
 pub mod llhd_library;
 
 /// Datastore for Design

@@ -1,0 +1,53 @@
+* Copyright 2020 The SkyWater PDK Authors
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     https://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* SPDX-License-Identifier: Apache-2.0
+
+
+.subckt sky130_fd_sc_ls__sdfxtp_2 CLK D SCD SCE VGND VNB VPB VPWR Q
+X0 a_1287_320# a_634_74# a_1592_424# VPB sky130_fd_pr__pfet_01v8_hvt w=840000u l=150000u
+X1 VPWR SCE a_216_453# VPB sky130_fd_pr__pfet_01v8_hvt w=640000u l=150000u
+X2 VGND a_1592_424# a_1829_398# VNB sky130_fd_pr__nfet_01v8 w=740000u l=150000u
+X3 a_300_453# a_846_74# a_1044_100# VPB sky130_fd_pr__pfet_01v8_hvt w=420000u l=150000u
+X4 a_1044_100# a_846_74# a_1219_100# VNB sky130_fd_pr__nfet_01v8 w=420000u l=150000u
+X5 a_216_453# D a_300_453# VPB sky130_fd_pr__pfet_01v8_hvt w=640000u l=150000u
+X6 a_300_453# a_634_74# a_1044_100# VNB sky130_fd_pr__nfet_01v8 w=420000u l=150000u
+X7 VPWR a_634_74# a_846_74# VPB sky130_fd_pr__pfet_01v8_hvt w=1.12e+06u l=150000u
+X8 VGND a_634_74# a_846_74# VNB sky130_fd_pr__nfet_01v8 w=740000u l=150000u
+X9 VGND a_1044_100# a_1287_320# VNB sky130_fd_pr__nfet_01v8 w=550000u l=150000u
+X10 VPWR a_1829_398# Q VPB sky130_fd_pr__pfet_01v8_hvt w=1.12e+06u l=150000u
+X11 a_439_453# SCD VPWR VPB sky130_fd_pr__pfet_01v8_hvt w=640000u l=150000u
+X12 VPWR CLK a_634_74# VPB sky130_fd_pr__pfet_01v8_hvt w=1.12e+06u l=150000u
+X13 a_1219_100# a_1287_320# VGND VNB sky130_fd_pr__nfet_01v8 w=420000u l=150000u
+X14 a_1592_424# a_846_74# a_1704_496# VPB sky130_fd_pr__pfet_01v8_hvt w=420000u l=150000u
+X15 a_1787_74# a_1829_398# VGND VNB sky130_fd_pr__nfet_01v8 w=420000u l=150000u
+X16 a_223_74# D a_300_453# VNB sky130_fd_pr__nfet_01v8 w=420000u l=150000u
+X17 a_1044_100# a_634_74# a_1210_508# VPB sky130_fd_pr__pfet_01v8_hvt w=420000u l=150000u
+X18 a_1210_508# a_1287_320# VPWR VPB sky130_fd_pr__pfet_01v8_hvt w=420000u l=150000u
+X19 a_1704_496# a_1829_398# VPWR VPB sky130_fd_pr__pfet_01v8_hvt w=420000u l=150000u
+X20 VGND CLK a_634_74# VNB sky130_fd_pr__nfet_01v8 w=740000u l=150000u
+X21 a_300_453# a_27_74# a_439_453# VPB sky130_fd_pr__pfet_01v8_hvt w=640000u l=150000u
+X22 VGND a_1829_398# Q VNB sky130_fd_pr__nfet_01v8 w=740000u l=150000u
+X23 a_300_453# SCE a_442_74# VNB sky130_fd_pr__nfet_01v8 w=420000u l=150000u
+X24 a_1287_320# a_846_74# a_1592_424# VNB sky130_fd_pr__nfet_01v8 w=550000u l=150000u
+X25 VPWR a_1592_424# a_1829_398# VPB sky130_fd_pr__pfet_01v8_hvt w=1e+06u l=150000u
+X26 Q a_1829_398# VPWR VPB sky130_fd_pr__pfet_01v8_hvt w=1.12e+06u l=150000u
+X27 a_442_74# SCD VGND VNB sky130_fd_pr__nfet_01v8 w=420000u l=150000u
+X28 a_1592_424# a_634_74# a_1787_74# VNB sky130_fd_pr__nfet_01v8 w=420000u l=150000u
+X29 VPWR a_1044_100# a_1287_320# VPB sky130_fd_pr__pfet_01v8_hvt w=840000u l=150000u
+X30 Q a_1829_398# VGND VNB sky130_fd_pr__nfet_01v8 w=740000u l=150000u
+X31 VGND a_27_74# a_223_74# VNB sky130_fd_pr__nfet_01v8 w=420000u l=150000u
+X32 a_27_74# SCE VPWR VPB sky130_fd_pr__pfet_01v8_hvt w=640000u l=150000u
+X33 a_27_74# SCE VGND VNB sky130_fd_pr__nfet_01v8 w=420000u l=150000u
+.ends

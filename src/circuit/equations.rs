@@ -1,8 +1,10 @@
-use super::nodes::CircuitNode;
-use evalexpr::build_operator_tree;
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
+
+use evalexpr::build_operator_tree;
+
+use super::nodes::CircuitNode;
 
 pub type VariableContextMap = HashMap<CircuitNode, DeviceEquation>;
 

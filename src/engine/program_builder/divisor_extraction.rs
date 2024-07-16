@@ -298,14 +298,16 @@ mod tests {
         assert_eq!(
             2,
             extracted_divisor_program_opcode_types.len(),
-            "There should be 2 instructions remaining in the extracted program(`a*b + a*c` -> `a*(b + c)`)."
+            "There should be 2 instructions remaining in the extracted program(`a*b + a*c` -> \
+             `a*(b + c)`)."
         );
 
         let extracted_divisor_program_plain = extracted_divisor_program_all.1;
         assert_eq!(
             2,
             extracted_divisor_program_plain.len(),
-            "There should be 2 instructions remaining in the extracted program(`a*b + a*c` -> `a*(b + c)`)."
+            "There should be 2 instructions remaining in the extracted program(`a*b + a*c` -> \
+             `a*(b + c)`)."
         );
     }
 }

@@ -11,8 +11,9 @@ type HGraphExample = HGraph<Foo, Bar>;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use mhgl::HyperGraph;
+
+    use super::*;
 
     #[test]
     fn mhgl_doc_example() {

@@ -1,0 +1,39 @@
+* Copyright 2020 The SkyWater PDK Authors
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     https://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* SPDX-License-Identifier: Apache-2.0
+
+
+.subckt sky130_fd_sc_ls__nor4bb_2 A B C_N D_N VGND VNB VPB VPWR Y
+X0 Y A VGND VNB sky130_fd_pr__nfet_01v8 w=740000u l=150000u
+X1 a_985_368# B a_772_368# VPB sky130_fd_pr__pfet_01v8_hvt w=1.12e+06u l=150000u
+X2 a_27_392# C_N VGND VNB sky130_fd_pr__nfet_01v8 w=640000u l=150000u
+X3 Y B VGND VNB sky130_fd_pr__nfet_01v8 w=740000u l=150000u
+X4 VPWR A a_985_368# VPB sky130_fd_pr__pfet_01v8_hvt w=1.12e+06u l=150000u
+X5 VGND B Y VNB sky130_fd_pr__nfet_01v8 w=740000u l=150000u
+X6 VGND a_311_124# Y VNB sky130_fd_pr__nfet_01v8 w=740000u l=150000u
+X7 Y a_311_124# a_493_368# VPB sky130_fd_pr__pfet_01v8_hvt w=1.12e+06u l=150000u
+X8 VPWR D_N a_311_124# VPB sky130_fd_pr__pfet_01v8_hvt w=1e+06u l=150000u
+X9 a_772_368# B a_985_368# VPB sky130_fd_pr__pfet_01v8_hvt w=1.12e+06u l=150000u
+X10 a_27_392# C_N VPWR VPB sky130_fd_pr__pfet_01v8_hvt w=1e+06u l=150000u
+X11 Y a_311_124# VGND VNB sky130_fd_pr__nfet_01v8 w=740000u l=150000u
+X12 VGND a_27_392# Y VNB sky130_fd_pr__nfet_01v8 w=740000u l=150000u
+X13 VGND A Y VNB sky130_fd_pr__nfet_01v8 w=740000u l=150000u
+X14 a_493_368# a_27_392# a_772_368# VPB sky130_fd_pr__pfet_01v8_hvt w=1.12e+06u l=150000u
+X15 VGND D_N a_311_124# VNB sky130_fd_pr__nfet_01v8 w=640000u l=150000u
+X16 Y a_27_392# VGND VNB sky130_fd_pr__nfet_01v8 w=740000u l=150000u
+X17 a_985_368# A VPWR VPB sky130_fd_pr__pfet_01v8_hvt w=1.12e+06u l=150000u
+X18 a_772_368# a_27_392# a_493_368# VPB sky130_fd_pr__pfet_01v8_hvt w=1.12e+06u l=150000u
+X19 a_493_368# a_311_124# Y VPB sky130_fd_pr__pfet_01v8_hvt w=1.12e+06u l=150000u
+.ends
