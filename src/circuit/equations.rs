@@ -1,12 +1,13 @@
+use super::nodes::CircuitNode;
 use evalexpr::build_operator_tree;
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 
-pub(crate) type VariableContextMap = HashMap<String, DeviceEquation>;
+pub type VariableContextMap = HashMap<CircuitNode, DeviceEquation>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub(crate) struct DeviceEquation(String);
+pub struct DeviceEquation(String);
 
 impl FromStr for DeviceEquation {
     type Err = String;
@@ -26,13 +27,13 @@ impl fmt::Display for DeviceEquation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub(crate) struct CircuitEquation(String);
+pub struct CircuitEquation(String);
 
 impl CircuitEquation {
-    pub(crate) fn new(dev_eq: DeviceEquation, ctx: VariableContextMap) -> Self {
+    pub fn new(dev_eq: DeviceEquation, ctx: &VariableContextMap) -> Self {
         let mut cir_eq = dev_eq.to_string();
         ctx.iter().for_each(|(var, eq)| {
-            cir_eq = cir_eq.replace(var, &eq.to_string());
+            cir_eq = cir_eq.replace(&var.to_string(), &eq.to_string());
         });
         Self(cir_eq)
     }
@@ -86,8 +87,8 @@ mod tests {
         "};
         let dev_eq = DeviceEquation::from_str(eq).unwrap();
         let node_eq = DeviceEquation::from_str("(n1 - n2)").unwrap();
-        let ctx = VariableContextMap::from([("vd".to_string(), node_eq)]);
-        let cir_eq = CircuitEquation::new(dev_eq, ctx);
+        let ctx = VariableContextMap::from([(CircuitNode::from_str("vd").unwrap(), node_eq)]);
+        let cir_eq = CircuitEquation::new(dev_eq, &ctx);
         let dev_eq_with_nodes = indoc::indoc! {"
             e = 2.718281828459045;
             Is = 1e-12;

@@ -125,13 +125,13 @@ mod tests {
         let x1_nmos_node_eq_str: String =
             "(".to_owned() + &input.to_string() + " - " + &out.to_string() + ")";
         let x1_nmos_node_eq = DeviceEquation::from_str(&x1_nmos_node_eq_str).unwrap();
-        let x1_nmos_ctx = VariableContextMap::from([("vd".to_string(), x1_nmos_node_eq)]);
-        let x1_nmos_transistor_eq = CircuitEquation::new(dev_eq.clone(), x1_nmos_ctx);
+        let x1_nmos_ctx = VariableContextMap::from([(CircuitNode::from_str("vd").unwrap(), x1_nmos_node_eq)]);
+        let x1_nmos_transistor_eq = CircuitEquation::new(dev_eq.clone(), &x1_nmos_ctx);
         let x2_nmos_node_eq_str: String =
             "(".to_owned() + &input.to_string() + " - " + &out.to_string() + ")";
         let x2_nmos_node_eq = DeviceEquation::from_str(&x2_nmos_node_eq_str).unwrap();
-        let x2_nmos_ctx = VariableContextMap::from([("vd".to_string(), x2_nmos_node_eq)]);
-        let x2_nmos_transistor_eq = CircuitEquation::new(dev_eq, x2_nmos_ctx);
+        let x2_nmos_ctx = VariableContextMap::from([(CircuitNode::from_str("vd").unwrap(), x2_nmos_node_eq)]);
+        let x2_nmos_transistor_eq = CircuitEquation::new(dev_eq, &x2_nmos_ctx);
 
         let x1_nmos_transistor_hyperedge = CircuitHyperEdge::new(x1_nmos_transistor_eq);
         let x2_nmos_transistor_hyperedge = CircuitHyperEdge::new(x2_nmos_transistor_eq);

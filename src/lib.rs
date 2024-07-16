@@ -63,7 +63,38 @@
 
 mod config;
 
-/// Index/Database for Design
+/// Build A Synthesis Flow via a State Machine
+///
+/// 1) Start with a Digital Design(LLHD Module)
+/// 2) Constrain the Synthesis Flow to a Technology
+/// 3) Apply Synthesis Rules to Design
+///
+/// ```rust
+/// # use syndex::synthesis_state::builder::*;
+/// # let input = indoc::indoc! {"
+/// #         entity @test_entity (i1 %in1, i1 %in2, i1 %in3, i1 %in4) -> (i1$ %out1) {
+/// #             %null = const time 0s 1e
+/// #             %and1 = and i1 %in1, %in2
+/// #             %and2 = and i1 %in3, %in4
+/// #             %or1 = or i1 %and1, %and2
+/// #             drv i1$ %out1, %or1, %null
+/// #         }
+/// #     "};
+///
+/// # let module = llhd::assembly::parse_module(input).unwrap();
+/// let _technology_flow = Flow::load(module.into());
+/// ```
+pub mod synthesis_state;
+
+/// Library Technology Representation
+///
+/// Build a representation of the underlying technology via
+/// 1) LLHDModule -> Cells/Memories are LLHD Units with digital signal declarations
+/// 2) LCircuit -> Analog Circuit Representation of all Library Units
+/// 3) 
+pub mod llhd_library;
+
+/// Datastore for Design
 pub mod llhd_world;
 
 /// Index/Database for Design, driven by Datalog Relation Tables
@@ -100,9 +131,6 @@ mod libreda;
 
 /// DB Rewrites via the Ascent Datalog Engine
 mod engine;
-
-/// Synthesis Flow State Machine
-pub mod synthesis_state;
 
 pub use config::CONFIG;
 

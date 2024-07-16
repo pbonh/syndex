@@ -2,7 +2,7 @@ use std::fmt;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub(crate) struct CircuitNode(String);
+pub struct CircuitNode(String);
 
 impl FromStr for CircuitNode {
     type Err = String;

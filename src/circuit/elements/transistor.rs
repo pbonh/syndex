@@ -37,8 +37,8 @@ mod tests {
         let n4 = CircuitNode::from_str("n4").unwrap();
         let node_eq_str: String = "(".to_owned() + &n1.to_string() + " - " + &n2.to_string() + ")";
         let node_eq = DeviceEquation::from_str(&node_eq_str).unwrap();
-        let ctx = VariableContextMap::from([("vd".to_string(), node_eq)]);
-        let circuit_eq = CircuitEquation::new(dev_eq, ctx);
+        let ctx = VariableContextMap::from([(CircuitNode::from_str("vd").unwrap(), node_eq)]);
+        let circuit_eq = CircuitEquation::new(dev_eq, &ctx);
         let transistor = Transistor::builder()
             .name(x1)
             .equations(circuit_eq)

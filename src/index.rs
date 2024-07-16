@@ -26,7 +26,7 @@ pub struct DesignDGateIndex(
 
 /// `FlatIndex` for Design Nets
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DesignDNetIndex(UnitId, Inst, Value, BTreeSet<VertexIndex>, Box2D<usize, ()>);
+pub struct DesignDNetIndex(UnitId, Inst, Value, BTreeSet<VertexIndex>, Box2D<usize>);
 
 #[cfg(test)]
 mod tests {
