@@ -36,7 +36,7 @@ pub mod builder {
     }
 
     pub trait Physical {
-        fn load_gds(self) -> Bound;
+        fn load_gds(self, library_gds: LGdsLibrary) -> Bound;
     }
 
     pub trait Bound {
@@ -70,7 +70,7 @@ pub mod builder {
     }
 
     impl PhysicalState for TechnologyFlow<Physical> {
-        fn load_gds(self) -> TechnologyFlow<Bound> {
+        fn load_gds(self, _gds: LGdsLibrary) -> TechnologyFlow<Bound> {
             todo!()
         }
     }
