@@ -258,7 +258,7 @@
 /// VO	offset	 	V or A
 /// VA	amplitude	 	V or A
 /// FC	carrier frequency	 	Hz
-/// MDI	modulation index	 	 
+/// MDI	modulation index
 /// FS	signal frequency	 	HZ
 /// TD	time delay	0.0	s
 /// Amplitude Modulation (AM)
@@ -278,7 +278,7 @@
 /// SA	amplitude	 	V or A
 /// FC	carrier frequency	 	Hz
 /// FM	modulation frequency	 	Hz
-/// OC	offset constant	 	 
+/// OC	offset constant
 /// TD	time delay	0.0	s
 ///
 /// Device models
@@ -337,7 +337,7 @@
 /// VH = 1e-3*VT
 /// Parameters and default values:
 /// Parameter	Default value	Description	Restrictions
-/// VT	0 V	Threshold voltage	 
+/// VT	0 V	Threshold voltage
 /// VH	0 V	Hysteresis voltage	Must be positive
 /// RON	1 ohm	ON-state resistance	Must be non-zero
 /// ROFF	1/gmin	OFF-state resistance	Must be non-zero

@@ -16,8 +16,9 @@ Topping = 'sausage' | 'pineapple' | 'bacon' | 'cheese';
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use peginator::PegParser;
+
+    use super::*;
 
     #[test]
     fn doc_example() {

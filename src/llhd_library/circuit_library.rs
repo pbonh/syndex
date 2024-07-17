@@ -45,9 +45,8 @@ use peginator_macro::peginate;
 // float           = digit, { digit }, [ ".", { digit } ];
 // boolean         = "true" | "false";
 
-
 peginate!(
-"
+    "
 @export
 SPICENetlist = { elements:Elements };
 Elements = Resistor
@@ -63,31 +62,31 @@ Elements = Resistor
             | Diode
             | MOSTransistor;
 
-Resistor        = i'R', Identifier, Node, Node, Value;
-Capacitor       = i'C', Identifier, Node, Node, Value, [ i'ic=', Value ];
-Inductor        = i'L', Identifier, Node, Node, Value, [ i'ic=', Float ];
-MutualInductor  = i'K', Identifier, Identifier, Identifier, ( Value | i'k=', Value );
-VoltageControlledSwitch
-                = i'S', Identifier, Node, Node, Node, Node, ModelId;
-VoltageSource   = i'v', Identifier, Node, Node, { TypeValue };
-CurrentSource   = i'i', Identifier, Node, Node, { TypeValue };
-VoltageControlledVoltageSource
-                = i'E', Identifier, Node, Node, Node, Node, Value;
-VoltageControlledCurrentSource
-                = i'G', Identifier, Node, Node, Node, Node, Value;
-CurrentControlledCurrentSource
-                = i'F', Identifier, Node, Node, Identifier, Value;
-Diode           = i'D', Identifier, Node, Node, ModelId, { DiodeParam };
-MosTransistor   = i'M', Identifier, Node, Node, Node, Node, ModelId, i'w=', Float, i'l=', Float;
+Resistor        = i'R' Identifier Node Node Value;
+Capacitor       = i'C' Identifier Node Node Value [ i'ic=' Value ];
+Inductor        = i'L' Identifier Node Node Value [ i'ic=' Float ];
+MutualInductor  = i'K' Identifier Identifier Identifier ( Value | i'k=' Value );
+VoltageControlledSwitch =
+                    i'S' Identifier Node Node Node Node ModelId;
+VoltageSource   = i'v' Identifier Node Node { TypeValue };
+CurrentSource   = i'i' Identifier Node Node { TypeValue };
+VoltageControlledVoltageSource =
+                    i'E' Identifier Node Node Node Node Value;
+VoltageControlledCurrentSource =
+                    i'G' Identifier Node Node Node Node Value;
+CurrentControlledCurrentSource =
+                    i'F' Identifier Node Node Identifier Value;
+Diode           = i'D' Identifier Node Node ModelId { DiodeParam };
+MOSTransistor   = i'M' Identifier Node Node Node Node ModelId i'w=' Float i'l=' Float;
 
-Identifier      = Letter, { Letter | Digit };
-Node            = Letter, { Letter | Digit };
+Identifier      = Letter { Letter | Digit };
+Node            = Letter { Letter | Digit };
 Value           = Float;
-TypeValue       = i'type=', TypeIdentifier, TypeIdentifier, '=', Float;
-TypeIdentifier  = 'vdc' | 'vac' | 'idc' | 'iac' | ... ;
-DiodeParam      = ( 'AREA=', Float | 'T=', Float | 'IC=', Float | 'OFF=', Boolean );
+TypeValue       = i'type=' TypeIdentifier TypeIdentifier '=' Float;
+TypeIdentifier  = 'vdc' | 'vac' | 'idc' | 'iac';
+DiodeParam      = ( 'AREA=' Float | 'T=' Float | 'IC=' Float | 'OFF=' Boolean );
 ModelId         = Identifier;
-Float           = Digit, { Digit }, [ '.', { Digit } ];
+Float           = Digit { Digit } [ '.' { Digit } ];
 @string
 Letter          = 'a'..'z' | 'A'..'Z';
 @string
@@ -99,11 +98,12 @@ Boolean         = i'true' | i'false';
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use peginator::PegParser;
 
+    use super::*;
+
     #[test]
-    fn SPICE_netlist_example1() {
+    fn spice_netlist_example1() {
         let result = SPICENetlist::parse("Pizza with sausage, bacon and cheese").unwrap();
         println!("{:?}", result.elements);
     }
