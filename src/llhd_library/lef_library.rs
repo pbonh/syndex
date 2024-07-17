@@ -81,13 +81,13 @@ mod tests {
 
     #[test]
     fn lef_sky130pdk_a211o_example() {
-        let mut tech_lef_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        tech_lef_path.push(
+        let mut library_lef_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        library_lef_path.push(
             "resources/libraries_no_liberty/sky130_fd_sc_ls/latest/cells/a211o/\
              sky130_fd_sc_ls__a211o_2.magic.lef",
         );
         assert!(
-            LefLibrary::open(tech_lef_path).is_ok(),
+            LefLibrary::open(library_lef_path).is_ok(),
             "Skywater 130nm PDK Libary(a211o) LEF should successfully load."
         );
     }
