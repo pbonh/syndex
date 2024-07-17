@@ -1,0 +1,225 @@
+### LEF/DEF 5.7 Language Reference
+VERSION 5.2 ;
+NAMESCASESENSITIVE ON ;
+BUSBITCHARS "[]" ;
+
+UNITS
+  DATABASE MICRONS 100 ;
+END UNITS
+
+LAYER metal1
+  TYPE ROUTING ;
+  WIDTH 0.23 ;
+  SPACING 0.23 ;
+  SPACING 0.6 RANGE 10.02 1000 ;
+  PITCH 0.56 ;
+  DIRECTION HORIZONTAL ;
+END metal1
+
+LAYER cut1
+  TYPE CUT ;
+END cut1
+
+LAYER metal2
+  TYPE ROUTING ;
+  WIDTH 0.28 ;
+  SPACING 0.28 ;
+  SPACING 0.6 RANGE 10.02 1000 ;
+  PITCH 0.56 ;
+  WIREEXTENSION 0.19 ;
+  DIRECTION VERTICAL ;
+END metal2
+
+LAYER cut2
+  TYPE CUT ;
+END cut2
+
+LAYER metal3
+  TYPE ROUTING ;
+  WIDTH 0.28 ;
+  SPACING 0.28 ;
+  SPACING 0.6 RANGE 10.02 1000 ;
+  PITCH 0.56 ;
+  WIREEXTENSION 0.19 ;
+  DIRECTION HORIZONTAL ;
+END metal3
+
+LAYER cut3
+  TYPE CUT ;
+END cut3
+
+LAYER metal4
+  TYPE ROUTING ;
+  WIDTH 0.28 ;
+  SPACING 0.28 ;
+  SPACING 0.6 RANGE 10.02 1000 ;
+  PITCH 0.56 ;
+  WIREEXTENSION 0.19 ;
+  DIRECTION VERTICAL ;
+END metal4
+
+LAYER cut4
+  TYPE CUT ;
+END cut4
+
+LAYER metal5
+  TYPE ROUTING ;
+  WIDTH 0.28 ;
+  SPACING 0.28 ;
+  SPACING 0.6 RANGE 10.02 1000 ;
+  PITCH 0.56 ;
+  WIREEXTENSION 0.19 ;
+  DIRECTION HORIZONTAL ;
+END metal5
+
+LAYER cut5
+  TYPE CUT ;
+END cut5
+
+LAYER metal6
+  TYPE ROUTING ;
+  WIDTH 0.44 ;
+  SPACING 0.46 ;
+  SPACING 0.6 RANGE 10.02 1000 ;
+  PITCH 1.12 ;
+  DIRECTION VERTICAL ;
+END metal6
+
+### start DEFAULT VIA ###
+VIA via12_H DEFAULT
+  LAYER metal1 ;
+    RECT -0.19 -0.14 0.19 0.14 ; # metal1 end-of-line ext 0.6
+  LAYER cut1 ;
+    RECT -0.13 -0.13 0.13 0.13 ;
+  LAYER metal2 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+END via12_H
+
+VIA via12_V DEFAULT
+  LAYER metal1 ;
+    RECT -0.14 -0.19 0.14 0.19 ; # metal1 end-of-line ext 0.6
+  LAYER cut1 ;
+    RECT -0.13 -0.13 0.13 0.13 ;
+  LAYER metal2 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+END via12_V
+
+VIA via23 DEFAULT
+  LAYER metal2 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+  LAYER cut2 ;
+    RECT -0.13 -0.13 0.13 0.13 ;
+  LAYER metal3 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+END via23
+
+VIA via34 DEFAULT
+  LAYER metal3 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+  LAYER cut3 ;
+    RECT -0.13 -0.13 0.13 0.13 ;
+  LAYER metal4 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+END via34
+
+VIA via45 DEFAULT
+  LAYER metal4 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+  LAYER cut4 ;
+    RECT -0.13 -0.13 0.13 0.13 ;
+  LAYER metal5 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+END via45
+
+VIA via56_H DEFAULT
+  LAYER metal5 ;
+    RECT -0.24 -0.19 0.24 0.19 ;
+  LAYER cut5 ;
+    RECT -0.18 -0.18 0.18 0.18 ;
+  LAYER metal6 ;
+    RECT -0.27 -0.27 0.27 0.27 ;
+END via56_H
+
+VIA via56_V DEFAULT
+  LAYER metal5 ;
+    RECT -0.19 -0.24 0.19 0.24 ;
+  LAYER cut5 ;
+    RECT -0.18 -0.18 0.18 0.18 ;
+  LAYER metal6 ;
+    RECT -0.27 -0.27 0.27 0.27 ;
+END via56_V
+### end DEFAULT VIA ###
+
+### start STACK VIA ###
+VIA via23_stack_north DEFAULT TOPOFSTACKONLY
+  LAYER metal2 ;
+    RECT -0.14 -0.14 0.14 0.6 ; # MAR = 0.28 x 0.74
+  LAYER cut2 ;
+    RECT -0.13 -0.13 0.13 0.13 ;
+  LAYER metal3 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+END via23_stack_north
+
+VIA via23_stack_south DEFAULT TOPOFSTACKONLY
+  LAYER metal2 ;
+    RECT -0.14 -0.6 0.14 0.14 ; # MAR = 0.28 x 0.74
+  LAYER cut2 ;
+    RECT -0.13 -0.13 0.13 0.13 ;
+  LAYER metal3 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+END via23_stack_south
+
+VIA via34_stack_east DEFAULT TOPOFSTACKONLY
+  LAYER metal3 ;
+    RECT -0.14 -0.14 0.6 0.14 ; # MAR = 0.28 x 0.74
+  LAYER cut3 ;
+    RECT -0.13 -0.13 0.13 0.13 ;
+  LAYER metal4 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+END via34_stack_east
+
+VIA via34_stack_west DEFAULT TOPOFSTACKONLY
+  LAYER metal3 ;
+    RECT -0.6 -0.14 0.14 0.14 ; # MAR = 0.28 x 0.74
+  LAYER cut3 ;
+    RECT -0.13 -0.13 0.13 0.13 ;
+  LAYER metal4 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+END via34_stack_west
+
+VIA via45_stack_north DEFAULT TOPOFSTACKONLY
+  LAYER metal4 ;
+    RECT -0.14 -0.14 0.14 0.6 ; # MAR = 0.28 x 0.74
+  LAYER cut4 ;
+    RECT -0.13 -0.13 0.13 0.13 ;
+  LAYER metal5 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+END via45_stack_north
+
+VIA via45_stack_south DEFAULT TOPOFSTACKONLY
+  LAYER metal4 ;
+    RECT -0.14 -0.6 0.14 0.14 ; # MAR = 0.28 x 0.74
+  LAYER cut4 ;
+    RECT -0.13 -0.13 0.13 0.13 ;
+  LAYER metal5 ;
+    RECT -0.14 -0.14 0.14 0.14 ;
+END via45_stack_south
+
+VIA via56_stack_east DEFAULT TOPOFSTACKONLY
+  LAYER metal5 ;
+    RECT -0.19 -0.19 0.35 0.19 ; # MAR = 0.38 x 0.54
+  LAYER cut5 ;
+    RECT -0.18 -0.18 0.18 0.18 ;
+  LAYER metal6 ;
+    RECT -0.27 -0.27 0.27 0.27 ;
+END via56_stack_east
+
+VIA via56_stack_west DEFAULT TOPOFSTACKONLY
+  LAYER metal5 ;
+    RECT -0.35 -0.19 0.19 0.19 ; # MAR = 0.38 x 0.54
+  LAYER cut5 ;
+    RECT -0.18 -0.18 0.18 0.18 ;
+  LAYER metal6 ;
+    RECT -0.27 -0.27 0.27 0.27 ;
+END via56_stack_west
+### end STACK VIA ###
