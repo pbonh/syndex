@@ -98,13 +98,19 @@ Boolean         = i'true' | i'false';
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::path::PathBuf;
+
     use peginator::PegParser;
 
     use super::*;
 
     #[test]
     fn spice_netlist_example1() {
-        let result = SPICENetlist::parse("Pizza with sausage, bacon and cheese").unwrap();
+        let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        spice_netlist_path.push("resources/spice3f5_examples/mosamp2.cir");
+        let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
+        let result = SPICENetlist::parse(&spice_netlist_str).unwrap();
         println!("{:?}", result.elements);
     }
 }
