@@ -1,26 +1,27 @@
 {
   "packages": {
-    "cargo-edit":            "latest",
-    "cargo-watch":           "latest",
-    "cargo-readme":          "latest",
-    "rust-analyzer":         "latest",
-    "rustup":                "latest",
-    "bacon":                 "latest",
-    "cargo-generate":        "latest",
-    "pkg-config":            "latest",
-    "llvmPackages.libclang": "latest",
-    "clang":                 "latest",
-    "llvm":                  "latest",
-    "cargo-nextest":         "latest",
-    "vscode-extensions.vadimcn.vscode-lldb":         "latest",
+    "cargo-edit":                            "latest",
+    "cargo-watch":                           "latest",
+    "cargo-readme":                          "latest",
+    "rust-analyzer":                         "latest",
+    "rustup":                                "latest",
+    "bacon":                                 "latest",
+    "cargo-generate":                        "latest",
+    "pkg-config":                            "latest",
+    "llvmPackages.libclang":                 "latest",
+    "clang":                                 "latest",
+    "llvm":                                  "latest",
+    "cargo-nextest":                         "latest",
+    "vscode-extensions.vadimcn.vscode-lldb": "latest",
     "cargo-llvm-cov": {
       "version":            "latest",
       "excluded_platforms": ["aarch64-darwin"]
     },
     "libiconv": {
-      "version":            "latest",
+      "version":   "latest",
       "platforms": ["aarch64-darwin"]
     },
+    "protobuf": "latest"
   },
   "env": {
     "PROJECT_DIR": "$PWD"
