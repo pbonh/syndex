@@ -135,8 +135,20 @@ mod tests {
         println!("Comments: {:?}", ast.comments);
         println!("Commands: {:?}", ast.commands);
         println!("Elements: {:?}", ast.elements);
-        assert_eq!(1, ast.comments.len(), "There should be 1 Comment in netlist.");
-        assert_eq!(5, ast.statements.len(), "There should be 5 Statements in netlist.");
-        assert_eq!(33, ast.elements.len(), "There should be 33 Elements in netlist.");
+        assert_eq!(
+            1,
+            ast.comments.len(),
+            "There should be 1 Comment in netlist."
+        );
+        assert_eq!(
+            5,
+            ast.statements.len(),
+            "There should be 5 Statements in netlist."
+        );
+        assert_eq!(
+            33,
+            ast.elements.len(),
+            "There should be 33 Elements in netlist."
+        );
     }
 }
