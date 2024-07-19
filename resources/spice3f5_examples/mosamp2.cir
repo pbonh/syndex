@@ -1,4 +1,4 @@
-mosamp2 - mos amplifier - transient
+* mosamp2 - mos amplifier - transient
 .options acct abstol=10n  vntol=10n
 .tran 0.1us 10us
 m1  15 15  1 32 m w=88.9u  l=25.4u
@@ -34,9 +34,9 @@ vin 21 0 pulse(0 5 1ns 1ns 1ns 5us 10us)
 vccp 15 0 dc +15
 vddn 30 0 dc -15
 vb 32 0 dc -20
-.model m nmos(nsub=2.2e15 uo=575 ucrit=49k uexp=0.1 tox=0.11u xj=2.95u
-+   level=2 cgso=1.5n cgdo=1.5n cbd=4.5f cbs=4.5f ld=2.4485u nss=3.2e10
-+   kp=2e-5 phi=0.6 )
+* .model m nmos(nsub=2.2e15 uo=575 ucrit=49k uexp=0.1 tox=0.11u xj=2.95u
+* +   level=2 cgso=1.5n cgdo=1.5n cbd=4.5f cbs=4.5f ld=2.4485u nss=3.2e10
+* +   kp=2e-5 phi=0.6 )
 .print tran v(20) v(66)
 .plot  tran v(20) v(66)
 .end 
