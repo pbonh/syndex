@@ -122,7 +122,7 @@ peginate!(
 SPICENetlist = { elements:Element | statements:Statement | comments:Comment };
 
 @no_skip_ws
-Comment = '*' {!'\n' char} '\n';
+Comment = '*' {!'\n' char} EOL;
 
 Element = resistor:Resistor
           | capacitor:Capacitor
@@ -144,47 +144,89 @@ Statement = model:ModelStatement
           | tran:TransientAnalysis
           | ac:AcAnalysis
           | option:OptionStatement
-          | print:PrintStatement;
+          | option:PlotStatement
+          | print:PrintStatement
+          | End;
 
-Resistor = i'R' Identifier Node Node Value;
+Resistor = id:ResistorIdentifier Node Node Value { options:KeyValue };
 
-Capacitor = i'C' Identifier Node Node Value { i'ic=' Value };
+@string
+ResistorIdentifier = i'r' Node;
 
-Inductor = i'L' Identifier Node Node Value { i'ic=' Value };
+Capacitor = id:CapacitorIdentifier Node Node Value { options:KeyValue };
 
-MutualInductor1 = i'K' Identifier Identifier Identifier Value;
+@string
+CapacitorIdentifier = i'c' Node;
 
-MutualInductor2 = i'K' Identifier Identifier Identifier i'k=' Value;
+Inductor = id:InductorIdentifier Node Node Value { options:KeyValue };
 
-VSwitch = i'S' Identifier Node Node Node Node Identifier;
+@string
+InductorIdentifier = i'l' Node;
 
-VoltageSource = i'V' Identifier Node Node VoltageType;
+MutualInductor1 = id:MutualInductorIdentifier Identifier Identifier Value;
 
-CurrentSource = i'I' Identifier Node Node CurrentType;
+MutualInductor2 = id:MutualInductorIdentifier Identifier Identifier i'k=' Value;
 
-VVoltageSource = i'E' Identifier Node Node Node Node Value;
+@string
+MutualInductorIdentifier = i'k' Node;
 
-VCurrentSource = i'G' Identifier Node Node Node Node Value;
+VSwitch = id:VSwitchIdentifier Node Node Node Node Identifier;
 
-CCurrentSource = i'F' Identifier Node Node Identifier Value;
+@string
+VSwitchIdentifier = i's' Node;
 
-Diode = i'D' Identifier Node Node Identifier { DiodeParams };
+VoltageSource = id:VoltageSourceIdentifier p:Node n:Node { type:VoltageSourceType } { values:SourceValues }+;
 
-MosTransistor = i'M' Identifier Node Node Node Node Identifier MosParams;
+@string
+VoltageSourceIdentifier = i'v' Node;
+
+VoltageSourceType = 'dc' | 'ac';
+
+CurrentSource = id:CurrentSourceIdentifier Node Node CurrentType;
+
+@string
+CurrentSourceIdentifier = i'i' Node;
+
+VVoltageSource = id:VVoltageSourceIdentifier Node Node Node Node Value;
+
+@string
+VVoltageSourceIdentifier = i'e' Node;
+
+VCurrentSource = id:VCurrentSourceIdentifier Node Node Node Node Value;
+
+@string
+VCurrentSourceIdentifier = i'g' Node;
+
+CCurrentSource = id:CCurrentSourceIdentifier Node Node Identifier Value;
+
+@string
+CCurrentSourceIdentifier = i'f' Node;
+
+Diode = id:DiodeIdentifier Node Node Identifier { DiodeParams };
+
+@string
+DiodeIdentifier = i'd' Node;
+
+MosTransistor = id:MosTransistorIdentifier Node Node Node Node Identifier { options:KeyValue };
+
+@string
+MosTransistorIdentifier = i'm' Node;
 
 ModelStatement = i'.model' Identifier Identifier ModelParams;
 
-OpAnalysis = i'.op' { options:KeyValue }+;
+OpAnalysis = i'.op' { params:ParamValue | options:KeyValue }+;
 
 DcAnalysis = i'.dc' 'src=' Identifier Value Value Value 'type=' ( 'lin' | 'log' );
 
-TransientAnalysis = i'.tran' { timesteps:Value }+ { options:KeyValue };
+TransientAnalysis = i'.tran' { timesteps:Value }+ { params:ParamValue | options:KeyValue };
 
 AcAnalysis = i'.ac' ( 'lin' | 'log' ) Value Value Value;
 
-OptionStatement = i'.options' id:Identifier { options:KeyValue }+;
+OptionStatement = i'.options' id:Identifier { params:ParamValue | options:KeyValue }+;
 
-PrintStatement = i'.print' { options:KeyValue }+;
+PrintStatement = i'.print' id:Identifier { params:ParamValue | options:KeyValue }+;
+
+PlotStatement = i'.plot' id:Identifier { params:ParamValue | options:KeyValue }+;
 
 VoltageType = 'type=' ( 'vdc' 'vdc=' Value | 'vac' 'vac=' Value );
 
@@ -200,7 +242,13 @@ ModelParam = 'TNOM=' Value | 'COX=' Value | 'GAMMA=' Value | 'NSUB=' Value | 'PH
      Value | 'KP=' Value | 'TOX=' Value | 'VFB=' Value | 'U0=' Value | 'TCV=' Value | 'BEX=' \
      Value;
 
+SourceType = Identifier;
+
+SourceValues = params:ParamValue | options:KeyValue | value:Value;
+
 KeyValue = id:Identifier '=' value:Value;
+
+ParamValue = id:Identifier '(' { value:Value }+ ')';
 
 @string
 @no_skip_ws
@@ -210,19 +258,29 @@ Node = {'a'..'z' | 'A'..'Z' | '_' | '0'..'9'};
 @no_skip_ws
 Identifier = Letter {'a'..'z' | 'A'..'Z' | '_' | '0'..'9'};
 
-Value = Digit { Digit | '.' | 'e' | 'E' | '-' | '+' | Unit };
+@string
+@no_skip_ws
+Value = ( Digit | '+' | '-' ) { Digit | '.' | 'e' | 'E' | '-' | '+' | Letter };
 
-@char
+@string
+@no_skip_ws
 Letter = 'a'..'z' | 'A'..'Z';
 
-@char
+@string
+@no_skip_ws
 Digit = '0'..'9';
 
 @string
-Unit = 'a' | 'f' | 'p' | 'n' | 'u' | 'm' | 'k' | 'meg' | 'g' | 't' | 's';
+@no_skip_ws
+Unit = 'a' | 'f' | 'p' | 'n' | 'u' | 'm' | 'k' | 'm' | 'g' | 't' | 's';
 
 @string
+@no_skip_ws
 Boolean = 'true' | 'false';
+
+@string
+@no_skip_ws
+End = i'.end';
 
 @no_skip_ws
 EOL = '\n' | ( '\r' '\n' );
@@ -246,20 +304,20 @@ mod tests {
         let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
         println!("Comments: {:?}", ast.comments);
         println!("Statements: {:?}", ast.statements);
-        println!(
-            "Options Statements: {:?}",
-            ast.statements[0]
-                .option
-                .clone()
-                .unwrap()
-                .id
-                .clone()
-        );
+        // println!(
+        //     "Options Statements: {:?}",
+        //     ast.statements[0]
+        //         .option
+        //         .clone()
+        //         .unwrap()
+        //         .id
+        //         .clone()
+        // );
         println!("Elements: {:?}", ast.elements);
         assert_eq!(
-            1,
+            4,
             ast.comments.len(),
-            "There should be 1 Comment in netlist."
+            "There should be 4 Comment in netlist."
         );
         assert_eq!(
             5,

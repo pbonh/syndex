@@ -39,4 +39,4 @@ vb 32 0 dc -20
 * +   kp=2e-5 phi=0.6 )
 .print tran v(20) v(66)
 .plot  tran v(20) v(66)
-.end 
+.end
