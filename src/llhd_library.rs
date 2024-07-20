@@ -1,4 +1,3 @@
-pub mod circuit_library;
 /// Parser for SPICE Netlist
 ///
 /// Syntax
@@ -583,7 +582,7 @@ pub mod circuit_library;
 /// Subcircuits are netlist block that may be called anywhere in the circuit using a subckt call. They can have other .subckt calls within - but beware of recursively calling the same subcircuit!
 /// They can hold other directives, but the placement of the directive doesn’t change its meaning (i.e. if you add an .op line in the subcircuit or outside of it it’s the same).
 /// They can’t be nested and have to be ended by a .ends directive.
-pub mod circuit_library_peginator;
+pub mod circuit_library;
 pub mod gds_library;
 pub mod lef_library;
 
