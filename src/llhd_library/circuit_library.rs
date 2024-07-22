@@ -119,12 +119,20 @@ use peginator_macro::peginate;
 peginate!(
     "
 @export
-SPICENetlist = { elements:Element | statements:Statement | comments:Comment };
+SPICENetlist = netlist_scope:NetlistScope;
+
+@no_skip_ws
+SubcircuitScope = i'.subckt' id:Identifier { ports:Identifier } EOL netlist_scope:NetlistScope \
+     Ends;
+
+NetlistScope = { elements:Element | statements:Statement | comments:Comment  | \
+     subcircuit:SubcircuitScope};
 
 @no_skip_ws
 Comment = '*' {!'\n' char} EOL;
 
-Element = resistor:Resistor
+@no_skip_ws
+Element = ( resistor:Resistor
           | capacitor:Capacitor
           | inductor:Inductor
           | mutualinductor1:MutualInductor1
@@ -136,9 +144,10 @@ Element = resistor:Resistor
           | vcurrentsource:VCurrentSource
           | ccurrentsource:CCurrentSource
           | diode:Diode
-          | mostransistor:MosTransistor;
+          | mostransistor:MosTransistor ) EOL;
 
-Statement = model:ModelStatement
+@no_skip_ws
+Statement = ( model:ModelStatement
           | op:OpAnalysis
           | dc:DcAnalysis
           | tran:TransientAnalysis
@@ -146,7 +155,7 @@ Statement = model:ModelStatement
           | option:OptionStatement
           | option:PlotStatement
           | print:PrintStatement
-          | End;
+          | End ) EOL;
 
 Resistor = id:ResistorIdentifier Node Node Value { options:KeyValue };
 
@@ -175,7 +184,8 @@ VSwitch = id:VSwitchIdentifier Node Node Node Node Identifier;
 @string
 VSwitchIdentifier = i's' Node;
 
-VoltageSource = id:VoltageSourceIdentifier p:Node n:Node { type:VoltageSourceType } { values:SourceValues }+;
+VoltageSource = id:VoltageSourceIdentifier p:Node n:Node { type:VoltageSourceType } { \
+     values:SourceValues }+;
 
 @string
 VoltageSourceIdentifier = i'v' Node;
@@ -282,6 +292,10 @@ Boolean = 'true' | 'false';
 @no_skip_ws
 End = i'.end';
 
+@string
+@no_skip_ws
+Ends = i'.ends';
+
 @no_skip_ws
 EOL = '\n' | ( '\r' '\n' );
 "
@@ -302,32 +316,67 @@ mod tests {
         spice_netlist_path.push("resources/spice3f5_examples/mosamp2.cir");
         let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
         let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
-        println!("Comments: {:?}", ast.comments);
-        println!("Statements: {:?}", ast.statements);
+        let netlist_scope = &ast.netlist_scope;
+        println!("Comments: {:?}", netlist_scope.comments);
+        println!("Statements: {:?}", netlist_scope.statements);
         // println!(
         //     "Options Statements: {:?}",
-        //     ast.statements[0]
+        //     netlist_scope.statements[0]
         //         .option
         //         .clone()
         //         .unwrap()
         //         .id
         //         .clone()
         // );
-        println!("Elements: {:?}", ast.elements);
+        println!("Elements: {:?}", netlist_scope.elements);
         assert_eq!(
             4,
-            ast.comments.len(),
+            netlist_scope.comments.len(),
             "There should be 4 Comment in netlist."
         );
         assert_eq!(
             5,
-            ast.statements.len(),
+            netlist_scope.statements.len(),
             "There should be 5 Statements in netlist."
         );
         assert_eq!(
             33,
-            ast.elements.len(),
+            netlist_scope.elements.len(),
             "There should be 33 Elements in netlist."
         );
+    }
+
+    #[test]
+    #[should_panic]
+    fn spice_sky130_dk_a211o_2_example() {
+        let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        spice_netlist_path.push(
+            "resources/libraries_no_liberty/sky130_fd_sc_ls/latest/cells/a211o/\
+             sky130_fd_sc_ls__a211o_2.spice",
+        );
+        let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
+        let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
+        let netlist_scope = &ast.netlist_scope;
+        assert_eq!(
+            15,
+            netlist_scope.comments.len(),
+            "There should be 15 Comment in netlist."
+        );
+        assert_eq!(
+            0,
+            netlist_scope.statements.len(),
+            "There should be 0 Statements in netlist."
+        );
+        assert_eq!(
+            0,
+            netlist_scope.elements.len(),
+            "There should be 0 Elements in netlist."
+        );
+        assert_eq!(
+            1,
+            netlist_scope.subcircuit.len(),
+            "There should be 1 Subcircuits in netlist."
+        );
+        let _subcircuit1_scope = &netlist_scope.subcircuit[0].netlist_scope;
     }
 }
