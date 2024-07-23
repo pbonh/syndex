@@ -48,19 +48,23 @@ peginate!(
 @export
 SPICENetlist = netlist_scope:NetlistScope;
 
-SubcircuitScope = i'.subckt' id:Identifier ports:SubcircuitPorts netlist_scope:NetlistScope Ends;
+@no_skip_ws
+SubcircuitScope = i'.subckt' NWhitespace id:Identifier NWhitespace ports:SubcircuitPorts EOL \
+     netlist_scope:NetlistScope Ends;
+
+SubcircuitPorts = { Node };
 
 @no_skip_ws
-SubcircuitPorts = { Value { SubcircuitPortWhitespace } } EOL;
-
-@no_skip_ws
-SubcircuitPortWhitespace = { '\t' | '\x0C' | '\r' | ' ' };
+NWhitespace = { '\t' | '\x0C' | ' ' };
 
 NetlistScope = { elements:Element | statements:Statement | comments:Comment  | \
      subcircuit:SubcircuitScope};
 
 @no_skip_ws
 Comment = '*' {!'\n' char} EOL;
+
+@no_skip_ws
+CommentLine = {!'\n' char};
 
 @no_skip_ws
 Element = ( subcircuit:Instance
@@ -200,7 +204,7 @@ ParamValue = id:Node '(' { value:Value }+ ')';
 
 @string
 @no_skip_ws
-Node = {'a'..'z' | 'A'..'Z' | '_' | '0'..'9'};
+Node = { 'a'..'z' | 'A'..'Z' | '_' | '0'..'9' }+ { '#' };
 
 @string
 @no_skip_ws
@@ -208,7 +212,7 @@ Identifier = Letter {'a'..'z' | 'A'..'Z' | '_' | '0'..'9'}+;
 
 @string
 @no_skip_ws
-Value = ( Digit | '+' | '-' ) { Digit | '.' | 'e' | 'E' | '-' | '+' | Letter };
+Value = { Digit | '+' | '-' }+ { Digit | '.' | 'e' | 'E' | '-' | '+' | Letter };
 
 @string
 @no_skip_ws
@@ -268,19 +272,13 @@ mod tests {
         // );
         println!("Elements: {:?}", netlist_scope.elements);
         assert_eq!(
-            4,
-            netlist_scope.comments.len(),
-            "There should be 4 Comment in netlist."
-        );
-        assert_eq!(
-            5,
-            netlist_scope.statements.len(),
-            "There should be 5 Statements in netlist."
-        );
-        assert_eq!(
-            33,
-            netlist_scope.elements.len(),
-            "There should be 33 Elements in netlist."
+            (4, 5, 33),
+            (
+                netlist_scope.comments.len(),
+                netlist_scope.statements.len(),
+                netlist_scope.elements.len()
+            ),
+            "Mismatch (comments, statements, elements)."
         );
     }
 
@@ -310,15 +308,23 @@ mod tests {
             "There should be 0 Elements in netlist."
         );
         println!("Netlist Scope Comments: {:?}", netlist_scope.comments);
-        println!(
-            "Netlist Scope Last Comment: {:?}",
-            netlist_scope.comments.last().unwrap()
+        // println!(
+        //     "Netlist Scope Last Comment: {:?}",
+        //     netlist_scope.comments.last().unwrap().comment
+        // );
+        assert_eq!(
+            (15, 0, 0),
+            (
+                netlist_scope.comments.len(),
+                netlist_scope.statements.len(),
+                netlist_scope.elements.len()
+            ),
+            "Mismatch (comments, statements, elements)."
         );
         assert_eq!(
             1,
             netlist_scope.subcircuit.len(),
             "There should be 1 Subcircuits in netlist."
         );
-        let _subcircuit1_scope = &netlist_scope.subcircuit[0].netlist_scope;
     }
 }
