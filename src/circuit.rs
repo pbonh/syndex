@@ -1,3 +1,4 @@
+pub mod netlist;
 #[macro_use]
 pub mod macros;
 pub(crate) mod elements;
