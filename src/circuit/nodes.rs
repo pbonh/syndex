@@ -8,13 +8,7 @@ impl FromStr for CircuitNode {
     type Err = String;
 
     fn from_str(node_str: &str) -> Result<Self, Self::Err> {
-        if !node_str.contains(char::is_whitespace)
-            && !node_str
-                .chars()
-                .next()
-                .expect("Circuit Node String shouldn't be empty.")
-                .is_numeric()
-        {
+        if !node_str.contains(char::is_whitespace) {
             Ok(Self(node_str.to_owned()))
         } else {
             let mut error_str: String = "Invalid Node String: ".to_owned();
@@ -56,8 +50,17 @@ mod tests {
     }
 
     #[test]
-    fn invalid_equation_beginning_digit() {
+    fn valid_equation_beginning_digit() {
         let node = "1f_1";
+        assert!(
+            CircuitNode::from_str(node).is_ok(),
+            "Node is not valid, should produce an error"
+        );
+    }
+
+    #[test]
+    fn invalid_equation_beginning_space() {
+        let node = " f_1";
         assert!(
             CircuitNode::from_str(node).is_err(),
             "Node is not valid, should produce an error"

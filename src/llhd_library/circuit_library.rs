@@ -342,8 +342,17 @@ mod tests {
         );
         let x0_instance = &subcircuit_scope.elements[0].clone().subcircuit.unwrap();
         assert_eq!("VGND", x0_instance.source, "Source name for X0 is VGND");
-        assert_eq!("sky130_fd_pr__nfet_01v8", x0_instance.model, "Model name for X0 is sky130_fd_pr__nfet_01v8");
-        assert_eq!("w", x0_instance.options[0].id, "First Parameter name for X0 is w");
-        assert_eq!("740000u", x0_instance.options[0].value, "First Parameter value for X0 is 740000u");
+        assert_eq!(
+            "sky130_fd_pr__nfet_01v8", x0_instance.model,
+            "Model name for X0 is sky130_fd_pr__nfet_01v8"
+        );
+        assert_eq!(
+            "w", x0_instance.options[0].id,
+            "First Parameter name for X0 is w"
+        );
+        assert_eq!(
+            "740000u", x0_instance.options[0].value,
+            "First Parameter value for X0 is 740000u"
+        );
     }
 }
