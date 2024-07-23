@@ -48,17 +48,19 @@ peginate!(
 @export
 SPICENetlist = netlist_scope:NetlistScope;
 
-@no_skip_ws
-SubcircuitScope = i'.subckt' NWhitespace id:Identifier NWhitespace ports:SubcircuitPorts EOL \
-     netlist_scope:NetlistScope Ends;
+SubcircuitScope = i'.subckt' id:Identifier ports:SubcircuitPorts netlist_scope:NetlistScope Ends;
 
-SubcircuitPorts = { port:Node };
+@no_skip_ws
+SubcircuitPorts = { port:Node NWhitespace } EOL;
 
 @no_skip_ws
 NWhitespace = { '\t' | '\x0C' | ' ' };
 
 NetlistScope = { elements:Element | statements:Statement | comments:Comment  | \
-     subcircuit:SubcircuitScope};
+     subcircuits:SubcircuitScope};
+
+@no_skip_ws
+SubcircuitInnerScope = { elements:Element | statements:Statement | comments:Comment };
 
 @no_skip_ws
 Comment = '*' {!'\n' char} EOL;
@@ -93,7 +95,8 @@ Statement = ( model:ModelStatement
           | print:PrintStatement
           | End ) EOL;
 
-Instance = id:InstanceIdentifier source:Node drain:Node gate:Node body:Node model:Node { options:KeyValue };
+Instance = id:InstanceIdentifier source:Node drain:Node gate:Node body:Node model:Node { \
+     options:KeyValue };
 
 @string
 InstanceIdentifier = i'x' Node;
@@ -323,13 +326,19 @@ mod tests {
         );
         assert_eq!(
             1,
-            netlist_scope.subcircuit.len(),
+            netlist_scope.subcircuits.len(),
             "There should be 1 Subcircuits in netlist."
         );
         assert_eq!(
             9,
-            netlist_scope.subcircuit[0].ports.port.len(),
+            netlist_scope.subcircuits[0].ports.port.len(),
             "There should be 9 Ports in Subcircuit."
+        );
+        let subcircuit_scope = &netlist_scope.subcircuits[0].netlist_scope;
+        assert_eq!(
+            12,
+            subcircuit_scope.elements.len(),
+            "There should be 12 Instances in Subcircuit."
         );
     }
 }
