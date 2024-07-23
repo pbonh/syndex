@@ -93,7 +93,7 @@ Statement = ( model:ModelStatement
           | print:PrintStatement
           | End ) EOL;
 
-Instance = id:InstanceIdentifier { nodes:Node } id:Node {  params:ParamValue | options:KeyValue };
+Instance = id:InstanceIdentifier source:Node drain:Node gate:Node body:Node model:Node { options:KeyValue };
 
 @string
 InstanceIdentifier = i'x' Node;
@@ -158,7 +158,7 @@ Diode = id:DiodeIdentifier Node Node Identifier { DiodeParams };
 @string
 DiodeIdentifier = i'd' Node;
 
-MosTransistor = id:MosTransistorIdentifier source:Node drain:Node gate:Node body:Node id:Node { \
+MosTransistor = id:MosTransistorIdentifier source:Node drain:Node gate:Node body:Node model:Node { \
      options:KeyValue };
 
 @string
