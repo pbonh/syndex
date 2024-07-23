@@ -52,7 +52,7 @@ SPICENetlist = netlist_scope:NetlistScope;
 SubcircuitScope = i'.subckt' NWhitespace id:Identifier NWhitespace ports:SubcircuitPorts EOL \
      netlist_scope:NetlistScope Ends;
 
-SubcircuitPorts = { Node };
+SubcircuitPorts = { port:Node };
 
 @no_skip_ws
 NWhitespace = { '\t' | '\x0C' | ' ' };
@@ -325,6 +325,11 @@ mod tests {
             1,
             netlist_scope.subcircuit.len(),
             "There should be 1 Subcircuits in netlist."
+        );
+        assert_eq!(
+            9,
+            netlist_scope.subcircuit[0].ports.port.len(),
+            "There should be 9 Ports in Subcircuit."
         );
     }
 }
