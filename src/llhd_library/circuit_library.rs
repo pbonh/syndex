@@ -43,87 +43,18 @@ use peginator_macro::peginate;
 // float           = digit, { digit }, [ ".", { digit } ];
 // boolean         = "true" | "false";
 
-// peginate!(
-//     "
-// @export
-// SPICENetlist = { statements:Statement };
-// Statement    = comments:Comments | elements:Elements | commands:Command;
-// Elements     = Resistor
-//                 | Capacitor
-//                 | Inductor
-//                 | MutualInductor
-//                 | VoltageControlledSwitch
-//                 | VoltageSource
-//                 | CurrentSource
-//                 | VoltageControlledVoltageSource
-//                 | VoltageControlledCurrentSource
-//                 | CurrentControlledCurrentSource
-//                 | Diode
-//                 | MOSTransistor;
-//
-// @no_skip_ws
-// Comments         = '*' {!'\n' char} '\n';
-//
-// Command          = '.' ( option:Option
-//                         | transient:Transient
-//                         | print:Print
-//                         | plot:Plot
-//                         | end:End );
-//
-// Option           = i'options' { OptionArguments };
-// Transient        = i'tran' { OptionArguments };
-// Print            = i'print' { OptionArguments };
-// Plot             = i'plot' { OptionArguments };
-// OptionArguments  = modelId:Identifier | value:OptionExpression | assignment:OptionAssignment;
-// OptionAssignment = Identifier '=' { value:OptionValue };
-// OptionExpression = Identifier '(' { value:OptionValue } ')';
-// OptionValue      =  UnitValue | Identifier ;
-// @string
-// End              = i'end';
-//
-// Resistor        = i'R' Identifier Node Node Value;
-// Capacitor       = i'C' Identifier Node Node Value [ i'ic=' Value ];
-// Inductor        = i'L' Identifier Node Node Value [ i'ic=' Value ];
-// MutualInductor  = i'K' Identifier Identifier Identifier ( Value | i'k=' Value );
-// VoltageControlledSwitch =
-//                     i'S' Identifier Node Node Node Node ModelId;
-// VoltageSource   = i'v' Identifier Node Node { TypeValue };
-// CurrentSource   = i'i' Identifier Node Node { TypeValue };
-// VoltageControlledVoltageSource =
-//                     i'E' Identifier Node Node Node Node Value;
-// VoltageControlledCurrentSource =
-//                     i'G' Identifier Node Node Node Node Value;
-// CurrentControlledCurrentSource =
-//                     i'F' Identifier Node Node Identifier Value;
-// Diode           = i'D' Identifier Node Node ModelId { DiodeParam };
-// MOSTransistor   = i'M' Identifier Node Node Node Node ModelId i'w=' Num i'l=' Num;
-//
-// Node            = Identifier;
-// Identifier      = Letter { Letter | Digit };
-// Value           = UnitValue;
-// TypeValue       = i'type=' TypeIdentifier TypeIdentifier '=' Num;
-// TypeIdentifier  = 'vdc' | 'vac' | 'idc' | 'iac';
-// DiodeParam      = ( 'AREA=' Num | 'T=' Num | 'IC=' Num | 'OFF=' Boolean );
-// ModelId         = Identifier;
-// Num           = Digit [ Digit ] [ '.' { Digit } ];
-// UnitValue       = Digit [ Digit ] [ '.' { Digit } ] [ Letter ];
-// @string
-// Letter          = 'a'..'z' | 'A'..'Z';
-// @string
-// Digit           = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
-// @string
-// Boolean         = i'true' | i'false';
-// "
-// );
-
 peginate!(
     "
 @export
 SPICENetlist = netlist_scope:NetlistScope;
 
+SubcircuitScope = i'.subckt' id:Identifier ports:SubcircuitPorts netlist_scope:NetlistScope Ends;
+
 @no_skip_ws
-SubcircuitScope = i'.subckt' id:Identifier { ports:Identifier } EOL netlist_scope:NetlistScope \
-     Ends;
+SubcircuitPorts = { Value { SubcircuitPortWhitespace } } EOL;
+
+@no_skip_ws
+SubcircuitPortWhitespace = { '\t' | '\x0C' | '\r' | ' ' };
 
 NetlistScope = { elements:Element | statements:Statement | comments:Comment  | \
      subcircuit:SubcircuitScope};
@@ -132,7 +63,8 @@ NetlistScope = { elements:Element | statements:Statement | comments:Comment  | \
 Comment = '*' {!'\n' char} EOL;
 
 @no_skip_ws
-Element = ( resistor:Resistor
+Element = ( subcircuit:Instance
+          | resistor:Resistor
           | capacitor:Capacitor
           | inductor:Inductor
           | mutualinductor1:MutualInductor1
@@ -156,6 +88,11 @@ Statement = ( model:ModelStatement
           | option:PlotStatement
           | print:PrintStatement
           | End ) EOL;
+
+Instance = id:InstanceIdentifier { nodes:Node } id:Node {  params:ParamValue | options:KeyValue };
+
+@string
+InstanceIdentifier = i'x' Node;
 
 Resistor = id:ResistorIdentifier Node Node Value { options:KeyValue };
 
@@ -217,7 +154,8 @@ Diode = id:DiodeIdentifier Node Node Identifier { DiodeParams };
 @string
 DiodeIdentifier = i'd' Node;
 
-MosTransistor = id:MosTransistorIdentifier Node Node Node Node Identifier { options:KeyValue };
+MosTransistor = id:MosTransistorIdentifier source:Node drain:Node gate:Node body:Node id:Node { \
+     options:KeyValue };
 
 @string
 MosTransistorIdentifier = i'm' Node;
@@ -256,9 +194,9 @@ SourceType = Identifier;
 
 SourceValues = params:ParamValue | options:KeyValue | value:Value;
 
-KeyValue = id:Identifier '=' value:Value;
+KeyValue = id:Node '=' value:Value;
 
-ParamValue = id:Identifier '(' { value:Value }+ ')';
+ParamValue = id:Node '(' { value:Value }+ ')';
 
 @string
 @no_skip_ws
@@ -266,7 +204,7 @@ Node = {'a'..'z' | 'A'..'Z' | '_' | '0'..'9'};
 
 @string
 @no_skip_ws
-Identifier = Letter {'a'..'z' | 'A'..'Z' | '_' | '0'..'9'};
+Identifier = Letter {'a'..'z' | 'A'..'Z' | '_' | '0'..'9'}+;
 
 @string
 @no_skip_ws
@@ -347,7 +285,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn spice_sky130_dk_a211o_2_example() {
         let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         spice_netlist_path.push(
@@ -371,6 +308,11 @@ mod tests {
             0,
             netlist_scope.elements.len(),
             "There should be 0 Elements in netlist."
+        );
+        println!("Netlist Scope Comments: {:?}", netlist_scope.comments);
+        println!(
+            "Netlist Scope Last Comment: {:?}",
+            netlist_scope.comments.last().unwrap()
         );
         assert_eq!(
             1,
