@@ -9,13 +9,14 @@ impl FromStr for CircuitElement {
     type Err = String;
 
     fn from_str(element_str: &str) -> Result<Self, Self::Err> {
-        if !element_str.contains(char::is_whitespace)
-            && !element_str
-                .chars()
-                .next()
-                .expect("Circuit Element String shouldn't be empty.")
-                .is_numeric()
-        {
+        let no_whitespace = !element_str.contains(char::is_whitespace);
+        let non_numeric_start = element_str
+            .chars()
+            .next()
+            .expect("Circuit Element String shouldn't be empty.")
+            .is_numeric();
+        let multiple_characters = element_str.chars().count() > 1;
+        if no_whitespace && !non_numeric_start && multiple_characters {
             Ok(Self(element_str.to_owned()))
         } else {
             let mut error_str: String = "Invalid Element String: ".to_owned();
@@ -50,6 +51,15 @@ mod tests {
     #[test]
     fn invalid_element_beginning_digit() {
         let element = "1f_1";
+        assert!(
+            CircuitElement::from_str(element).is_err(),
+            "Element is not valid, should produce an error"
+        );
+    }
+
+    #[test]
+    fn invalid_element_single_char() {
+        let element = "f";
         assert!(
             CircuitElement::from_str(element).is_err(),
             "Element is not valid, should produce an error"
