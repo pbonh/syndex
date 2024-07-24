@@ -10,6 +10,7 @@ use llhd::ir::{Inst, UnitId, Value};
 // use super::components::unit::LLHDUnitComponent;
 // use super::components::block::LLHDBlockComponent;
 use super::components::inst::LLHDInstComponent;
+use crate::circuit::graph::LCircuitEdgeID;
 use crate::llhd::module::LLHDModule;
 use crate::llhd_world::initializer::{
     build_blocks, build_insts, build_units, build_value_defs, build_value_refs,
@@ -19,7 +20,7 @@ use crate::world::LWorld;
 pub type InstIndex = (UnitId, Inst);
 pub type ValueDefIndex = (UnitId, Value);
 pub type ValueRefIndex = (UnitId, Inst, Value);
-pub type AnalogCircuitIndex = BTreeSet<u64>;
+pub type AnalogCircuitIndex = BTreeSet<LCircuitEdgeID>;
 type UnitMapper = HashMap<UnitId, Entity>;
 type InstMapper = HashMap<InstIndex, Entity>;
 type ValueDefMapper = HashMap<ValueDefIndex, Entity>;
