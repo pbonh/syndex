@@ -47,7 +47,7 @@ impl Display for CircuitHyperEdge {
 pub type LCircuitNodeID = u32;
 pub type LCircuitEdgeID = u64;
 
-#[derive(Debug, Resource)]
+#[derive(Debug, Clone, Resource)]
 pub struct LCircuit(HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>);
 
 impl Default for LCircuit {
