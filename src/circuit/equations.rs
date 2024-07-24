@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 
-use evalexpr::build_operator_tree;
+use evalexpr::{build_operator_tree, EvalexprError};
 
 use super::nodes::CircuitNode;
 
@@ -12,12 +12,12 @@ pub type VariableContextMap = HashMap<CircuitNode, DeviceEquation>;
 pub struct DeviceEquation(String);
 
 impl FromStr for DeviceEquation {
-    type Err = String;
+    type Err = EvalexprError;
 
     fn from_str(eq_str: &str) -> Result<Self, Self::Err> {
         match build_operator_tree(eq_str) {
             Ok(_) => Ok(Self(eq_str.to_owned())),
-            Err(error) => Err(error.to_string()),
+            Err(error) => Err(error),
         }
     }
 }

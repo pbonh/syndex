@@ -52,12 +52,17 @@ pub struct LCircuit(HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircu
 
 impl Default for LCircuit {
     fn default() -> Self {
-        Self(HGraph::<VoltageNode, CircuitHyperEdge>::new())
+        Self(HGraph::<
+            VoltageNode,
+            CircuitHyperEdge,
+            LCircuitNodeID,
+            LCircuitEdgeID,
+        >::new())
     }
 }
 
 impl Deref for LCircuit {
-    type Target = HGraph<VoltageNode, CircuitHyperEdge>;
+    type Target = HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -70,20 +75,20 @@ impl DerefMut for LCircuit {
     }
 }
 
-// impl AsRef<HGraph<VoltageNode, CircuitHyperEdge>> for LCircuit
+// impl AsRef<HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>> for LCircuit
 // where
-//     <Self as Deref>::Target: AsRef<HGraph<VoltageNode, CircuitHyperEdge>>,
+//     <Self as Deref>::Target: AsRef<HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>>,
 // {
-//     fn as_ref(&self) -> &HGraph<VoltageNode, CircuitHyperEdge> {
+//     fn as_ref(&self) -> &HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID> {
 //         self.deref().as_ref()
 //     }
 // }
 //
-// impl AsMut<HGraph<VoltageNode, CircuitHyperEdge>> for LCircuit
+// impl AsMut<HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>> for LCircuit
 // where
-//     <Self as Deref>::Target: AsMut<HGraph<VoltageNode, CircuitHyperEdge>>,
+//     <Self as Deref>::Target: AsMut<HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>>,
 // {
-//     fn as_mut(&mut self) -> &mut HGraph<VoltageNode, CircuitHyperEdge> {
+//     fn as_mut(&mut self) -> &mut HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID> {
 //         self.deref_mut().as_mut()
 //     }
 // }
