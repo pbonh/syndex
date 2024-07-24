@@ -1298,19 +1298,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hypergraph"
-version = "2.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "040c285bfae99746c34d2ab6782424e131e367e3758e1fab75cb8da1834f5448"
-dependencies = [
- "ahash 0.8.11",
- "indexmap 2.2.6",
- "itertools 0.11.0",
- "rayon",
- "thiserror",
-]
-
-[[package]]
 name = "iana-time-zone"
 version = "0.1.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1357,7 +1344,6 @@ checksum = "168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.5",
- "rayon",
  "serde",
 ]
 
@@ -1432,15 +1418,6 @@ name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
 dependencies = [
  "either",
 ]
@@ -2565,7 +2542,6 @@ dependencies = [
  "envy",
  "euclid",
  "evalexpr",
- "hypergraph",
  "indoc",
  "itertools 0.12.1",
  "layout21",

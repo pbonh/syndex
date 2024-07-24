@@ -4,7 +4,6 @@ use std::ops::Add;
 use bevy_ecs::prelude::{Component, Entity, QueryState};
 use bevy_ecs::query::QueryData;
 use bevy_hierarchy::{BuildWorldChildren, Children};
-use hypergraph::VertexIndex;
 use llhd::ir::{Inst, UnitId, Value};
 
 // use super::components::inst::LLHDInstComponent;
@@ -20,7 +19,7 @@ use crate::world::LWorld;
 pub type InstIndex = (UnitId, Inst);
 pub type ValueDefIndex = (UnitId, Value);
 pub type ValueRefIndex = (UnitId, Inst, Value);
-pub type AnalogCircuitIndex = BTreeSet<VertexIndex>;
+pub type AnalogCircuitIndex = BTreeSet<u64>;
 type UnitMapper = HashMap<UnitId, Entity>;
 type InstMapper = HashMap<InstIndex, Entity>;
 type ValueDefMapper = HashMap<ValueDefIndex, Entity>;
