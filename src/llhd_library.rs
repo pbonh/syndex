@@ -2,8 +2,7 @@ pub mod circuit_library;
 pub mod gds_library;
 pub mod lef_library;
 
-#[allow(unused_imports)]
-use builder::*;
+pub use builder::*;
 use typestate::typestate;
 
 #[typestate]
