@@ -97,7 +97,7 @@ mod tests {
     use crate::circuit::netlist::LNetlist;
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "not yet implemented")]
     fn build_technology_flow() {
         let lef = LLefLibrary::default();
         let netlist = LNetlist::default();

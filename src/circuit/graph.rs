@@ -4,6 +4,7 @@ use std::ops::{Deref, DerefMut};
 use bevy_ecs::prelude::Resource;
 use mhgl::HGraph;
 
+use super::spice::SPICENetlist;
 use crate::circuit::equations::CircuitEquation;
 use crate::circuit::nodes::CircuitNode;
 
@@ -49,6 +50,12 @@ pub type LCircuitEdgeID = u64;
 
 #[derive(Debug, Clone, Resource)]
 pub struct LCircuit(HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>);
+
+impl From<&SPICENetlist> for LCircuit {
+    fn from(_spice_netlist: &SPICENetlist) -> Self {
+        todo!()
+    }
+}
 
 impl Default for LCircuit {
     fn default() -> Self {
