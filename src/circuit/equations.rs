@@ -6,7 +6,9 @@ use evalexpr::{build_operator_tree, EvalexprError};
 
 use super::nodes::CircuitNode;
 
+pub type ModelName = String;
 pub type VariableContextMap = HashMap<CircuitNode, DeviceEquation>;
+pub type DeviceEquationMap = HashMap<ModelName, DeviceEquation>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct DeviceEquation(String);
@@ -114,5 +116,18 @@ mod tests {
             DeviceEquation::from_str(eq).is_err(),
             "Equation is not valid, should produce an error"
         );
+    }
+
+    #[test]
+    fn device_equation_map() {
+        let eq = indoc::indoc! {"
+            e = 2.718281828459045;
+            Is = 1e-12;
+            eta = 1.5;
+            Vt = T/11586;
+            I = Is*(e^(vd/(eta*Vt)) - 1)
+        "};
+        let dev_eq = DeviceEquation::from_str(eq).unwrap();
+        let _device_eq_map = DeviceEquationMap::from([("m1".to_owned(), dev_eq)]);
     }
 }

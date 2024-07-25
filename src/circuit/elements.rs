@@ -2,7 +2,7 @@ pub(crate) mod transistor;
 
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub(crate) struct CircuitElement(String);
 
 impl FromStr for CircuitElement {
