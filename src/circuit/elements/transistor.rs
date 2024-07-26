@@ -8,7 +8,7 @@ use crate::circuit::equations::{
     CircuitEquation, DeviceEquation, DeviceEquationMap, VariableContextMap,
 };
 use crate::circuit::nodes::CircuitNode;
-use crate::circuit::spice::MosTransistor;
+use crate::circuit::spice::{Instance, MosTransistor};
 
 #[derive(Debug, Clone, Default, TypedBuilder, Getters)]
 pub struct Transistor {
@@ -55,6 +55,50 @@ impl Transistor {
 
 impl From<(MosTransistor, DeviceEquationMap)> for Transistor {
     fn from(tech: (MosTransistor, DeviceEquationMap)) -> Self {
+        let ast = tech.0;
+        let id = CircuitElement(ast.id);
+        let source = CircuitNode::from_str(&ast.source)
+            .expect("Failure to convert `SPICENetlist` `Node` to `CircuitNode`");
+        let drain = CircuitNode::from_str(&ast.drain)
+            .expect("Failure to convert `SPICENetlist` `Node` to `CircuitNode`");
+        let gate = CircuitNode::from_str(&ast.gate)
+            .expect("Failure to convert `SPICENetlist` `Node` to `CircuitNode`");
+        let body = CircuitNode::from_str(&ast.body)
+            .expect("Failure to convert `SPICENetlist` `Node` to `CircuitNode`");
+        let model = ast.model;
+        let device_equation = tech.1[&model].clone();
+        let (vgs, vgd, vgb, vds, vdb, vsb) = (
+            CircuitNode::from_str("vgs").expect("Invalid CircuitNode Name."),
+            CircuitNode::from_str("vgd").expect("Invalid CircuitNode Name."),
+            CircuitNode::from_str("vgb").expect("Invalid CircuitNode Name."),
+            CircuitNode::from_str("vds").expect("Invalid CircuitNode Name."),
+            CircuitNode::from_str("vdb").expect("Invalid CircuitNode Name."),
+            CircuitNode::from_str("vsb").expect("Invalid CircuitNode Name."),
+        );
+        let (vgs_eq, vgd_eq, vgb_eq, vds_eq, vdb_eq, vsb_eq) =
+            Self::transistor_node_subst(&source, &drain, &gate, &body);
+        let ctx = VariableContextMap::from([
+            (vgs, vgs_eq),
+            (vgd, vgd_eq),
+            (vgb, vgb_eq),
+            (vds, vds_eq),
+            (vdb, vdb_eq),
+            (vsb, vsb_eq),
+        ]);
+        let equations = CircuitEquation::new(device_equation, &ctx);
+        Self {
+            name: id,
+            source,
+            drain,
+            gate,
+            body,
+            equations,
+        }
+    }
+}
+
+impl From<(Instance, DeviceEquationMap)> for Transistor {
+    fn from(tech: (Instance, DeviceEquationMap)) -> Self {
         let ast = tech.0;
         let id = CircuitElement(ast.id);
         let source = CircuitNode::from_str(&ast.source)
@@ -191,6 +235,40 @@ mod tests {
             eta = 1.5;
             Vt = T/11586;
             I = Is*(e^((5-15)/(eta*Vt)) - 1)
+        "};
+        assert_eq!(eq_expected, xtor.equations.to_string());
+    }
+
+    #[test]
+    fn sky130_from_device_equation_map() {
+        let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        spice_netlist_path.push(
+            "resources/libraries_no_liberty/sky130_fd_sc_ls/latest/cells/a211o/\
+             sky130_fd_sc_ls__a211o_2.spice",
+        );
+        let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
+        let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
+        let netlist_scope = &ast.netlist_scope;
+        let subcircuit_scope = &netlist_scope.subcircuits[0].netlist_scope;
+        let x4_xtor = subcircuit_scope.elements[3].clone().subcircuit.unwrap();
+
+        let eq = indoc::indoc! {"
+            e = 2.718281828459045;
+            Is = 1e-12;
+            eta = 1.5;
+            Vt = T/11586;
+            I = Is*(e^(vds/(eta*Vt)) - 1)
+        "};
+        let dev_eq = DeviceEquation::from_str(eq).unwrap();
+
+        let device_eq_map = DeviceEquationMap::from([(x4_xtor.model.clone(), dev_eq)]);
+        let xtor = Transistor::from((x4_xtor, device_eq_map));
+        let eq_expected = indoc::indoc! {"
+            e = 2.718281828459045;
+            Is = 1e-12;
+            eta = 1.5;
+            Vt = T/11586;
+            I = Is*(e^((A2-a_317_392#)/(eta*Vt)) - 1)
         "};
         assert_eq!(eq_expected, xtor.equations.to_string());
     }
