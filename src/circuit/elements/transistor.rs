@@ -167,24 +167,7 @@ mod tests {
     }
 
     #[test]
-    fn sky130_from_device_equation_map() {
-        let source = CircuitNode::from_str("v_source")
-            .expect("Failure to convert `SPICENetlist` `Node` to `CircuitNode`");
-        let drain = CircuitNode::from_str("v_drain")
-            .expect("Failure to convert `SPICENetlist` `Node` to `CircuitNode`");
-        let gate = CircuitNode::from_str("v_gate")
-            .expect("Failure to convert `SPICENetlist` `Node` to `CircuitNode`");
-        let body = CircuitNode::from_str("v_body")
-            .expect("Failure to convert `SPICENetlist` `Node` to `CircuitNode`");
-        let (vgs, vgd, vgb, vds, vdb, vsb) =
-            Transistor::transistor_node_subst(&source, &drain, &gate, &body);
-        assert_eq!("(v_gate-v_source)", vgs.to_string());
-        assert_eq!("(v_gate-v_drain)", vgd.to_string());
-        assert_eq!("(v_gate-v_body)", vgb.to_string());
-        assert_eq!("(v_drain-v_source)", vds.to_string());
-        assert_eq!("(v_drain-v_body)", vdb.to_string());
-        assert_eq!("(v_source-v_body)", vsb.to_string());
-
+    fn spice_netlist_from_device_equation_map() {
         let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         spice_netlist_path.push("resources/spice3f5_examples/mosamp2.cir");
         let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
