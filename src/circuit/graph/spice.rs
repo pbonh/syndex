@@ -62,13 +62,13 @@ fn instance_nodes(instance: &Instance) -> Vec<SPICENode> {
         .collect_vec()
 }
 
-fn netlist_scope_element_iter(netlist: &SPICENetlist) -> impl Iterator<Item = Element> + '_ {
+fn netlist_scope_element_iter(netlist: &SPICENetlist) -> impl Iterator<Item = &Element> + '_ {
     let subcircuits = &netlist.netlist_scope.subcircuits;
     let top_scope = &netlist.netlist_scope;
-    top_scope.elements.clone().into_iter().chain(
-        subcircuits.iter().flat_map(|subcircuit_scope| {
-            subcircuit_scope.netlist_scope.elements.clone().into_iter()
-        }),
+    top_scope.elements.iter().chain(
+        subcircuits
+            .iter()
+            .flat_map(|subcircuit_scope| subcircuit_scope.netlist_scope.elements.iter()),
     )
 }
 
