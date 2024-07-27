@@ -1,55 +1,23 @@
-use std::fmt::{Display, Formatter, Result};
+pub(super) mod edges;
+pub(super) mod nodes;
+pub(super) mod spice;
+
 use std::ops::{Deref, DerefMut};
 
 use bevy_ecs::prelude::Resource;
 use mhgl::HGraph;
 
 use super::spice::SPICENetlist;
-use crate::circuit::equations::CircuitEquation;
-use crate::circuit::nodes::CircuitNode;
-
-pub type VertexIndex = u32;
-pub type HyperedgeIndex = u64;
-
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub struct VoltageNode {
-    node: CircuitNode,
-}
-
-impl VoltageNode {
-    pub const fn new(node: CircuitNode) -> Self {
-        Self { node }
-    }
-}
-
-impl Display for VoltageNode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", self.node)
-    }
-}
-
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub struct CircuitHyperEdge {
-    equations: CircuitEquation,
-}
-
-impl CircuitHyperEdge {
-    pub const fn new(equations: CircuitEquation) -> Self {
-        Self { equations }
-    }
-}
-
-impl Display for CircuitHyperEdge {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "equations: {}", self.equations)
-    }
-}
+use crate::circuit::graph::edges::CircuitHyperEdge;
+use crate::circuit::graph::nodes::VoltageNode;
 
 pub type LCircuitNodeID = u32;
 pub type LCircuitEdgeID = u64;
 
+type LHGraph = HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>;
+
 #[derive(Debug, Clone, Resource)]
-pub struct LCircuit(HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>);
+pub struct LCircuit(LHGraph);
 
 impl From<&SPICENetlist> for LCircuit {
     fn from(_spice_netlist: &SPICENetlist) -> Self {
@@ -69,7 +37,7 @@ impl Default for LCircuit {
 }
 
 impl Deref for LCircuit {
-    type Target = HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>;
+    type Target = LHGraph;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -82,20 +50,20 @@ impl DerefMut for LCircuit {
     }
 }
 
-// impl AsRef<HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>> for LCircuit
+// impl AsRef<LHGraph> for LCircuit
 // where
-//     <Self as Deref>::Target: AsRef<HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>>,
+//     <Self as Deref>::Target: AsRef<LHGraph>,
 // {
-//     fn as_ref(&self) -> &HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID> {
+//     fn as_ref(&self) -> &LHGraph {
 //         self.deref().as_ref()
 //     }
 // }
 //
-// impl AsMut<HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>> for LCircuit
+// impl AsMut<LHGraph> for LCircuit
 // where
-//     <Self as Deref>::Target: AsMut<HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>>,
+//     <Self as Deref>::Target: AsMut<LHGraph>,
 // {
-//     fn as_mut(&mut self) -> &mut HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID> {
+//     fn as_mut(&mut self) -> &mut LHGraph {
 //         self.deref_mut().as_mut()
 //     }
 // }
@@ -107,6 +75,7 @@ mod tests {
     use super::*;
     // use crate::circuit::elements::*;
     use crate::circuit::equations::*;
+    use crate::circuit::nodes::CircuitNode;
 
     #[test]
     fn default_circuit() {
@@ -114,7 +83,7 @@ mod tests {
     }
 
     #[test]
-    fn simple_inverter_macro() {
+    fn simple_inverter_manual_build() {
         let mut circuit = LCircuit::default();
         let eq = indoc::indoc! {"
             e = 2.718281828459045;

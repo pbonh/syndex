@@ -101,7 +101,7 @@ Instance = id:InstanceIdentifier source:Node drain:Node gate:Node body:Node mode
 @string
 InstanceIdentifier = i'x' Node;
 
-Resistor = id:ResistorIdentifier Node Node Value { options:KeyValue };
+Resistor = id:ResistorIdentifier p:Node n:Node Value { options:KeyValue };
 
 @string
 ResistorIdentifier = i'r' Node;
@@ -282,6 +282,80 @@ mod tests {
                 netlist_scope.elements.len()
             ),
             "Mismatch (comments, statements, elements)."
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn spice_mos6inv_example() {
+        let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        spice_netlist_path.push("resources/spice3f5_examples/mos6inv.cir");
+        let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
+        let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
+        let netlist_scope = &ast.netlist_scope;
+        assert_eq!(
+            7,
+            netlist_scope.comments.len(),
+            "There should be 7 Comment in netlist."
+        );
+        assert_eq!(
+            12,
+            netlist_scope.statements.len(),
+            "There should be 12 Statements in netlist."
+        );
+        assert_eq!(
+            6,
+            netlist_scope.elements.len(),
+            "There should be 6 Elements in netlist."
+        );
+        assert_eq!(
+            1,
+            netlist_scope.subcircuits.len(),
+            "There should be 1 Subcircuits in netlist."
+        );
+        println!("Netlist Scope Comments: {:?}", netlist_scope.comments);
+        // println!(
+        //     "Netlist Scope Last Comment: {:?}",
+        //     netlist_scope.comments.last().unwrap().comment
+        // );
+        assert_eq!(
+            (15, 0, 0),
+            (
+                netlist_scope.comments.len(),
+                netlist_scope.statements.len(),
+                netlist_scope.elements.len()
+            ),
+            "Mismatch (comments, statements, elements)."
+        );
+        assert_eq!(
+            1,
+            netlist_scope.subcircuits.len(),
+            "There should be 1 Subcircuits in netlist."
+        );
+        assert_eq!(
+            9,
+            netlist_scope.subcircuits[0].ports.port.len(),
+            "There should be 9 Ports in Subcircuit."
+        );
+        let subcircuit_scope = &netlist_scope.subcircuits[0].netlist_scope;
+        assert_eq!(
+            12,
+            subcircuit_scope.elements.len(),
+            "There should be 12 Instances in Subcircuit."
+        );
+        let x0_instance = &subcircuit_scope.elements[0].clone().subcircuit.unwrap();
+        assert_eq!("VGND", x0_instance.source, "Source name for X0 is VGND");
+        assert_eq!(
+            "sky130_fd_pr__nfet_01v8", x0_instance.model,
+            "Model name for X0 is sky130_fd_pr__nfet_01v8"
+        );
+        assert_eq!(
+            "w", x0_instance.options[0].id,
+            "First Parameter name for X0 is w"
+        );
+        assert_eq!(
+            "740000u", x0_instance.options[0].value,
+            "First Parameter value for X0 is 740000u"
         );
     }
 

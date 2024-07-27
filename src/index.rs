@@ -7,22 +7,28 @@ use euclid::default::Box2D;
 use llhd::ir::prelude::*;
 use llhd::ir::InstData;
 
-use crate::circuit::graph::VertexIndex;
+use crate::circuit::graph::LCircuitNodeID;
 
 /// Type Constraint for Use in a Datalog Relation Column
 pub trait FlatIndex: Clone + PartialEq + Eq + Hash {}
 
 /// `FlatIndex` for Design Units
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DesignUnitIndex(UnitId, BTreeSet<VertexIndex>, Box2D<usize>);
+pub struct DesignUnitIndex(UnitId, BTreeSet<LCircuitNodeID>, Box2D<usize>);
 
 /// `FlatIndex` for Design Gates
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DesignDGateIndex(UnitId, Inst, InstData, BTreeSet<VertexIndex>, Box2D<usize>);
+pub struct DesignDGateIndex(
+    UnitId,
+    Inst,
+    InstData,
+    BTreeSet<LCircuitNodeID>,
+    Box2D<usize>,
+);
 
 /// `FlatIndex` for Design Nets
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DesignDNetIndex(UnitId, Inst, Value, BTreeSet<VertexIndex>, Box2D<usize>);
+pub struct DesignDNetIndex(UnitId, Inst, Value, BTreeSet<LCircuitNodeID>, Box2D<usize>);
 
 #[cfg(test)]
 mod tests {
