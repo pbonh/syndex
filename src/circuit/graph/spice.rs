@@ -1,14 +1,51 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
 use itertools::Itertools;
 use peginator::{ParseError, PegParser};
 
+use super::LCircuitNodeID;
 #[allow(unused_imports)]
 use crate::circuit::spice::{
     Capacitor, CurrentSource, Diode, Element, Inductor, Instance, MosTransistor, Node as SPICENode,
     Resistor, SPICENetlist, VoltageSource,
 };
+
+fn resistor_nodes(resistor: &Resistor) -> Vec<SPICENode> {
+    let resistor_nodes = vec![resistor.p.to_owned(), resistor.n.to_owned()];
+    resistor_nodes
+        .iter()
+        .map(|spice_string| SPICENode::from(spice_string))
+        .collect_vec()
+}
+
+fn mos_transistor_nodes(mos_transistor: &MosTransistor) -> Vec<SPICENode> {
+    let mos_transistor_nodes = vec![
+        mos_transistor.source.to_owned(),
+        mos_transistor.drain.to_owned(),
+        mos_transistor.gate.to_owned(),
+        mos_transistor.body.to_owned(),
+    ];
+    mos_transistor_nodes
+        .iter()
+        .map(|spice_string| SPICENode::from(spice_string))
+        .collect_vec()
+}
+
+fn instance_nodes(instance: &Instance) -> Vec<SPICENode> {
+    let instance_nodes = vec![
+        instance.source.to_owned(),
+        instance.drain.to_owned(),
+        instance.gate.to_owned(),
+        instance.body.to_owned(),
+    ];
+    instance_nodes
+        .iter()
+        .map(|spice_string| SPICENode::from(spice_string))
+        .collect_vec()
+}
+
+pub(super) type SPICENodeMap = HashMap<SPICENode, LCircuitNodeID>;
 
 #[derive(Debug, Clone, Default)]
 pub(super) struct SPICENodeSet(HashSet<SPICENode>);
@@ -22,40 +59,6 @@ impl SPICENodeSet {
         self.0.contains(node)
     }
 
-    fn resistor_nodes(resistor: &Resistor) -> Vec<SPICENode> {
-        let resistor_nodes = vec![resistor.p.to_owned(), resistor.n.to_owned()];
-        resistor_nodes
-            .iter()
-            .map(|spice_string| SPICENode::from(spice_string))
-            .collect_vec()
-    }
-
-    fn mos_transistor_nodes(mos_transistor: &MosTransistor) -> Vec<SPICENode> {
-        let mos_transistor_nodes = vec![
-            mos_transistor.source.to_owned(),
-            mos_transistor.drain.to_owned(),
-            mos_transistor.gate.to_owned(),
-            mos_transistor.body.to_owned(),
-        ];
-        mos_transistor_nodes
-            .iter()
-            .map(|spice_string| SPICENode::from(spice_string))
-            .collect_vec()
-    }
-
-    fn instance_nodes(instance: &Instance) -> Vec<SPICENode> {
-        let instance_nodes = vec![
-            instance.source.to_owned(),
-            instance.drain.to_owned(),
-            instance.gate.to_owned(),
-            instance.body.to_owned(),
-        ];
-        instance_nodes
-            .iter()
-            .map(|spice_string| SPICENode::from(spice_string))
-            .collect_vec()
-    }
-
     fn collect_netlist_nodes(netlist: &SPICENetlist) -> Vec<SPICENode> {
         let mut nodes: Vec<SPICENode> = vec![];
         netlist
@@ -64,13 +67,13 @@ impl SPICENodeSet {
             .iter()
             .for_each(|element: &Element| {
                 if let Some(mos_transistor) = &element.mostransistor {
-                    nodes.extend(Self::mos_transistor_nodes(mos_transistor));
+                    nodes.extend(mos_transistor_nodes(mos_transistor));
                 }
                 if let Some(resistor) = &element.resistor {
-                    nodes.extend(Self::resistor_nodes(resistor));
+                    nodes.extend(resistor_nodes(resistor));
                 }
                 if let Some(instance) = &element.subcircuit {
-                    nodes.extend(Self::instance_nodes(instance));
+                    nodes.extend(instance_nodes(instance));
                 }
             });
         nodes
@@ -93,6 +96,26 @@ impl FromStr for SPICENodeSet {
             }
             Err(error) => Err(error),
         }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub(super) struct SPICEElements(Vec<Element>);
+
+impl SPICEElements {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    fn collect_netlist_elements(netlist: &SPICENetlist) -> Self {
+        Self(
+            netlist
+                .netlist_scope
+                .elements
+                .iter()
+                .map(|element: &Element| element.to_owned())
+                .collect_vec(),
+        )
     }
 }
 
@@ -139,5 +162,15 @@ mod tests {
         assert!(netlist_nodes.contains(&"A2".to_owned()));
         assert!(netlist_nodes.contains(&"B1".to_owned()));
         assert!(netlist_nodes.contains(&"VGND".to_owned()));
+    }
+
+    #[test]
+    fn netlist_element_count() {
+        let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        spice_netlist_path.push("resources/spice3f5_examples/mosamp2.cir");
+        let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
+        let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
+        let netlist_elements = SPICEElements::collect_netlist_elements(&ast);
+        assert_eq!(33, netlist_elements.len());
     }
 }
