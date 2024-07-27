@@ -101,17 +101,17 @@ Instance = id:InstanceIdentifier source:Node drain:Node gate:Node body:Node mode
 @string
 InstanceIdentifier = i'x' Node;
 
-Resistor = id:ResistorIdentifier p:Node n:Node Value { options:KeyValue };
+Resistor = id:ResistorIdentifier p:Node n:Node value:Value { options:KeyValue };
 
 @string
 ResistorIdentifier = i'r' Node;
 
-Capacitor = id:CapacitorIdentifier Node Node Value { options:KeyValue };
+Capacitor = id:CapacitorIdentifier p:Node n:Node value:Value { options:KeyValue };
 
 @string
 CapacitorIdentifier = i'c' Node;
 
-Inductor = id:InductorIdentifier Node Node Value { options:KeyValue };
+Inductor = id:InductorIdentifier p:Node n:Node value:Value { options:KeyValue };
 
 @string
 InductorIdentifier = i'l' Node;
@@ -156,7 +156,7 @@ CCurrentSource = id:CCurrentSourceIdentifier Node Node Identifier Value;
 @string
 CCurrentSourceIdentifier = i'f' Node;
 
-Diode = id:DiodeIdentifier Node Node Identifier { DiodeParams };
+Diode = id:DiodeIdentifier p:Node n:Node model:Identifier { DiodeParams };
 
 @string
 DiodeIdentifier = i'd' Node;

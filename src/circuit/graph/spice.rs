@@ -5,6 +5,7 @@ use itertools::Itertools;
 use peginator::{ParseError, PegParser};
 
 use super::LCircuitNodeID;
+use crate::circuit::spice::NetlistScope;
 #[allow(unused_imports)]
 use crate::circuit::spice::{
     Capacitor, CurrentSource, Diode, Element, Inductor, Instance, MosTransistor, Node as SPICENode,
@@ -14,6 +15,22 @@ use crate::circuit::spice::{
 fn resistor_nodes(resistor: &Resistor) -> Vec<SPICENode> {
     let resistor_nodes = vec![resistor.p.to_owned(), resistor.n.to_owned()];
     resistor_nodes
+        .iter()
+        .map(|spice_string| SPICENode::from(spice_string))
+        .collect_vec()
+}
+
+fn capacitor_nodes(capacitor: &Capacitor) -> Vec<SPICENode> {
+    let capacitor_nodes = vec![capacitor.p.to_owned(), capacitor.n.to_owned()];
+    capacitor_nodes
+        .iter()
+        .map(|spice_string| SPICENode::from(spice_string))
+        .collect_vec()
+}
+
+fn vsource_nodes(vsource: &VoltageSource) -> Vec<SPICENode> {
+    let vsource_nodes = vec![vsource.p.to_owned(), vsource.n.to_owned()];
+    vsource_nodes
         .iter()
         .map(|spice_string| SPICENode::from(spice_string))
         .collect_vec()
@@ -59,24 +76,34 @@ impl SPICENodeSet {
         self.0.contains(node)
     }
 
-    fn collect_netlist_nodes(netlist: &SPICENetlist) -> Vec<SPICENode> {
-        let mut nodes: Vec<SPICENode> = vec![];
-        netlist
-            .netlist_scope
-            .elements
-            .iter()
-            .for_each(|element: &Element| {
+    fn collect_netlist_nodes(netlist: &SPICENetlist) -> HashSet<SPICENode> {
+        let mut netlist_nodes: HashSet<SPICENode> = HashSet::default();
+        let subcircuits = &netlist.netlist_scope.subcircuits;
+        let top_scope = &netlist.netlist_scope;
+        let netlist_scope_iter = |nodes: &mut HashSet<String>, netlist_scope: &NetlistScope| {
+            netlist_scope.elements.iter().for_each(|element: &Element| {
                 if let Some(mos_transistor) = &element.mostransistor {
                     nodes.extend(mos_transistor_nodes(mos_transistor));
                 }
                 if let Some(resistor) = &element.resistor {
                     nodes.extend(resistor_nodes(resistor));
                 }
+                if let Some(capacitor) = &element.capacitor {
+                    nodes.extend(capacitor_nodes(capacitor));
+                }
                 if let Some(instance) = &element.subcircuit {
                     nodes.extend(instance_nodes(instance));
                 }
+                if let Some(vsource) = &element.voltagesource {
+                    nodes.extend(vsource_nodes(vsource));
+                }
             });
-        nodes
+        };
+        netlist_scope_iter(&mut netlist_nodes, top_scope);
+        subcircuits.iter().for_each(|subcircuit_scope| {
+            netlist_scope_iter(&mut netlist_nodes, &subcircuit_scope.netlist_scope);
+        });
+        netlist_nodes
     }
 }
 
@@ -127,14 +154,26 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore]
     fn netlist_node_count() {
         let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         spice_netlist_path.push("resources/spice3f5_examples/mosamp2.cir");
         let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
         let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
         let netlist_nodes = SPICENodeSet::collect_netlist_nodes(&ast);
-        assert_eq!(20, netlist_nodes.len());
+        assert_eq!(21, netlist_nodes.len());
+    }
+
+    #[test]
+    fn sky130_netlist_node_count() {
+        let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        spice_netlist_path.push(
+            "resources/libraries_no_liberty/sky130_fd_sc_ls/latest/cells/a211o/\
+             sky130_fd_sc_ls__a211o_2.spice",
+        );
+        let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
+        let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
+        let netlist_nodes = SPICENodeSet::collect_netlist_nodes(&ast);
+        assert_eq!(13, netlist_nodes.len());
     }
 
     #[test]
@@ -143,14 +182,13 @@ mod tests {
         spice_netlist_path.push("resources/spice3f5_examples/mosamp2.cir");
         let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
         let netlist_nodes = SPICENodeSet::from_str(&spice_netlist_str).unwrap();
-        assert_eq!(20, netlist_nodes.len());
+        assert_eq!(21, netlist_nodes.len());
         assert!(netlist_nodes.contains(&"15".to_owned()));
         assert!(netlist_nodes.contains(&"1".to_owned()));
         assert!(netlist_nodes.contains(&"32".to_owned()));
     }
 
     #[test]
-    #[ignore]
     fn sky130_map_of_nodes() {
         let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         spice_netlist_path.push(
@@ -159,7 +197,7 @@ mod tests {
         );
         let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
         let netlist_nodes = SPICENodeSet::from_str(&spice_netlist_str).unwrap();
-        assert_eq!(24, netlist_nodes.len());
+        assert_eq!(13, netlist_nodes.len());
         assert!(netlist_nodes.contains(&"A1".to_owned()));
         assert!(netlist_nodes.contains(&"A2".to_owned()));
         assert!(netlist_nodes.contains(&"B1".to_owned()));
