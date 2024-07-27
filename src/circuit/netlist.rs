@@ -1,28 +1,67 @@
-use bevy_ecs::component::Component;
-use bevy_ecs::prelude::Resource;
+pub use builder::*;
+use typestate::typestate;
 
-use super::graph::LCircuit;
-use super::spice::SPICENetlist;
-use crate::circuit::equations::DeviceEquationMap;
+#[typestate]
+pub mod builder {
+    use crate::circuit::equations::DeviceEquationMap;
+    use crate::circuit::graph::LCircuit;
+    use crate::circuit::spice::SPICENetlist;
 
-#[derive(Debug, Clone, Default, Resource, Component)]
-pub struct LNetlist {
-    graph: LCircuit,
-    spice: Option<SPICENetlist>,
-}
+    #[derive(Debug)]
+    #[automaton]
+    pub struct NetlistFlow {
+        physics: DeviceEquationMap,
+        graph: LCircuit,
+        spice: SPICENetlist,
+    }
 
-impl From<(SPICENetlist, &DeviceEquationMap)> for LNetlist {
-    fn from(spice_netlist_and_map: (SPICENetlist, &DeviceEquationMap)) -> Self {
-        let spice_netlist = spice_netlist_and_map.0;
-        let device_equation_map = spice_netlist_and_map.1;
-        let graph = LCircuit::from((&spice_netlist, device_equation_map));
-        Self {
-            graph,
-            spice: Some(spice_netlist),
+    #[derive(Debug)]
+    #[state]
+    pub struct DevicePhysics;
+
+    #[derive(Debug)]
+    #[state]
+    pub struct Connectivity;
+
+    #[derive(Debug)]
+    #[state]
+    pub struct AnalogCircuit;
+
+    pub trait DevicePhysics {
+        fn initialize() -> DevicePhysics;
+        fn equations(self, map: DeviceEquationMap) -> Connectivity;
+    }
+
+    pub trait Connectivity {
+        fn spice(self, spice_netlist: SPICENetlist) -> AnalogCircuit;
+    }
+
+    pub trait AnalogCircuit {
+        fn build(self) -> Self;
+    }
+
+    impl DevicePhysicsState for NetlistFlow<DevicePhysics> {
+        fn initialize() -> NetlistFlow<DevicePhysics> {
+            todo!()
+        }
+
+        fn equations(self, _map: DeviceEquationMap) -> NetlistFlow<Connectivity> {
+            todo!()
+        }
+    }
+
+    impl ConnectivityState for NetlistFlow<Connectivity> {
+        fn spice(self, _spice_netlist: SPICENetlist) -> NetlistFlow<AnalogCircuit> {
+            todo!()
+        }
+    }
+
+    impl AnalogCircuitState for NetlistFlow<AnalogCircuit> {
+        fn build(self) -> Self {
+            todo!()
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -31,13 +70,9 @@ mod tests {
 
     use peginator::PegParser;
 
-    use super::*;
-    use crate::circuit::equations::DeviceEquation;
-
-    #[test]
-    fn default_netlist() {
-        let _netlist = LNetlist::default();
-    }
+    use crate::circuit::equations::{DeviceEquation, DeviceEquationMap};
+    use crate::circuit::netlist::*;
+    use crate::circuit::spice::SPICENetlist;
 
     #[test]
     #[should_panic(expected = "not yet implemented")]
@@ -60,6 +95,9 @@ mod tests {
         let device_eq_map = DeviceEquationMap::from([("m".to_owned(), dev_eq)]);
 
         let spice_netlist = SPICENetlist::parse(&spice_netlist_str).unwrap();
-        let _netlist = LNetlist::from((spice_netlist, &device_eq_map));
+        let _netlist = NetlistFlow::initialize()
+            .equations(device_eq_map)
+            .spice(spice_netlist)
+            .build();
     }
 }

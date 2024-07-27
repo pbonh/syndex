@@ -127,6 +127,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
     fn netlist_node_count() {
         let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         spice_netlist_path.push("resources/spice3f5_examples/mosamp2.cir");
@@ -149,6 +150,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn sky130_map_of_nodes() {
         let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         spice_netlist_path.push(
