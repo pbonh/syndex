@@ -22,19 +22,38 @@ impl SPICENodeSet {
         self.0.contains(node)
     }
 
-    fn resistor_nodes(resistor: &Resistor)  -> Vec<SPICENode> {
+    fn resistor_nodes(resistor: &Resistor) -> Vec<SPICENode> {
         let resistor_nodes = vec![resistor.p.to_owned(), resistor.n.to_owned()];
-        resistor_nodes.iter().map(|spice_string| SPICENode::from(spice_string)).collect_vec()
+        resistor_nodes
+            .iter()
+            .map(|spice_string| SPICENode::from(spice_string))
+            .collect_vec()
     }
 
-    fn mos_transistor_nodes(mos_transistor: &MosTransistor)  -> Vec<SPICENode> {
-        let mos_transistor_nodes = vec![mos_transistor.source.to_owned(), mos_transistor.drain.to_owned(), mos_transistor.gate.to_owned(), mos_transistor.body.to_owned()];
-        mos_transistor_nodes.iter().map(|spice_string| SPICENode::from(spice_string)).collect_vec()
+    fn mos_transistor_nodes(mos_transistor: &MosTransistor) -> Vec<SPICENode> {
+        let mos_transistor_nodes = vec![
+            mos_transistor.source.to_owned(),
+            mos_transistor.drain.to_owned(),
+            mos_transistor.gate.to_owned(),
+            mos_transistor.body.to_owned(),
+        ];
+        mos_transistor_nodes
+            .iter()
+            .map(|spice_string| SPICENode::from(spice_string))
+            .collect_vec()
     }
 
-    fn instance_nodes(instance: &Instance)  -> Vec<SPICENode> {
-        let instance_nodes = vec![instance.source.to_owned(), instance.drain.to_owned(), instance.gate.to_owned(), instance.body.to_owned()];
-        instance_nodes.iter().map(|spice_string| SPICENode::from(spice_string)).collect_vec()
+    fn instance_nodes(instance: &Instance) -> Vec<SPICENode> {
+        let instance_nodes = vec![
+            instance.source.to_owned(),
+            instance.drain.to_owned(),
+            instance.gate.to_owned(),
+            instance.body.to_owned(),
+        ];
+        instance_nodes
+            .iter()
+            .map(|spice_string| SPICENode::from(spice_string))
+            .collect_vec()
     }
 
     fn collect_netlist_nodes(netlist: &SPICENetlist) -> Vec<SPICENode> {
@@ -54,7 +73,7 @@ impl SPICENodeSet {
                     nodes.extend(Self::instance_nodes(instance));
                 }
             });
-            nodes
+        nodes
     }
 }
 
@@ -65,9 +84,11 @@ impl FromStr for SPICENodeSet {
         match SPICENetlist::parse(spice_netlist_str) {
             Ok(ast) => {
                 let mut node_map = HashSet::<SPICENode>::default();
-                Self::collect_netlist_nodes(&ast).iter().for_each(|spice_node| {
-                    node_map.insert(spice_node.to_owned());
-                });
+                Self::collect_netlist_nodes(&ast)
+                    .iter()
+                    .for_each(|spice_node| {
+                        node_map.insert(spice_node.to_owned());
+                    });
                 Ok(Self(node_map))
             }
             Err(error) => Err(error),
