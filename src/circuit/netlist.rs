@@ -7,12 +7,12 @@ pub mod builder {
     use crate::circuit::graph::LCircuit;
     use crate::circuit::spice::SPICENetlist;
 
-    #[derive(Debug)]
+    #[derive(Debug, Default)]
     #[automaton]
     pub struct NetlistFlow {
         physics: DeviceEquationMap,
         graph: LCircuit,
-        spice: SPICENetlist,
+        spice: Option<SPICENetlist>,
     }
 
     #[derive(Debug)]
@@ -23,7 +23,7 @@ pub mod builder {
     #[state]
     pub struct Connectivity;
 
-    #[derive(Debug)]
+    #[derive(Debug, Default)]
     #[state]
     pub struct AnalogCircuit;
 
