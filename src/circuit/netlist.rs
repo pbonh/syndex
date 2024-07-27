@@ -1,11 +1,9 @@
-use std::str::FromStr;
-
 use bevy_ecs::component::Component;
 use bevy_ecs::prelude::Resource;
-use peginator::{ParseError, PegParser};
 
 use super::graph::LCircuit;
 use super::spice::SPICENetlist;
+use crate::circuit::equations::DeviceEquationMap;
 
 #[derive(Debug, Clone, Default, Resource, Component)]
 pub struct LNetlist {
@@ -13,19 +11,14 @@ pub struct LNetlist {
     spice: Option<SPICENetlist>,
 }
 
-impl FromStr for LNetlist {
-    type Err = ParseError;
-
-    fn from_str(spice_netlist_str: &str) -> Result<Self, Self::Err> {
-        match SPICENetlist::parse(spice_netlist_str) {
-            Ok(ast) => {
-                let graph = LCircuit::from(&ast);
-                Ok(Self {
-                    graph,
-                    spice: Some(ast),
-                })
-            }
-            Err(error) => Err(error),
+impl From<(SPICENetlist, &DeviceEquationMap)> for LNetlist {
+    fn from(spice_netlist_and_map: (SPICENetlist, &DeviceEquationMap)) -> Self {
+        let spice_netlist = spice_netlist_and_map.0;
+        let device_equation_map = spice_netlist_and_map.1;
+        let graph = LCircuit::from((&spice_netlist, device_equation_map));
+        Self {
+            graph,
+            spice: Some(spice_netlist),
         }
     }
 }
@@ -34,8 +27,12 @@ impl FromStr for LNetlist {
 mod tests {
     use std::fs;
     use std::path::PathBuf;
+    use std::str::FromStr;
+
+    use peginator::PegParser;
 
     use super::*;
+    use crate::circuit::equations::DeviceEquation;
 
     #[test]
     fn default_netlist() {
@@ -51,6 +48,18 @@ mod tests {
              sky130_fd_sc_ls__a211o_2.spice",
         );
         let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
-        let _netlist = LNetlist::from_str(&spice_netlist_str).unwrap();
+
+        let eq = indoc::indoc! {"
+            e = 2.718281828459045;
+            Is = 1e-12;
+            eta = 1.5;
+            Vt = T/11586;
+            I = Is*(e^(vds/(eta*Vt)) - 1)
+        "};
+        let dev_eq = DeviceEquation::from_str(eq).unwrap();
+        let device_eq_map = DeviceEquationMap::from([("m".to_owned(), dev_eq)]);
+
+        let spice_netlist = SPICENetlist::parse(&spice_netlist_str).unwrap();
+        let _netlist = LNetlist::from((spice_netlist, &device_eq_map));
     }
 }

@@ -7,6 +7,7 @@ use std::ops::{Deref, DerefMut};
 use bevy_ecs::prelude::Resource;
 use mhgl::HGraph;
 
+use super::equations::DeviceEquationMap;
 use super::spice::SPICENetlist;
 use crate::circuit::graph::edges::CircuitHyperEdge;
 use crate::circuit::graph::nodes::VoltageNode;
@@ -19,8 +20,10 @@ type LHGraph = HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdg
 #[derive(Debug, Clone, Resource)]
 pub struct LCircuit(LHGraph);
 
-impl From<&SPICENetlist> for LCircuit {
-    fn from(_spice_netlist: &SPICENetlist) -> Self {
+impl From<(&SPICENetlist, &DeviceEquationMap)> for LCircuit {
+    fn from(spice_netlist_and_map: (&SPICENetlist, &DeviceEquationMap)) -> Self {
+        let _spice_netlist = spice_netlist_and_map.0;
+        let _device_equation_map = spice_netlist_and_map.1;
         todo!()
     }
 }
