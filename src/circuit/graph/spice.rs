@@ -1,11 +1,9 @@
-use std::collections::HashMap;
-use std::ops::Index;
+use std::collections::HashSet;
 use std::str::FromStr;
 
 use itertools::Itertools;
 use peginator::{ParseError, PegParser};
 
-use super::LCircuitNodeID;
 #[allow(unused_imports)]
 use crate::circuit::spice::{
     Capacitor, CurrentSource, Diode, Element, Inductor, Instance, MosTransistor, Node as SPICENode,
@@ -13,11 +11,15 @@ use crate::circuit::spice::{
 };
 
 #[derive(Debug, Clone, Default)]
-pub(super) struct SPICENodeMap(HashMap<SPICENode, LCircuitNodeID>);
+pub(super) struct SPICENodeSet(HashSet<SPICENode>);
 
-impl SPICENodeMap {
-    pub(super) fn len(&self) -> usize {
+impl SPICENodeSet {
+    fn len(&self) -> usize {
         self.0.len()
+    }
+
+    fn contains(&self, node: &SPICENode) -> bool {
+        self.0.contains(node)
     }
 
     fn resistor_nodes(resistor: &Resistor)  -> Vec<SPICENode> {
@@ -56,30 +58,20 @@ impl SPICENodeMap {
     }
 }
 
-impl FromStr for SPICENodeMap {
+impl FromStr for SPICENodeSet {
     type Err = ParseError;
 
     fn from_str(spice_netlist_str: &str) -> Result<Self, Self::Err> {
         match SPICENetlist::parse(spice_netlist_str) {
             Ok(ast) => {
-                let mut idx = LCircuitNodeID::min_value();
-                let mut node_map = HashMap::<SPICENode, LCircuitNodeID>::default();
+                let mut node_map = HashSet::<SPICENode>::default();
                 Self::collect_netlist_nodes(&ast).iter().for_each(|spice_node| {
-                    node_map.insert(spice_node.to_owned(), idx);
-                    idx += 1;
+                    node_map.insert(spice_node.to_owned());
                 });
                 Ok(Self(node_map))
             }
             Err(error) => Err(error),
         }
-    }
-}
-
-impl Index<SPICENode> for SPICENodeMap {
-    type Output = LCircuitNodeID;
-
-    fn index(&self, index: SPICENode) -> &Self::Output {
-        &self.0[&index]
     }
 }
 
@@ -96,7 +88,7 @@ mod tests {
         spice_netlist_path.push("resources/spice3f5_examples/mosamp2.cir");
         let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
         let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
-        let netlist_nodes = SPICENodeMap::collect_netlist_nodes(&ast);
+        let netlist_nodes = SPICENodeSet::collect_netlist_nodes(&ast);
         assert_eq!(20, netlist_nodes.len());
     }
 
@@ -105,11 +97,11 @@ mod tests {
         let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         spice_netlist_path.push("resources/spice3f5_examples/mosamp2.cir");
         let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
-        let netlist_nodes = SPICENodeMap::from_str(&spice_netlist_str).unwrap();
+        let netlist_nodes = SPICENodeSet::from_str(&spice_netlist_str).unwrap();
         assert_eq!(20, netlist_nodes.len());
-        assert_eq!(0, netlist_nodes["15".to_owned()]);
-        assert_eq!(1, netlist_nodes["1".to_owned()]);
-        assert_eq!(2, netlist_nodes["32".to_owned()]);
+        assert!(netlist_nodes.contains(&"15".to_owned()));
+        assert!(netlist_nodes.contains(&"1".to_owned()));
+        assert!(netlist_nodes.contains(&"32".to_owned()));
     }
 
     #[test]
@@ -120,11 +112,11 @@ mod tests {
              sky130_fd_sc_ls__a211o_2.spice",
         );
         let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
-        let netlist_nodes = SPICENodeMap::from_str(&spice_netlist_str).unwrap();
+        let netlist_nodes = SPICENodeSet::from_str(&spice_netlist_str).unwrap();
         assert_eq!(24, netlist_nodes.len());
-        assert_eq!(0, netlist_nodes["A1".to_owned()]);
-        assert_eq!(1, netlist_nodes["A2".to_owned()]);
-        assert_eq!(2, netlist_nodes["B1".to_owned()]);
-        assert_eq!(4, netlist_nodes["VGND".to_owned()]);
+        assert!(netlist_nodes.contains(&"A1".to_owned()));
+        assert!(netlist_nodes.contains(&"A2".to_owned()));
+        assert!(netlist_nodes.contains(&"B1".to_owned()));
+        assert!(netlist_nodes.contains(&"VGND".to_owned()));
     }
 }
