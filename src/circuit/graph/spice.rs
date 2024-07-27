@@ -62,6 +62,16 @@ fn instance_nodes(instance: &Instance) -> Vec<SPICENode> {
         .collect_vec()
 }
 
+fn netlist_scope_element_iter(netlist: &SPICENetlist) -> impl Iterator<Item = Element> + '_ {
+    let subcircuits = &netlist.netlist_scope.subcircuits;
+    let top_scope = &netlist.netlist_scope;
+    top_scope.elements.clone().into_iter().chain(
+        subcircuits.iter().flat_map(|subcircuit_scope| {
+            subcircuit_scope.netlist_scope.elements.clone().into_iter()
+        }),
+    )
+}
+
 pub(super) type SPICENodeMap = HashMap<SPICENode, LCircuitNodeID>;
 
 #[derive(Debug, Clone, Default)]
@@ -212,5 +222,18 @@ mod tests {
         let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
         let netlist_elements = SPICEElements::collect_netlist_elements(&ast);
         assert_eq!(33, netlist_elements.len());
+    }
+
+    #[test]
+    fn sky130_netlist_element_count() {
+        let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        spice_netlist_path.push(
+            "resources/libraries_no_liberty/sky130_fd_sc_ls/latest/cells/a211o/\
+             sky130_fd_sc_ls__a211o_2.spice",
+        );
+        let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
+        let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
+        let netlist_elements = netlist_scope_element_iter(&ast).collect_vec();
+        assert_eq!(12, netlist_elements.len());
     }
 }
