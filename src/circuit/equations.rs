@@ -7,7 +7,13 @@ use evalexpr::{build_operator_tree, EvalexprError};
 use super::nodes::CircuitNode;
 
 pub type ModelName = String;
-pub type VariableContextMap = HashMap<CircuitNode, DeviceEquation>;
+pub type ModelNameDeclaration<'model_name_str> = &'model_name_str str;
+
+pub(super) const RESISTORMODELNAME: ModelNameDeclaration = "r";
+pub(super) const CAPACITORMODELNAME: ModelNameDeclaration = "c";
+
+pub(crate) type VariableContext = (CircuitNode, DeviceEquation);
+pub(crate) type VariableContextMap = HashMap<CircuitNode, DeviceEquation>;
 pub type DeviceEquationMap = HashMap<ModelName, DeviceEquation>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -43,16 +49,16 @@ impl CircuitEquation {
     }
 }
 
-// impl FromStr for CircuitEquation {
-//     type Err = String;
-//
-//     fn from_str(eq_str: &str) -> Result<Self, Self::Err> {
-//         match build_operator_tree(eq_str) {
-//             Ok(_) => Ok(Self(eq_str.to_owned())),
-//             Err(error) => Err(error.to_string()),
-//         }
-//     }
-// }
+impl FromStr for CircuitEquation {
+    type Err = String;
+
+    fn from_str(eq_str: &str) -> Result<Self, Self::Err> {
+        match build_operator_tree(eq_str) {
+            Ok(_) => Ok(Self(eq_str.to_owned())),
+            Err(error) => Err(error.to_string()),
+        }
+    }
+}
 
 impl fmt::Display for CircuitEquation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

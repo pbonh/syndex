@@ -5,7 +5,7 @@ use typed_builder::TypedBuilder;
 
 use crate::circuit::elements::CircuitElement;
 use crate::circuit::equations::{
-    CircuitEquation, DeviceEquation, DeviceEquationMap, VariableContextMap,
+    CircuitEquation, DeviceEquation, DeviceEquationMap, VariableContext, VariableContextMap,
 };
 use crate::circuit::nodes::CircuitNode;
 use crate::circuit::spice::{Instance, MosTransistor};
@@ -51,6 +51,33 @@ impl Transistor {
         let vsb = build_node_difference_str(&source.to_string(), &body.to_string());
         (vgs, vgd, vgb, vds, vdb, vsb)
     }
+
+    pub(crate) fn transistor_variable_ctx(
+        source: &CircuitNode,
+        drain: &CircuitNode,
+        gate: &CircuitNode,
+        body: &CircuitNode,
+    ) -> Vec<VariableContext> {
+        let (vgs, vgd, vgb, vds, vdb, vsb) = (
+            CircuitNode::from_str("vgs").expect("Invalid CircuitNode Name."),
+            CircuitNode::from_str("vgd").expect("Invalid CircuitNode Name."),
+            CircuitNode::from_str("vgb").expect("Invalid CircuitNode Name."),
+            CircuitNode::from_str("vds").expect("Invalid CircuitNode Name."),
+            CircuitNode::from_str("vdb").expect("Invalid CircuitNode Name."),
+            CircuitNode::from_str("vsb").expect("Invalid CircuitNode Name."),
+        );
+        let (vgs_eq, vgd_eq, vgb_eq, vds_eq, vdb_eq, vsb_eq) =
+            Self::transistor_node_subst(&source, &drain, &gate, &body);
+        let ctx = vec![
+            (vgs, vgs_eq),
+            (vgd, vgd_eq),
+            (vgb, vgb_eq),
+            (vds, vds_eq),
+            (vdb, vdb_eq),
+            (vsb, vsb_eq),
+        ];
+        ctx
+    }
 }
 
 impl From<(MosTransistor, DeviceEquationMap)> for Transistor {
@@ -67,24 +94,9 @@ impl From<(MosTransistor, DeviceEquationMap)> for Transistor {
             .expect("Failure to convert `SPICENetlist` `Node` to `CircuitNode`");
         let model = ast.model;
         let device_equation = tech.1[&model].clone();
-        let (vgs, vgd, vgb, vds, vdb, vsb) = (
-            CircuitNode::from_str("vgs").expect("Invalid CircuitNode Name."),
-            CircuitNode::from_str("vgd").expect("Invalid CircuitNode Name."),
-            CircuitNode::from_str("vgb").expect("Invalid CircuitNode Name."),
-            CircuitNode::from_str("vds").expect("Invalid CircuitNode Name."),
-            CircuitNode::from_str("vdb").expect("Invalid CircuitNode Name."),
-            CircuitNode::from_str("vsb").expect("Invalid CircuitNode Name."),
-        );
-        let (vgs_eq, vgd_eq, vgb_eq, vds_eq, vdb_eq, vsb_eq) =
-            Self::transistor_node_subst(&source, &drain, &gate, &body);
-        let ctx = VariableContextMap::from([
-            (vgs, vgs_eq),
-            (vgd, vgd_eq),
-            (vgb, vgb_eq),
-            (vds, vds_eq),
-            (vdb, vdb_eq),
-            (vsb, vsb_eq),
-        ]);
+        let ctx: VariableContextMap = Self::transistor_variable_ctx(&source, &drain, &gate, &body)
+            .into_iter()
+            .collect();
         let equations = CircuitEquation::new(device_equation, &ctx);
         Self {
             name: id,
@@ -111,24 +123,9 @@ impl From<(Instance, DeviceEquationMap)> for Transistor {
             .expect("Failure to convert `SPICENetlist` `Node` to `CircuitNode`");
         let model = ast.model;
         let device_equation = tech.1[&model].clone();
-        let (vgs, vgd, vgb, vds, vdb, vsb) = (
-            CircuitNode::from_str("vgs").expect("Invalid CircuitNode Name."),
-            CircuitNode::from_str("vgd").expect("Invalid CircuitNode Name."),
-            CircuitNode::from_str("vgb").expect("Invalid CircuitNode Name."),
-            CircuitNode::from_str("vds").expect("Invalid CircuitNode Name."),
-            CircuitNode::from_str("vdb").expect("Invalid CircuitNode Name."),
-            CircuitNode::from_str("vsb").expect("Invalid CircuitNode Name."),
-        );
-        let (vgs_eq, vgd_eq, vgb_eq, vds_eq, vdb_eq, vsb_eq) =
-            Self::transistor_node_subst(&source, &drain, &gate, &body);
-        let ctx = VariableContextMap::from([
-            (vgs, vgs_eq),
-            (vgd, vgd_eq),
-            (vgb, vgb_eq),
-            (vds, vds_eq),
-            (vdb, vdb_eq),
-            (vsb, vsb_eq),
-        ]);
+        let ctx: VariableContextMap = Self::transistor_variable_ctx(&source, &drain, &gate, &body)
+            .into_iter()
+            .collect();
         let equations = CircuitEquation::new(device_equation, &ctx);
         Self {
             name: id,

@@ -5,6 +5,12 @@ use itertools::Itertools;
 use peginator::{ParseError, PegParser};
 
 use super::LCircuitNodeID;
+use crate::circuit::elements::transistor::Transistor;
+use crate::circuit::equations::{
+    CircuitEquation, DeviceEquation, DeviceEquationMap, ModelName, VariableContext,
+    VariableContextMap, CAPACITORMODELNAME, RESISTORMODELNAME,
+};
+use crate::circuit::nodes::CircuitNode;
 use crate::circuit::spice::NetlistScope;
 #[allow(unused_imports)]
 use crate::circuit::spice::{
@@ -70,6 +76,90 @@ fn netlist_scope_element_iter(netlist: &SPICENetlist) -> impl Iterator<Item = &E
             .iter()
             .flat_map(|subcircuit_scope| subcircuit_scope.netlist_scope.elements.iter()),
     )
+}
+
+fn get_element_model_name(element: &Element) -> ModelName {
+    let model = match element {
+        Element {
+            subcircuit: Some(subcircuit),
+            ..
+        } => subcircuit.model.clone(),
+        Element {
+            resistor: Some(_resistor),
+            ..
+        } => ModelName::from(RESISTORMODELNAME),
+        Element {
+            capacitor: Some(_capacitor),
+            ..
+        } => ModelName::from(CAPACITORMODELNAME),
+        _ => ModelName::default(),
+    };
+    model
+}
+
+fn get_element_nodes_eqs(element: &Element) -> Vec<(CircuitNode, DeviceEquation)> {
+    let node_eqs: Vec<VariableContext> = match element {
+        Element {
+            subcircuit: Some(subcircuit),
+            ..
+        } => Transistor::transistor_variable_ctx(
+            &CircuitNode::from_str(&subcircuit.source).expect("Invalid CircuitNode Name."),
+            &CircuitNode::from_str(&subcircuit.drain).expect("Invalid CircuitNode Name."),
+            &CircuitNode::from_str(&subcircuit.gate).expect("Invalid CircuitNode Name."),
+            &CircuitNode::from_str(&subcircuit.body).expect("Invalid CircuitNode Name."),
+        ),
+        Element {
+            mostransistor: Some(mostransistor),
+            ..
+        } => Transistor::transistor_variable_ctx(
+            &CircuitNode::from_str(&mostransistor.source).expect("Invalid CircuitNode Name."),
+            &CircuitNode::from_str(&mostransistor.drain).expect("Invalid CircuitNode Name."),
+            &CircuitNode::from_str(&mostransistor.gate).expect("Invalid CircuitNode Name."),
+            &CircuitNode::from_str(&mostransistor.body).expect("Invalid CircuitNode Name."),
+        ),
+        Element {
+            resistor: Some(resistor),
+            ..
+        } => vec![
+            (
+                CircuitNode::from_str(&resistor.p).expect("Invalid CircuitNode Name."),
+                DeviceEquation::default(),
+            ),
+            (
+                CircuitNode::from_str(&resistor.n).expect("Invalid CircuitNode Name."),
+                DeviceEquation::default(),
+            ),
+        ],
+        Element {
+            capacitor: Some(capacitor),
+            ..
+        } => vec![
+            (
+                CircuitNode::from_str(&capacitor.p).expect("Invalid CircuitNode Name."),
+                DeviceEquation::default(),
+            ),
+            (
+                CircuitNode::from_str(&capacitor.n).expect("Invalid CircuitNode Name."),
+                DeviceEquation::default(),
+            ),
+        ],
+        _ => Vec::<(CircuitNode, DeviceEquation)>::default(),
+    };
+    node_eqs
+}
+
+fn get_element_circuit_equation(
+    element: &Element,
+    dev_eq_map: &DeviceEquationMap,
+) -> CircuitEquation {
+    let model = get_element_model_name(element);
+    let dev_eq: DeviceEquation = dev_eq_map[&model].clone();
+
+    let ctx: VariableContextMap = get_element_nodes_eqs(element)
+        .iter()
+        .map(|node_eq| node_eq.to_owned())
+        .collect();
+    CircuitEquation::new(dev_eq, &ctx)
 }
 
 pub(super) type SPICENodeMap = HashMap<SPICENode, LCircuitNodeID>;
@@ -235,5 +325,41 @@ mod tests {
         let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
         let netlist_elements = netlist_scope_element_iter(&ast).collect_vec();
         assert_eq!(12, netlist_elements.len());
+    }
+
+    #[test]
+    fn sky130_netlist_element_data() {
+        let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        spice_netlist_path.push(
+            "resources/libraries_no_liberty/sky130_fd_sc_ls/latest/cells/a211o/\
+             sky130_fd_sc_ls__a211o_2.spice",
+        );
+        let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
+        let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
+        let netlist_elements = netlist_scope_element_iter(&ast).collect_vec();
+        assert_eq!(12, netlist_elements.len());
+        let x0_instance = netlist_elements[0];
+
+        let eq = indoc::indoc! {"
+            e = 2.718281828459045;
+            Is = 1e-12;
+            eta = 1.5;
+            Vt = T/11586;
+            I = Is*(e^(vgs/(eta*Vt)) - 1)
+        "};
+        let dev_eq = DeviceEquation::from_str(eq).unwrap();
+        let device_eq_map =
+            DeviceEquationMap::from([("sky130_fd_pr__nfet_01v8".to_owned(), dev_eq)]);
+
+        let x0_dev_eq = get_element_circuit_equation(x0_instance, &device_eq_map);
+        let eq_expected_str = indoc::indoc! {"
+            e = 2.718281828459045;
+            Is = 1e-12;
+            eta = 1.5;
+            Vt = T/11586;
+            I = Is*(e^((a_399_74#-VGND)/(eta*Vt)) - 1)
+        "};
+        let eq_expected = CircuitEquation::from_str(eq_expected_str).unwrap();
+        assert_eq!(eq_expected, x0_dev_eq);
     }
 }
