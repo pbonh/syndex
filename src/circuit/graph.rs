@@ -73,7 +73,11 @@ impl DerefMut for LCircuit {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::path::PathBuf;
     use std::str::FromStr;
+
+    use peginator::PegParser;
 
     use super::*;
     // use crate::circuit::elements::*;
@@ -179,5 +183,28 @@ mod tests {
         //     n2 = "vdd";
         //     value = "100nF";
         // }
+    }
+
+    #[test]
+    #[should_panic(expected = "not yet implemented")]
+    fn from_spice_netlist() {
+        let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        spice_netlist_path.push("resources/spice3f5_examples/mosamp2.cir");
+        let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
+        let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
+
+        let eq = indoc::indoc! {"
+            e = 2.718281828459045;
+            Is = 1e-12;
+            eta = 1.5;
+            Vt = T/11586;
+            I = Is*(e^(vds/(eta*Vt)) - 1)
+        "};
+        let dev_eq = DeviceEquation::from_str(eq).unwrap();
+        let device_eq_map = DeviceEquationMap::from([("m".to_string(), dev_eq)]);
+
+        // let num_elements: usize = 33;
+        // let graph_element_indices = (0..32).collect_vec();
+        let _graph = LCircuit::from((&ast, &device_eq_map));
     }
 }
