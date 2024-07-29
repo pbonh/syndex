@@ -1,3 +1,5 @@
+pub(crate) mod capacitor;
+pub(crate) mod resistor;
 pub(crate) mod transistor;
 
 use std::str::FromStr;

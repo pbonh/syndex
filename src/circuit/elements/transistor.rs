@@ -68,15 +68,14 @@ impl Transistor {
         );
         let (vgs_eq, vgd_eq, vgb_eq, vds_eq, vdb_eq, vsb_eq) =
             Self::transistor_node_subst(&source, &drain, &gate, &body);
-        let ctx = vec![
+        vec![
             (vgs, vgs_eq),
             (vgd, vgd_eq),
             (vgb, vgb_eq),
             (vds, vds_eq),
             (vdb, vdb_eq),
             (vsb, vsb_eq),
-        ];
-        ctx
+        ]
     }
 }
 

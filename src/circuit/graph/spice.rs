@@ -5,6 +5,8 @@ use itertools::Itertools;
 use peginator::{ParseError, PegParser};
 
 use super::LCircuitNodeID;
+use crate::circuit::elements::capacitor::Capacitor as LCapacitor;
+use crate::circuit::elements::resistor::Resistor as LResistor;
 use crate::circuit::elements::transistor::Transistor;
 use crate::circuit::equations::{
     CircuitEquation, DeviceEquation, DeviceEquationMap, ModelName, VariableContext,
@@ -85,6 +87,10 @@ fn get_element_model_name(element: &Element) -> ModelName {
             ..
         } => subcircuit.model.clone(),
         Element {
+            mostransistor: Some(mostransistor),
+            ..
+        } => mostransistor.model.clone(),
+        Element {
             resistor: Some(_resistor),
             ..
         } => ModelName::from(RESISTORMODELNAME),
@@ -97,8 +103,8 @@ fn get_element_model_name(element: &Element) -> ModelName {
     model
 }
 
-fn get_element_nodes_eqs(element: &Element) -> Vec<(CircuitNode, DeviceEquation)> {
-    let node_eqs: Vec<VariableContext> = match element {
+fn get_element_nodes_eqs(element: &Element) -> Vec<VariableContext> {
+    match element {
         Element {
             subcircuit: Some(subcircuit),
             ..
@@ -120,32 +126,19 @@ fn get_element_nodes_eqs(element: &Element) -> Vec<(CircuitNode, DeviceEquation)
         Element {
             resistor: Some(resistor),
             ..
-        } => vec![
-            (
-                CircuitNode::from_str(&resistor.p).expect("Invalid CircuitNode Name."),
-                DeviceEquation::default(),
-            ),
-            (
-                CircuitNode::from_str(&resistor.n).expect("Invalid CircuitNode Name."),
-                DeviceEquation::default(),
-            ),
-        ],
+        } => LResistor::resistor_variable_ctx(
+            &CircuitNode::from_str(&resistor.p).expect("Invalid CircuitNode Name."),
+            &CircuitNode::from_str(&resistor.n).expect("Invalid CircuitNode Name."),
+        ),
         Element {
             capacitor: Some(capacitor),
             ..
-        } => vec![
-            (
-                CircuitNode::from_str(&capacitor.p).expect("Invalid CircuitNode Name."),
-                DeviceEquation::default(),
-            ),
-            (
-                CircuitNode::from_str(&capacitor.n).expect("Invalid CircuitNode Name."),
-                DeviceEquation::default(),
-            ),
-        ],
-        _ => Vec::<(CircuitNode, DeviceEquation)>::default(),
-    };
-    node_eqs
+        } => LCapacitor::capacitor_variable_ctx(
+            &CircuitNode::from_str(&capacitor.p).expect("Invalid CircuitNode Name."),
+            &CircuitNode::from_str(&capacitor.n).expect("Invalid CircuitNode Name."),
+        ),
+        _ => Vec::<VariableContext>::default(),
+    }
 }
 
 fn get_element_circuit_equation(
@@ -156,7 +149,7 @@ fn get_element_circuit_equation(
     let dev_eq: DeviceEquation = dev_eq_map[&model].clone();
 
     let ctx: VariableContextMap = get_element_nodes_eqs(element)
-        .iter()
+        .into_iter()
         .map(|node_eq| node_eq.to_owned())
         .collect();
     CircuitEquation::new(dev_eq, &ctx)
@@ -325,6 +318,38 @@ mod tests {
         let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
         let netlist_elements = netlist_scope_element_iter(&ast).collect_vec();
         assert_eq!(12, netlist_elements.len());
+    }
+
+    #[test]
+    fn netlist_element_data() {
+        let mut spice_netlist_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        spice_netlist_path.push("resources/spice3f5_examples/mosamp2.cir");
+        let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
+        let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
+        let netlist_elements = netlist_scope_element_iter(&ast).collect_vec();
+        assert_eq!(33, netlist_elements.len());
+        let m1_instance = netlist_elements[0];
+
+        let eq = indoc::indoc! {"
+            e = 2.718281828459045;
+            Is = 1e-12;
+            eta = 1.5;
+            Vt = T/11586;
+            I = Is*(e^(vgs/(eta*Vt)) - 1)
+        "};
+        let dev_eq = DeviceEquation::from_str(eq).unwrap();
+        let device_eq_map = DeviceEquationMap::from([("m".to_owned(), dev_eq)]);
+
+        let m1_dev_eq = get_element_circuit_equation(m1_instance, &device_eq_map);
+        let eq_expected_str = indoc::indoc! {"
+            e = 2.718281828459045;
+            Is = 1e-12;
+            eta = 1.5;
+            Vt = T/11586;
+            I = Is*(e^((1-15)/(eta*Vt)) - 1)
+        "};
+        let eq_expected = CircuitEquation::from_str(eq_expected_str).unwrap();
+        assert_eq!(eq_expected, m1_dev_eq);
     }
 
     #[test]
