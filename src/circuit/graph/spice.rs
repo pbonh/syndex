@@ -148,10 +148,7 @@ fn get_element_circuit_equation(
     let model = get_element_model_name(element);
     let dev_eq: DeviceEquation = dev_eq_map[&model].clone();
 
-    let ctx: VariableContextMap = get_element_nodes_eqs(element)
-        .into_iter()
-        .map(|node_eq| node_eq.to_owned())
-        .collect();
+    let ctx: VariableContextMap = get_element_nodes_eqs(element).into_iter().collect();
     CircuitEquation::new(dev_eq, &ctx)
 }
 
