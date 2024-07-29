@@ -9,13 +9,13 @@ use mhgl::HGraph;
 
 use super::equations::DeviceEquationMap;
 use super::spice::SPICENetlist;
-use crate::circuit::graph::edges::CircuitHyperEdge;
-use crate::circuit::graph::nodes::VoltageNode;
+use crate::circuit::graph::edges::ElementHNode;
+use crate::circuit::graph::nodes::VoltageHEdge;
 
 pub type LCircuitNodeID = u32;
 pub type LCircuitEdgeID = u64;
 
-type LHGraph = HGraph<VoltageNode, CircuitHyperEdge, LCircuitNodeID, LCircuitEdgeID>;
+type LHGraph = HGraph<VoltageHEdge, ElementHNode, LCircuitNodeID, LCircuitEdgeID>;
 
 #[derive(Debug, Clone, Resource)]
 pub struct LCircuit(LHGraph);
@@ -31,8 +31,8 @@ impl From<(&SPICENetlist, &DeviceEquationMap)> for LCircuit {
 impl Default for LCircuit {
     fn default() -> Self {
         Self(HGraph::<
-            VoltageNode,
-            CircuitHyperEdge,
+            VoltageHEdge,
+            ElementHNode,
             LCircuitNodeID,
             LCircuitEdgeID,
         >::new())
@@ -105,10 +105,10 @@ mod tests {
         let ground = CircuitNode::from_str("ground").unwrap();
         let vsupply = CircuitNode::from_str("vsupply").unwrap();
 
-        let input_voltage = VoltageNode::new(input.clone());
-        let out_voltage = VoltageNode::new(out.clone());
-        let ground_voltage = VoltageNode::new(ground.clone());
-        let vsupply_voltage = VoltageNode::new(vsupply.clone());
+        let input_voltage = VoltageHEdge::new(input.clone());
+        let out_voltage = VoltageHEdge::new(out.clone());
+        let ground_voltage = VoltageHEdge::new(ground.clone());
+        let vsupply_voltage = VoltageHEdge::new(vsupply.clone());
         let input_id = circuit.add_node(input_voltage);
         let out_id = circuit.add_node(out_voltage);
         let ground_id = circuit.add_node(ground_voltage);
@@ -129,8 +129,8 @@ mod tests {
             VariableContextMap::from([(CircuitNode::from_str("vd").unwrap(), x2_nmos_node_eq)]);
         let x2_nmos_transistor_eq = CircuitEquation::new(dev_eq, &x2_nmos_ctx);
 
-        let x1_nmos_transistor_hyperedge = CircuitHyperEdge::new(x1_nmos_transistor_eq);
-        let x2_nmos_transistor_hyperedge = CircuitHyperEdge::new(x2_nmos_transistor_eq);
+        let x1_nmos_transistor_hyperedge = ElementHNode::new(x1_nmos_transistor_eq);
+        let x2_nmos_transistor_hyperedge = ElementHNode::new(x2_nmos_transistor_eq);
         let x1_nmos_transistor_id = circuit
             .add_edge(
                 vec![input_id, out_id, ground_id, ground_id],

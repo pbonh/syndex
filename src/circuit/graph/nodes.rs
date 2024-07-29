@@ -3,17 +3,17 @@ use std::fmt::{Display, Formatter, Result};
 use crate::circuit::nodes::CircuitNode;
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub struct VoltageNode {
+pub struct VoltageHEdge {
     node: CircuitNode,
 }
 
-impl VoltageNode {
+impl VoltageHEdge {
     pub const fn new(node: CircuitNode) -> Self {
         Self { node }
     }
 }
 
-impl Display for VoltageNode {
+impl Display for VoltageHEdge {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "{}", self.node)
     }
