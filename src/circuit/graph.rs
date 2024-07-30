@@ -9,13 +9,13 @@ use mhgl::HGraph;
 
 use super::equations::DeviceEquationMap;
 use super::spice::SPICENetlist;
-use crate::circuit::graph::edges::ElementHNode;
-use crate::circuit::graph::nodes::VoltageHEdge;
+use crate::circuit::graph::edges::VoltageHEdge;
+use crate::circuit::graph::nodes::ElementHNode;
 
-pub type LCircuitNodeID = u32;
-pub type LCircuitEdgeID = u64;
+pub type LCircuitNodeID = u64;
+pub type LCircuitEdgeID = u32;
 
-type LHGraph = HGraph<VoltageHEdge, ElementHNode, LCircuitNodeID, LCircuitEdgeID>;
+type LHGraph = HGraph<ElementHNode, VoltageHEdge, LCircuitNodeID, LCircuitEdgeID>;
 
 #[derive(Debug, Clone, Resource)]
 pub struct LCircuit(LHGraph);
@@ -31,8 +31,8 @@ impl From<(&SPICENetlist, &DeviceEquationMap)> for LCircuit {
 impl Default for LCircuit {
     fn default() -> Self {
         Self(HGraph::<
-            VoltageHEdge,
             ElementHNode,
+            VoltageHEdge,
             LCircuitNodeID,
             LCircuitEdgeID,
         >::new())
@@ -102,18 +102,13 @@ mod tests {
         let dev_eq = DeviceEquation::from_str(eq).unwrap();
         let input = CircuitNode::from_str("input").unwrap();
         let out = CircuitNode::from_str("out").unwrap();
-        let ground = CircuitNode::from_str("ground").unwrap();
-        let vsupply = CircuitNode::from_str("vsupply").unwrap();
+        // let ground = CircuitNode::from_str("ground").unwrap();
+        // let vsupply = CircuitNode::from_str("vsupply").unwrap();
 
         let input_voltage = VoltageHEdge::new(input.clone());
-        let out_voltage = VoltageHEdge::new(out.clone());
-        let ground_voltage = VoltageHEdge::new(ground.clone());
-        let vsupply_voltage = VoltageHEdge::new(vsupply.clone());
-        let input_id = circuit.add_node(input_voltage);
-        let out_id = circuit.add_node(out_voltage);
-        let ground_id = circuit.add_node(ground_voltage);
-        let vsupply_id = circuit.add_node(vsupply_voltage);
-        // assert_eq!(circuit.count_vertices(), 4);
+        let output_voltage = VoltageHEdge::new(out.clone());
+        // let ground_voltage = VoltageHEdge::new(ground.clone());
+        // let vsupply_voltage = VoltageHEdge::new(vsupply.clone());
 
         // let x1 = CircuitElement::from_str("x1").unwrap();
         let x1_nmos_node_eq_str: String =
@@ -129,22 +124,32 @@ mod tests {
             VariableContextMap::from([(CircuitNode::from_str("vd").unwrap(), x2_nmos_node_eq)]);
         let x2_nmos_transistor_eq = CircuitEquation::new(dev_eq, &x2_nmos_ctx);
 
-        let x1_nmos_transistor_hyperedge = ElementHNode::new(x1_nmos_transistor_eq);
-        let x2_nmos_transistor_hyperedge = ElementHNode::new(x2_nmos_transistor_eq);
-        let x1_nmos_transistor_id = circuit
+        let x1_nmos_xtor_hnode = ElementHNode::new(x1_nmos_transistor_eq);
+        let x2_nmos_xtor_hnode = ElementHNode::new(x2_nmos_transistor_eq);
+
+        let input_port_hnode = ElementHNode::new(CircuitEquation::from_str("").unwrap());
+        let output_port_hnode = ElementHNode::new(CircuitEquation::from_str("").unwrap());
+
+        let input_port_id = circuit.add_node(input_port_hnode);
+        let output_port_id = circuit.add_node(output_port_hnode);
+        let x1_nmos_xtor_id = circuit.add_node(x1_nmos_xtor_hnode);
+        let x2_nmos_xtor_id = circuit.add_node(x2_nmos_xtor_hnode);
+        // assert_eq!(circuit.count_vertices(), 4);
+
+        let input_id = circuit
             .add_edge(
-                vec![input_id, out_id, ground_id, ground_id],
-                x1_nmos_transistor_hyperedge,
+                vec![x1_nmos_xtor_id, x2_nmos_xtor_id, input_port_id],
+                input_voltage,
             )
             .unwrap();
-        let x2_nmos_transistor_id = circuit
+        let output_id = circuit
             .add_edge(
-                vec![input_id, vsupply_id, out_id, vsupply_id],
-                x2_nmos_transistor_hyperedge,
+                vec![x1_nmos_xtor_id, x2_nmos_xtor_id, output_port_id],
+                output_voltage,
             )
             .unwrap();
-        assert_eq!(x1_nmos_transistor_id, 0);
-        assert_eq!(x2_nmos_transistor_id, 1);
+        assert_eq!(input_id, 0);
+        assert_eq!(output_id, 1);
         // let cmos_inverter = circuit! {
         //     transistor {
         //         name = "M1";

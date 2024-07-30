@@ -1,20 +1,20 @@
 use std::fmt::{Display, Formatter, Result};
 
-use crate::circuit::nodes::CircuitNode;
+use crate::circuit::equations::CircuitEquation;
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub struct VoltageHEdge {
-    node: CircuitNode,
+pub struct ElementHNode {
+    equations: CircuitEquation,
 }
 
-impl VoltageHEdge {
-    pub const fn new(node: CircuitNode) -> Self {
-        Self { node }
+impl ElementHNode {
+    pub const fn new(equations: CircuitEquation) -> Self {
+        Self { equations }
     }
 }
 
-impl Display for VoltageHEdge {
+impl Display for ElementHNode {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", self.node)
+        write!(f, "equations: {}", self.equations)
     }
 }
