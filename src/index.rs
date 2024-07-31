@@ -46,7 +46,7 @@ pub struct InstValueBundle {
 
 /// `FlatIndex` for Design Units
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DesignUnitIndex(UnitId, BTreeSet<LCircuitEdgeID>, Box2D<usize>);
+pub struct DesignUnitIndex(UnitId, BTreeSet<LCircuitEdgeID>, Vec<Box2D<usize>>);
 
 /// `FlatIndex` for Design Gates
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -55,12 +55,12 @@ pub struct DesignDGateIndex(
     Inst,
     InstData,
     BTreeSet<LCircuitEdgeID>,
-    Box2D<usize>,
+    Vec<Box2D<usize>>,
 );
 
 /// `FlatIndex` for Design Nets
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DesignDNetIndex(UnitId, Inst, Value, BTreeSet<LCircuitEdgeID>, Box2D<usize>);
+pub struct DesignDNetIndex(UnitId, Inst, Value, BTreeSet<LCircuitEdgeID>, Vec<Box2D<usize>>);
 
 #[cfg(test)]
 mod tests {
@@ -92,13 +92,13 @@ mod tests {
         let unit1 = DesignUnitIndex(
             UnitId::new(1),
             BTreeSet::from([unit1_nets]),
-            Box2D::new(unit_loc, unit_loc),
+            vec![Box2D::new(unit_loc, unit_loc)],
         );
         let unit2_nets = 2;
         let unit2 = DesignUnitIndex(
             UnitId::new(2),
             BTreeSet::from([unit2_nets]),
-            Box2D::new(unit_loc, unit_loc),
+            vec![Box2D::new(unit_loc, unit_loc)],
         );
         let mut prog = AscentProgram::default();
         prog.edge = vec![(unit1, unit2)];
@@ -124,7 +124,7 @@ mod tests {
             Inst::new(1),
             node1_data,
             BTreeSet::from([node1_nets]),
-            Box2D::new(node_loc, node_loc),
+            vec![Box2D::new(node_loc, node_loc)],
         );
         let node2_nets = 2;
         let node2_data = InstData::default();
@@ -133,7 +133,7 @@ mod tests {
             Inst::new(2),
             node2_data,
             BTreeSet::from([node2_nets]),
-            Box2D::new(node_loc, node_loc),
+            vec![Box2D::new(node_loc, node_loc)],
         );
         let mut prog = AscentProgram::default();
         prog.edge = vec![(node1, node2)];
@@ -159,7 +159,7 @@ mod tests {
             Inst::new(1),
             node1_net,
             BTreeSet::from([node1_nets]),
-            Box2D::new(node_loc, node_loc),
+            vec![Box2D::new(node_loc, node_loc)],
         );
         let node2_nets = 2;
         let node2_net = Value::new(0);
@@ -168,7 +168,7 @@ mod tests {
             Inst::new(2),
             node2_net,
             BTreeSet::from([node2_nets]),
-            Box2D::new(node_loc, node_loc),
+            vec![Box2D::new(node_loc, node_loc)],
         );
         let mut prog = AscentProgram::default();
         prog.edge = vec![(node1, node2)];
