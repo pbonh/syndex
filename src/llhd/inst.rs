@@ -1,7 +1,21 @@
+use bevy_ecs::component::Component;
 // use super::{LLHDNet, LModule};
+use llhd::ir::{prelude::*, InstData};
 
-// #[derive(Debug, PartialEq, Eq)]
-// pub struct InstComponent {
-//     pub(crate) name: UnitName,
-//     pub(crate) kind: UnitKind,
-// }
+#[derive(Debug, Clone, PartialEq, Eq, Component)]
+pub struct InstComponent {
+    pub(crate) unit: UnitId,
+    pub(crate) id: Inst,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Component)]
+pub struct InstDataComponent {
+    pub(crate) data: InstData,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Component)]
+pub struct InstValueComponent {
+    pub(crate) unit: UnitId,
+    pub(crate) id: Inst,
+    pub(crate) value: Value,
+}

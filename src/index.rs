@@ -3,18 +3,50 @@ pub mod macros;
 use std::collections::BTreeSet;
 use std::hash::Hash;
 
+use bevy_ecs::bundle::Bundle;
 use euclid::default::Box2D;
 use llhd::ir::prelude::*;
 use llhd::ir::InstData;
 
-use crate::circuit::graph::LCircuitNodeID;
+use crate::circuit::graph::{LCircuit, LCircuitEdgeID};
+use crate::llhd::inst::{InstComponent, InstDataComponent, InstValueComponent};
+use crate::llhd::unit::{UnitArgComponent, UnitIdComponent, UnitNameComponent};
 
 /// Type Constraint for Use in a Datalog Relation Column
 pub trait FlatIndex: Clone + PartialEq + Eq + Hash {}
 
+/// Design Unit Component
+#[derive(Debug, Clone, Bundle)]
+pub struct UnitBundle {
+    id: UnitIdComponent,
+    name: UnitNameComponent,
+    circuit: LCircuit,
+}
+
+/// Design Unit Arg Component
+#[derive(Debug, Clone, Bundle)]
+pub struct UnitArgBundle {
+    id: UnitIdComponent,
+    value: UnitArgComponent,
+}
+
+/// Design Inst Component
+#[derive(Debug, Clone, Bundle)]
+pub struct InstBundle {
+    inst: InstComponent,
+    data: InstDataComponent,
+}
+
+/// Design Inst Value Component
+#[derive(Debug, Clone, Bundle)]
+pub struct InstValueBundle {
+    inst: InstComponent,
+    arg: InstValueComponent,
+}
+
 /// `FlatIndex` for Design Units
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DesignUnitIndex(UnitId, BTreeSet<LCircuitNodeID>, Box2D<usize>);
+pub struct DesignUnitIndex(UnitId, BTreeSet<LCircuitEdgeID>, Box2D<usize>);
 
 /// `FlatIndex` for Design Gates
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -22,23 +54,27 @@ pub struct DesignDGateIndex(
     UnitId,
     Inst,
     InstData,
-    BTreeSet<LCircuitNodeID>,
+    BTreeSet<LCircuitEdgeID>,
     Box2D<usize>,
 );
 
 /// `FlatIndex` for Design Nets
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DesignDNetIndex(UnitId, Inst, Value, BTreeSet<LCircuitNodeID>, Box2D<usize>);
+pub struct DesignDNetIndex(UnitId, Inst, Value, BTreeSet<LCircuitEdgeID>, Box2D<usize>);
 
 #[cfg(test)]
 mod tests {
     use std::rc::Rc;
 
     use ascent::*;
+    use bevy_ecs::world::World;
     use euclid::Point2D;
+    use itertools::Itertools;
+    use llhd::ir::InstData;
     use llhd::table::TableKey;
 
     use super::*;
+    use crate::llhd::inst::InstValueComponent;
 
     #[test]
     fn ascent_column_compatability_design_unit_index() {
@@ -137,5 +173,295 @@ mod tests {
         let mut prog = AscentProgram::default();
         prog.edge = vec![(node1, node2)];
         prog.run();
+    }
+
+    #[test]
+    fn llhd_bevy_ecs_bundle_manual_creation() {
+        let input = indoc::indoc! {"
+            entity @test_entity (i1 %in1, i1 %in2, i1 %in3, i1 %in4) -> (i1$ %out1) {
+                %null = const time 0s 1e
+                %and1 = and i1 %in1, %in2
+                %and2 = and i1 %in3, %in4
+                %or1 = or i1 %and1, %and2
+                drv i1$ %out1, %or1, %null
+            }
+        "};
+
+        let mut ecs = World::default();
+
+        let circuit = LCircuit::default();
+
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let test_unit = module.units().next().unwrap();
+        let test_unit_id = test_unit.id();
+        let test_unit_name = test_unit.name();
+        let test_unit_kind = test_unit.kind();
+        let args = test_unit.args().collect_vec();
+        assert_eq!(5, args.len(), "There should be 5 args in unit.");
+        let insts = test_unit.all_insts().collect_vec();
+        assert_eq!(6, insts.len(), "There should be 6 Insts in unit.");
+        let inst_const_time_id = insts[0];
+        let inst_const_time_data = test_unit[inst_const_time_id].clone();
+        assert_eq!(
+            Opcode::ConstTime,
+            inst_const_time_data.opcode(),
+            "First Inst should be `const time`."
+        );
+        let inst_and1_id = insts[1];
+        let inst_and1_data = test_unit[inst_and1_id].clone();
+        assert_eq!(
+            Opcode::And,
+            inst_and1_data.opcode(),
+            "Second Inst should be `and`."
+        );
+        let inst_and2_id = insts[2];
+        let inst_and2_data = test_unit[inst_and2_id].clone();
+        assert_eq!(
+            Opcode::And,
+            inst_and2_data.opcode(),
+            "Third Inst should be `and`."
+        );
+        let inst_or1_id = insts[3];
+        let inst_or1_data = test_unit[inst_or1_id].clone();
+        assert_eq!(
+            Opcode::Or,
+            inst_or1_data.opcode(),
+            "Fourth Inst should be `or`."
+        );
+        let inst_drv1_id = insts[4];
+        let inst_drv1_data = test_unit[inst_drv1_id].clone();
+        assert_eq!(
+            Opcode::Drv,
+            inst_drv1_data.opcode(),
+            "Fifth Inst should be `drv`."
+        );
+        let inst_null_id = insts[5];
+        let inst_null_data = test_unit[inst_null_id].clone();
+        assert!(
+            matches!(inst_null_data, InstData::Nullary { .. }),
+            "Sixth Inst should be Null instruction(doesn't actually exist)."
+        );
+        // let _inst_const_time_arg1 = inst_const_time_data.args()[0];
+        // let _inst_const_time_arg2 = inst_const_time_data.args()[1];
+        let inst_and1_arg1 = inst_and1_data.args()[0];
+        let inst_and1_arg2 = inst_and1_data.args()[1];
+        let inst_and2_arg1 = inst_and2_data.args()[0];
+        let inst_and2_arg2 = inst_and2_data.args()[1];
+        let inst_or1_arg1 = inst_or1_data.args()[0];
+        let inst_or1_arg2 = inst_or1_data.args()[1];
+        let inst_drv1_arg1 = inst_drv1_data.args()[0];
+        let inst_drv1_arg2 = inst_drv1_data.args()[1];
+        let inst_drv1_arg3 = inst_drv1_data.args()[2];
+
+        let test_unit_bundle = UnitBundle {
+            id: UnitIdComponent { id: test_unit_id },
+            name: UnitNameComponent {
+                name: test_unit_name.to_owned(),
+                kind: test_unit_kind,
+            },
+            circuit,
+        };
+        let _unit_entity_id = ecs.spawn(test_unit_bundle);
+
+        let test_unit_arg1_bundle = UnitArgComponent {
+            unit: test_unit_id,
+            arg: args[0],
+        };
+        let test_unit_arg2_bundle = UnitArgComponent {
+            unit: test_unit_id,
+            arg: args[1],
+        };
+        let test_unit_arg3_bundle = UnitArgComponent {
+            unit: test_unit_id,
+            arg: args[2],
+        };
+        let test_unit_arg4_bundle = UnitArgComponent {
+            unit: test_unit_id,
+            arg: args[3],
+        };
+        let test_unit_out1_bundle = UnitArgComponent {
+            unit: test_unit_id,
+            arg: args[4],
+        };
+        let arg_entities = ecs
+            .spawn_batch([
+                test_unit_arg1_bundle,
+                test_unit_arg2_bundle,
+                test_unit_arg3_bundle,
+                test_unit_arg4_bundle,
+                test_unit_out1_bundle,
+            ])
+            .collect_vec();
+        assert_eq!(5, arg_entities.len());
+
+        let test_unit_inst1_bundle = InstBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_const_time_id,
+            },
+            data: InstDataComponent {
+                data: inst_const_time_data,
+            },
+        };
+        let test_unit_inst2_bundle = InstBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_and1_id,
+            },
+            data: InstDataComponent {
+                data: inst_and1_data,
+            },
+        };
+        let test_unit_inst3_bundle = InstBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_and2_id,
+            },
+            data: InstDataComponent {
+                data: inst_and2_data,
+            },
+        };
+        let test_unit_inst4_bundle = InstBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_or1_id,
+            },
+            data: InstDataComponent {
+                data: inst_or1_data,
+            },
+        };
+        let test_unit_inst5_bundle = InstBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_drv1_id,
+            },
+            data: InstDataComponent {
+                data: inst_drv1_data,
+            },
+        };
+        let inst_entities = ecs
+            .spawn_batch([
+                test_unit_inst1_bundle,
+                test_unit_inst2_bundle,
+                test_unit_inst3_bundle,
+                test_unit_inst4_bundle,
+                test_unit_inst5_bundle,
+            ])
+            .collect_vec();
+        assert_eq!(5, inst_entities.len());
+
+        let test_unit_inst_value1_bundle = InstValueBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_and1_id,
+            },
+            arg: InstValueComponent {
+                unit: test_unit_id,
+                id: inst_and1_id,
+                value: inst_and1_arg1,
+            },
+        };
+        let test_unit_inst_value2_bundle = InstValueBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_and1_id,
+            },
+            arg: InstValueComponent {
+                unit: test_unit_id,
+                id: inst_and1_id,
+                value: inst_and1_arg2,
+            },
+        };
+        let test_unit_inst_value3_bundle = InstValueBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_and2_id,
+            },
+            arg: InstValueComponent {
+                unit: test_unit_id,
+                id: inst_and2_id,
+                value: inst_and2_arg1,
+            },
+        };
+        let test_unit_inst_value4_bundle = InstValueBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_and2_id,
+            },
+            arg: InstValueComponent {
+                unit: test_unit_id,
+                id: inst_and2_id,
+                value: inst_and2_arg2,
+            },
+        };
+        let test_unit_inst_value5_bundle = InstValueBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_or1_id,
+            },
+            arg: InstValueComponent {
+                unit: test_unit_id,
+                id: inst_or1_id,
+                value: inst_or1_arg1,
+            },
+        };
+        let test_unit_inst_value6_bundle = InstValueBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_or1_id,
+            },
+            arg: InstValueComponent {
+                unit: test_unit_id,
+                id: inst_or1_id,
+                value: inst_or1_arg2,
+            },
+        };
+        let test_unit_inst_value7_bundle = InstValueBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_drv1_id,
+            },
+            arg: InstValueComponent {
+                unit: test_unit_id,
+                id: inst_drv1_id,
+                value: inst_drv1_arg1,
+            },
+        };
+        let test_unit_inst_value8_bundle = InstValueBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_drv1_id,
+            },
+            arg: InstValueComponent {
+                unit: test_unit_id,
+                id: inst_drv1_id,
+                value: inst_drv1_arg2,
+            },
+        };
+        let test_unit_inst_value9_bundle = InstValueBundle {
+            inst: InstComponent {
+                unit: test_unit_id,
+                id: inst_drv1_id,
+            },
+            arg: InstValueComponent {
+                unit: test_unit_id,
+                id: inst_drv1_id,
+                value: inst_drv1_arg3,
+            },
+        };
+        let value_entities = ecs
+            .spawn_batch([
+                test_unit_inst_value1_bundle,
+                test_unit_inst_value2_bundle,
+                test_unit_inst_value3_bundle,
+                test_unit_inst_value4_bundle,
+                test_unit_inst_value5_bundle,
+                test_unit_inst_value6_bundle,
+                test_unit_inst_value7_bundle,
+                test_unit_inst_value8_bundle,
+                test_unit_inst_value9_bundle,
+            ])
+            .collect_vec();
+        assert_eq!(9, value_entities.len());
     }
 }

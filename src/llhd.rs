@@ -8,10 +8,13 @@ pub mod common;
 // pub mod unit;
 
 /// World Component Data for LLHD Nets/Instructions
-// pub mod inst;
+pub mod inst;
 
 /// LLHD Module Type Wrapper
 pub mod module;
+
+/// LLHD Unit Data
+pub mod unit;
 
 /// LLHD Module LibrEDA Trait Implementation
 pub mod libreda_module;

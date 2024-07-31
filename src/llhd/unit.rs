@@ -1,12 +1,19 @@
-use llhd::ir::prelude::{UnitData, UnitKind, UnitName};
+use bevy_ecs::component::Component;
+use llhd::ir::prelude::{UnitData, UnitKind, UnitName, Value};
+use llhd::ir::UnitId;
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct UnitComponent {
+#[derive(Debug, Clone, PartialEq, Eq, Component)]
+pub struct UnitIdComponent {
+    pub(crate) id: UnitId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Component)]
+pub struct UnitNameComponent {
     pub(crate) name: UnitName,
     pub(crate) kind: UnitKind,
 }
 
-impl From<&UnitData> for UnitComponent {
+impl From<&UnitData> for UnitNameComponent {
     fn from(unit: &UnitData) -> Self {
         Self {
             name: unit.name.clone(),
@@ -15,13 +22,19 @@ impl From<&UnitData> for UnitComponent {
     }
 }
 
-impl Default for UnitComponent {
+impl Default for UnitNameComponent {
     fn default() -> Self {
         Self {
             name: UnitName::anonymous(0),
             kind: llhd::ir::UnitKind::Entity,
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Component)]
+pub struct UnitArgComponent {
+    pub(crate) unit: UnitId,
+    pub(crate) arg: Value,
 }
 
 #[cfg(test)]
@@ -53,6 +66,6 @@ mod tests {
     #[test]
     fn create_unit_component() {
         let entity = build_entity(UnitName::anonymous(0));
-        let _unit_component = UnitComponent::from(&entity);
+        let _unit_component = UnitNameComponent::from(&entity);
     }
 }
