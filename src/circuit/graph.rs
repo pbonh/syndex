@@ -4,7 +4,7 @@ pub(super) mod spice;
 
 use std::ops::{Deref, DerefMut};
 
-use bevy_ecs::prelude::Resource;
+use bevy_ecs::component::Component;
 use mhgl::HGraph;
 
 use super::equations::DeviceEquationMap;
@@ -15,9 +15,9 @@ use crate::circuit::graph::nodes::ElementHNode;
 pub type LCircuitNodeID = u64;
 pub type LCircuitEdgeID = u32;
 
-type LHGraph = HGraph<ElementHNode, VoltageHEdge, LCircuitNodeID, LCircuitEdgeID>;
+pub(crate) type LHGraph = HGraph<ElementHNode, VoltageHEdge, LCircuitNodeID, LCircuitEdgeID>;
 
-#[derive(Debug, Clone, Resource)]
+#[derive(Debug, Clone, Component)]
 pub struct LCircuit(LHGraph);
 
 impl From<(&SPICENetlist, &DeviceEquationMap)> for LCircuit {
