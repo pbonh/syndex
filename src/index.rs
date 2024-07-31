@@ -4,53 +4,35 @@ use std::collections::BTreeSet;
 use std::hash::Hash;
 
 use bevy_ecs::bundle::Bundle;
+use bevy_ecs::component::Component;
 use euclid::default::Box2D;
 use llhd::ir::prelude::*;
 use llhd::ir::InstData;
 
 use crate::circuit::graph::{LCircuit, LCircuitEdgeID};
-use crate::llhd::inst::{InstComponent, InstDataComponent, InstValueComponent};
-use crate::llhd::unit::{UnitArgComponent, UnitIdComponent, UnitNameComponent};
+use crate::llhd::unit::UnitBundle;
 
 /// Type Constraint for Use in a Datalog Relation Column
 pub trait FlatIndex: Clone + PartialEq + Eq + Hash {}
 
-/// Design Unit Component
-#[derive(Debug, Clone, Bundle)]
-pub struct UnitBundle {
-    id: UnitIdComponent,
-    name: UnitNameComponent,
+/// Design Unit's Circuit Component
+#[derive(Debug, Clone, Component)]
+pub struct CircuitComponent {
     circuit: LCircuit,
 }
 
-/// Design Unit Arg Component
+/// Design Unit Component
 #[derive(Debug, Clone, Bundle)]
-pub struct UnitArgBundle {
-    id: UnitIdComponent,
-    value: UnitArgComponent,
-}
-
-/// Design Inst Component
-#[derive(Debug, Clone, Bundle)]
-pub struct InstBundle {
-    inst: InstComponent,
-    data: InstDataComponent,
-}
-
-/// Design Inst Value Component
-#[derive(Debug, Clone, Bundle)]
-pub struct InstValueBundle {
-    inst: InstComponent,
-    arg: InstValueComponent,
+pub struct SynthesisUnitBundle {
+    unit: UnitBundle,
+    circuit: CircuitComponent,
 }
 
 /// `FlatIndex` for Design Units
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DesignUnitIndex(UnitId, BTreeSet<LCircuitEdgeID>, Vec<Box2D<usize>>);
+pub type DesignUnitIndex = (UnitId, BTreeSet<LCircuitEdgeID>, Vec<Box2D<usize>>);
 
 /// `FlatIndex` for Design Gates
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DesignDGateIndex(
+pub type DesignDGateIndex = (
     UnitId,
     Inst,
     InstData,
@@ -59,8 +41,13 @@ pub struct DesignDGateIndex(
 );
 
 /// `FlatIndex` for Design Nets
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DesignDNetIndex(UnitId, Inst, Value, BTreeSet<LCircuitEdgeID>, Vec<Box2D<usize>>);
+pub type DesignDNetIndex = (
+    UnitId,
+    Inst,
+    Value,
+    BTreeSet<LCircuitEdgeID>,
+    Vec<Box2D<usize>>,
+);
 
 #[cfg(test)]
 mod tests {
@@ -74,7 +61,8 @@ mod tests {
     use llhd::table::TableKey;
 
     use super::*;
-    use crate::llhd::inst::InstValueComponent;
+    use crate::llhd::inst::*;
+    use crate::llhd::unit::*;
 
     #[test]
     fn ascent_column_compatability_design_unit_index() {
@@ -89,13 +77,13 @@ mod tests {
         }
         let unit1_nets = 1;
         let unit_loc = Point2D::zero();
-        let unit1 = DesignUnitIndex(
+        let unit1 = (
             UnitId::new(1),
             BTreeSet::from([unit1_nets]),
             vec![Box2D::new(unit_loc, unit_loc)],
         );
         let unit2_nets = 2;
-        let unit2 = DesignUnitIndex(
+        let unit2 = (
             UnitId::new(2),
             BTreeSet::from([unit2_nets]),
             vec![Box2D::new(unit_loc, unit_loc)],
@@ -119,7 +107,7 @@ mod tests {
         let node1_nets = 1;
         let node_loc = Point2D::zero();
         let node1_data = InstData::default();
-        let node1 = DesignDGateIndex(
+        let node1 = (
             UnitId::new(1),
             Inst::new(1),
             node1_data,
@@ -128,7 +116,7 @@ mod tests {
         );
         let node2_nets = 2;
         let node2_data = InstData::default();
-        let node2 = DesignDGateIndex(
+        let node2 = (
             UnitId::new(1),
             Inst::new(2),
             node2_data,
@@ -154,7 +142,7 @@ mod tests {
         let node1_nets = 1;
         let node_loc = Point2D::zero();
         let node1_net = Value::new(0);
-        let node1 = DesignDNetIndex(
+        let node1 = (
             UnitId::new(1),
             Inst::new(1),
             node1_net,
@@ -163,7 +151,7 @@ mod tests {
         );
         let node2_nets = 2;
         let node2_net = Value::new(0);
-        let node2 = DesignDNetIndex(
+        let node2 = (
             UnitId::new(1),
             Inst::new(2),
             node2_net,
@@ -253,35 +241,38 @@ mod tests {
         let inst_drv1_arg2 = inst_drv1_data.args()[1];
         let inst_drv1_arg3 = inst_drv1_data.args()[2];
 
-        let test_unit_bundle = UnitBundle {
-            id: UnitIdComponent { id: test_unit_id },
-            name: UnitNameComponent {
-                name: test_unit_name.to_owned(),
-                kind: test_unit_kind,
+        let unit_id_component = UnitIdComponent { id: test_unit_id };
+        let test_unit_bundle = SynthesisUnitBundle {
+            unit: UnitBundle {
+                unit: unit_id_component.clone(),
+                name: UnitNameComponent {
+                    name: test_unit_name.clone(),
+                    kind: test_unit_kind,
+                },
             },
-            circuit,
+            circuit: CircuitComponent { circuit },
         };
         let _unit_entity_id = ecs.spawn(test_unit_bundle);
 
-        let test_unit_arg1_bundle = UnitArgComponent {
-            unit: test_unit_id,
-            arg: args[0],
+        let test_unit_arg1_bundle = UnitArgBundle {
+            unit: unit_id_component.clone(),
+            arg: ValueComponent { value: args[0] },
         };
-        let test_unit_arg2_bundle = UnitArgComponent {
-            unit: test_unit_id,
-            arg: args[1],
+        let test_unit_arg2_bundle = UnitArgBundle {
+            unit: unit_id_component.clone(),
+            arg: ValueComponent { value: args[1] },
         };
-        let test_unit_arg3_bundle = UnitArgComponent {
-            unit: test_unit_id,
-            arg: args[2],
+        let test_unit_arg3_bundle = UnitArgBundle {
+            unit: unit_id_component.clone(),
+            arg: ValueComponent { value: args[2] },
         };
-        let test_unit_arg4_bundle = UnitArgComponent {
-            unit: test_unit_id,
-            arg: args[3],
+        let test_unit_arg4_bundle = UnitArgBundle {
+            unit: unit_id_component.clone(),
+            arg: ValueComponent { value: args[3] },
         };
-        let test_unit_out1_bundle = UnitArgComponent {
-            unit: test_unit_id,
-            arg: args[4],
+        let test_unit_out1_bundle = UnitArgBundle {
+            unit: unit_id_component.clone(),
+            arg: ValueComponent { value: args[4] },
         };
         let arg_entities = ecs
             .spawn_batch([
@@ -295,8 +286,8 @@ mod tests {
         assert_eq!(5, arg_entities.len());
 
         let test_unit_inst1_bundle = InstBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
+            unit: unit_id_component.clone(),
+            id: InstIdComponent {
                 id: inst_const_time_id,
             },
             data: InstDataComponent {
@@ -304,37 +295,29 @@ mod tests {
             },
         };
         let test_unit_inst2_bundle = InstBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
-                id: inst_and1_id,
-            },
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_and1_id },
             data: InstDataComponent {
                 data: inst_and1_data,
             },
         };
         let test_unit_inst3_bundle = InstBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
-                id: inst_and2_id,
-            },
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_and2_id },
             data: InstDataComponent {
                 data: inst_and2_data,
             },
         };
         let test_unit_inst4_bundle = InstBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
-                id: inst_or1_id,
-            },
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_or1_id },
             data: InstDataComponent {
                 data: inst_or1_data,
             },
         };
         let test_unit_inst5_bundle = InstBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
-                id: inst_drv1_id,
-            },
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_drv1_id },
             data: InstDataComponent {
                 data: inst_drv1_data,
             },
@@ -350,102 +333,66 @@ mod tests {
             .collect_vec();
         assert_eq!(5, inst_entities.len());
 
-        let test_unit_inst_value1_bundle = InstValueBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
-                id: inst_and1_id,
-            },
-            arg: InstValueComponent {
-                unit: test_unit_id,
-                id: inst_and1_id,
+        let test_unit_inst_value1_bundle = ValueBundle {
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_and1_id },
+            value: ValueComponent {
                 value: inst_and1_arg1,
             },
         };
-        let test_unit_inst_value2_bundle = InstValueBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
-                id: inst_and1_id,
-            },
-            arg: InstValueComponent {
-                unit: test_unit_id,
-                id: inst_and1_id,
+        let test_unit_inst_value2_bundle = ValueBundle {
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_and1_id },
+            value: ValueComponent {
                 value: inst_and1_arg2,
             },
         };
-        let test_unit_inst_value3_bundle = InstValueBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
-                id: inst_and2_id,
-            },
-            arg: InstValueComponent {
-                unit: test_unit_id,
-                id: inst_and2_id,
+        let test_unit_inst_value3_bundle = ValueBundle {
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_and2_id },
+            value: ValueComponent {
                 value: inst_and2_arg1,
             },
         };
-        let test_unit_inst_value4_bundle = InstValueBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
-                id: inst_and2_id,
-            },
-            arg: InstValueComponent {
-                unit: test_unit_id,
-                id: inst_and2_id,
+        let test_unit_inst_value4_bundle = ValueBundle {
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_and2_id },
+            value: ValueComponent {
                 value: inst_and2_arg2,
             },
         };
-        let test_unit_inst_value5_bundle = InstValueBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
-                id: inst_or1_id,
-            },
-            arg: InstValueComponent {
-                unit: test_unit_id,
-                id: inst_or1_id,
+        let test_unit_inst_value5_bundle = ValueBundle {
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_or1_id },
+            value: ValueComponent {
                 value: inst_or1_arg1,
             },
         };
-        let test_unit_inst_value6_bundle = InstValueBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
-                id: inst_or1_id,
-            },
-            arg: InstValueComponent {
-                unit: test_unit_id,
-                id: inst_or1_id,
+        let test_unit_inst_value6_bundle = ValueBundle {
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_or1_id },
+            value: ValueComponent {
                 value: inst_or1_arg2,
             },
         };
-        let test_unit_inst_value7_bundle = InstValueBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
-                id: inst_drv1_id,
-            },
-            arg: InstValueComponent {
-                unit: test_unit_id,
-                id: inst_drv1_id,
+        let test_unit_inst_value7_bundle = ValueBundle {
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_drv1_id },
+            value: ValueComponent {
                 value: inst_drv1_arg1,
             },
         };
-        let test_unit_inst_value8_bundle = InstValueBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
-                id: inst_drv1_id,
-            },
-            arg: InstValueComponent {
-                unit: test_unit_id,
-                id: inst_drv1_id,
+        let test_unit_inst_value8_bundle = ValueBundle {
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_drv1_id },
+            value: ValueComponent {
                 value: inst_drv1_arg2,
             },
         };
-        let test_unit_inst_value9_bundle = InstValueBundle {
-            inst: InstComponent {
-                unit: test_unit_id,
-                id: inst_drv1_id,
-            },
-            arg: InstValueComponent {
-                unit: test_unit_id,
-                id: inst_drv1_id,
+        let test_unit_inst_value9_bundle = ValueBundle {
+            unit: unit_id_component,
+            id: InstIdComponent { id: inst_drv1_id },
+            value: ValueComponent {
                 value: inst_drv1_arg3,
             },
         };

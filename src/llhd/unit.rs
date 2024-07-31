@@ -1,6 +1,9 @@
-use bevy_ecs::component::Component;
+use bevy_ecs::prelude::{Bundle, Component};
 use llhd::ir::prelude::{UnitData, UnitKind, UnitName, Value};
 use llhd::ir::UnitId;
+
+pub type UnitIndex = UnitId;
+pub type UnitArgIndex = (UnitId, Value);
 
 #[derive(Debug, Clone, PartialEq, Eq, Component)]
 pub struct UnitIdComponent {
@@ -31,10 +34,21 @@ impl Default for UnitNameComponent {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Bundle)]
+pub struct UnitBundle {
+    pub(crate) unit: UnitIdComponent,
+    pub(crate) name: UnitNameComponent,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Component)]
-pub struct UnitArgComponent {
-    pub(crate) unit: UnitId,
-    pub(crate) arg: Value,
+pub struct ValueComponent {
+    pub(crate) value: Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Bundle)]
+pub struct UnitArgBundle {
+    pub(crate) unit: UnitIdComponent,
+    pub(crate) arg: ValueComponent,
 }
 
 #[cfg(test)]
