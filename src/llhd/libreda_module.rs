@@ -12,14 +12,14 @@ use super::common::{
     get_value_name,
 };
 use super::enode::LLHDENode;
-use super::{LLHDArg, LLHDInst, LLHDNet};
+use super::{LLHDInst, LLHDUnitArg, LLHDValue};
 
 type NameUnitMap = HashMap<String, UnitId>;
 type UnitNameMap = HashMap<UnitId, String>;
 type NameInstMap = HashMap<(UnitId, String), Inst>;
 type InstNameMap = HashMap<LLHDInst, String>;
-type ArgNameMap = HashMap<LLHDNet, String>;
-type NameArgMap = HashMap<(UnitId, String), LLHDNet>;
+type ArgNameMap = HashMap<LLHDUnitArg, String>;
+type NameArgMap = HashMap<(UnitId, String), LLHDUnitArg>;
 
 /// `NewType` Wrapper for an LLHD Module
 pub struct LModule {
@@ -89,7 +89,7 @@ impl LModule {
         &self.module
     }
 
-    pub(crate) fn get(&self, net: LLHDNet) -> LLHDENode {
+    pub(crate) fn get(&self, net: LLHDUnitArg) -> LLHDENode {
         match &self.module.unit(net.0)[net.1] {
             ValueData::Inst { ty, inst } => LLHDENode {
                 id: net.1,
@@ -130,7 +130,7 @@ impl LModule {
         }
     }
 
-    pub(crate) fn get_unit_arg(&self, inst: LLHDArg) -> LLHDNet {
+    pub(crate) fn get_unit_arg(&self, inst: LLHDValue) -> LLHDUnitArg {
         let owned_unit_id = inst.0;
         let inst_id = inst.1;
         let value_id = inst.2;
@@ -165,7 +165,7 @@ impl LModule {
         // });
     }
 
-    pub(crate) fn get_value_name(&self, value: LLHDNet) -> String {
+    pub(crate) fn get_value_name(&self, value: LLHDUnitArg) -> String {
         let scope_unit_id = value.0;
         let value_id = value.1;
         let scope_unit = &self.module.unit(scope_unit_id);
@@ -178,11 +178,11 @@ impl LModule {
         self.inst_name_map[&(unit_id, inst_id)].to_owned()
     }
 
-    pub(crate) fn get_arg_name(&self, unit_arg_id: LLHDNet) -> String {
+    pub(crate) fn get_arg_name(&self, unit_arg_id: LLHDUnitArg) -> String {
         self.arg_name_map[&unit_arg_id].to_owned()
     }
 
-    pub(crate) fn get_arg(&self, unit_id: UnitId, name: &str) -> LLHDNet {
+    pub(crate) fn get_arg(&self, unit_id: UnitId, name: &str) -> LLHDUnitArg {
         self.name_arg_map[&(unit_id, name.to_owned())]
     }
 
@@ -227,7 +227,7 @@ impl LModule {
             .collect()
     }
 
-    pub(crate) fn all_nets(&self, unit_id: UnitId) -> impl Iterator<Item = LLHDNet> + '_ {
+    pub(crate) fn all_nets(&self, unit_id: UnitId) -> impl Iterator<Item = LLHDUnitArg> + '_ {
         let unit = self.module.unit(unit_id);
         unit.input_args().map(move |arg| (unit.id(), arg)).chain(
             unit.all_insts()

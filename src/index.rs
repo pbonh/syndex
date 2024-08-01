@@ -10,7 +10,7 @@ use llhd::ir::prelude::*;
 use llhd::ir::InstData;
 
 use crate::circuit::graph::{LCircuit, LCircuitEdgeID};
-use crate::llhd::unit::UnitBundle;
+use crate::llhd::components::unit::UnitBundle;
 
 /// Type Constraint for Use in a Datalog Relation Column
 pub trait FlatIndex: Clone + PartialEq + Eq + Hash {}
@@ -61,8 +61,8 @@ mod tests {
     use llhd::table::TableKey;
 
     use super::*;
-    use crate::llhd::inst::*;
-    use crate::llhd::unit::*;
+    use crate::llhd::components::inst::*;
+    use crate::llhd::components::unit::*;
 
     #[test]
     fn ascent_column_compatability_design_unit_index() {
