@@ -184,6 +184,7 @@ mod tests {
         let test_unit_id = test_unit.id();
         let test_unit_name = test_unit.name();
         let test_unit_kind = test_unit.kind();
+        let test_unit_sig = test_unit.sig();
         let args = test_unit.args().collect_vec();
         assert_eq!(5, args.len(), "There should be 5 args in unit.");
         let insts = test_unit.all_insts().collect_vec();
@@ -248,6 +249,7 @@ mod tests {
                 name: UnitNameComponent {
                     name: test_unit_name.clone(),
                     kind: test_unit_kind,
+                    signature: test_unit_sig.clone(),
                 },
             },
             circuit: CircuitComponent { circuit },

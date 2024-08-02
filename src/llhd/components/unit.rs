@@ -1,6 +1,6 @@
 use bevy_ecs::prelude::{Bundle, Component};
-use llhd::ir::prelude::{UnitData, UnitKind, UnitName, Value};
-use llhd::ir::UnitId;
+use llhd::ir::prelude::{Unit, UnitKind, UnitName, Value};
+use llhd::ir::{Signature, UnitId};
 
 pub type UnitIndex = UnitId;
 pub type UnitArgIndex = (UnitId, Value);
@@ -14,13 +14,15 @@ pub struct UnitIdComponent {
 pub struct UnitNameComponent {
     pub(crate) name: UnitName,
     pub(crate) kind: UnitKind,
+    pub(crate) signature: Signature,
 }
 
-impl From<&UnitData> for UnitNameComponent {
-    fn from(unit: &UnitData) -> Self {
+impl From<&Unit<'_>> for UnitNameComponent {
+    fn from(unit: &Unit) -> Self {
         Self {
-            name: unit.name.clone(),
-            kind: unit.kind,
+            name: unit.name().clone(),
+            kind: unit.kind(),
+            signature: unit.sig().clone(),
         }
     }
 }
@@ -30,6 +32,7 @@ impl Default for UnitNameComponent {
         Self {
             name: UnitName::anonymous(0),
             kind: llhd::ir::UnitKind::Entity,
+            signature: Signature::default(),
         }
     }
 }
@@ -79,7 +82,20 @@ mod tests {
 
     #[test]
     fn create_unit_component() {
-        let entity = build_entity(UnitName::anonymous(0));
-        let _unit_component = UnitNameComponent::from(&entity);
+        let input = indoc::indoc! {"
+            entity @test_entity (i1 %clk, i1 %rst, i1$ %inp) -> (i1$ %out1) {
+                %v1 = const i1 0
+                %v2 = const i1 1
+                %v3 = add i1 %v1, %v2
+                %inp_prb = prb i1$ %inp
+                %sum = add i1 %v3, %inp_prb
+                %instant = const time 0s 1e
+                drv i1$ %out1, %sum, %instant
+            }
+        "};
+
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let test_unit = module.units().next().unwrap();
+        let _unit_component = UnitNameComponent::from(&test_unit);
     }
 }
