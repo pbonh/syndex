@@ -32,7 +32,7 @@ pub struct SynthesisUnitBundle {
 pub type DesignUnitIndex = (UnitId, BTreeSet<LCircuitEdgeID>, Vec<Box2D<usize>>);
 
 /// `FlatIndex` for Design Gates
-pub type DesignDGateIndex = (
+pub type DesignGateIndex = (
     UnitId,
     Inst,
     InstData,
@@ -96,8 +96,8 @@ mod tests {
     #[test]
     fn ascent_column_compatability_design_gate_index() {
         ascent! {
-           relation node(DesignDGateIndex, Rc<Vec<DesignDGateIndex>>);
-           relation edge(DesignDGateIndex, DesignDGateIndex);
+           relation node(DesignGateIndex, Rc<Vec<DesignGateIndex>>);
+           relation edge(DesignGateIndex, DesignGateIndex);
 
            edge(x, y) <--
               node(x, neighbors),
