@@ -290,23 +290,23 @@ mod tests {
         };
         let _unit_entity_id = ecs.spawn(test_unit_bundle);
 
-        let test_unit_arg1_bundle = UnitArgBundle {
+        let test_unit_arg1_bundle = PortBundle {
             unit: unit_id_component.clone(),
             arg: ValueComponent { value: args[0] },
         };
-        let test_unit_arg2_bundle = UnitArgBundle {
+        let test_unit_arg2_bundle = PortBundle {
             unit: unit_id_component.clone(),
             arg: ValueComponent { value: args[1] },
         };
-        let test_unit_arg3_bundle = UnitArgBundle {
+        let test_unit_arg3_bundle = PortBundle {
             unit: unit_id_component.clone(),
             arg: ValueComponent { value: args[2] },
         };
-        let test_unit_arg4_bundle = UnitArgBundle {
+        let test_unit_arg4_bundle = PortBundle {
             unit: unit_id_component.clone(),
             arg: ValueComponent { value: args[3] },
         };
-        let test_unit_out1_bundle = UnitArgBundle {
+        let test_unit_out1_bundle = PortBundle {
             unit: unit_id_component.clone(),
             arg: ValueComponent { value: args[4] },
         };
@@ -321,7 +321,7 @@ mod tests {
             .collect_vec();
         assert_eq!(5, arg_entities.len());
 
-        let test_unit_inst1_bundle = InstBundle {
+        let test_unit_inst1_bundle = GateBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent {
                 id: inst_const_time_id,
@@ -330,28 +330,28 @@ mod tests {
                 data: inst_const_time_data,
             },
         };
-        let test_unit_inst2_bundle = InstBundle {
+        let test_unit_inst2_bundle = GateBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_and1_id },
             data: InstDataComponent {
                 data: inst_and1_data,
             },
         };
-        let test_unit_inst3_bundle = InstBundle {
+        let test_unit_inst3_bundle = GateBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_and2_id },
             data: InstDataComponent {
                 data: inst_and2_data,
             },
         };
-        let test_unit_inst4_bundle = InstBundle {
+        let test_unit_inst4_bundle = GateBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_or1_id },
             data: InstDataComponent {
                 data: inst_or1_data,
             },
         };
-        let test_unit_inst5_bundle = InstBundle {
+        let test_unit_inst5_bundle = GateBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_drv1_id },
             data: InstDataComponent {
@@ -369,63 +369,63 @@ mod tests {
             .collect_vec();
         assert_eq!(5, inst_entities.len());
 
-        let test_unit_inst_value1_bundle = ValueBundle {
+        let test_unit_inst_value1_bundle = NetBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_and1_id },
             value: ValueComponent {
                 value: inst_and1_arg1,
             },
         };
-        let test_unit_inst_value2_bundle = ValueBundle {
+        let test_unit_inst_value2_bundle = NetBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_and1_id },
             value: ValueComponent {
                 value: inst_and1_arg2,
             },
         };
-        let test_unit_inst_value3_bundle = ValueBundle {
+        let test_unit_inst_value3_bundle = NetBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_and2_id },
             value: ValueComponent {
                 value: inst_and2_arg1,
             },
         };
-        let test_unit_inst_value4_bundle = ValueBundle {
+        let test_unit_inst_value4_bundle = NetBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_and2_id },
             value: ValueComponent {
                 value: inst_and2_arg2,
             },
         };
-        let test_unit_inst_value5_bundle = ValueBundle {
+        let test_unit_inst_value5_bundle = NetBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_or1_id },
             value: ValueComponent {
                 value: inst_or1_arg1,
             },
         };
-        let test_unit_inst_value6_bundle = ValueBundle {
+        let test_unit_inst_value6_bundle = NetBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_or1_id },
             value: ValueComponent {
                 value: inst_or1_arg2,
             },
         };
-        let test_unit_inst_value7_bundle = ValueBundle {
+        let test_unit_inst_value7_bundle = NetBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_drv1_id },
             value: ValueComponent {
                 value: inst_drv1_arg1,
             },
         };
-        let test_unit_inst_value8_bundle = ValueBundle {
+        let test_unit_inst_value8_bundle = NetBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_drv1_id },
             value: ValueComponent {
                 value: inst_drv1_arg2,
             },
         };
-        let test_unit_inst_value9_bundle = ValueBundle {
+        let test_unit_inst_value9_bundle = NetBundle {
             unit: unit_id_component,
             id: InstIdComponent { id: inst_drv1_id },
             value: ValueComponent {

@@ -19,14 +19,14 @@ pub struct InstDataComponent {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Bundle)]
-pub struct InstBundle {
+pub struct GateBundle {
     pub(crate) unit: UnitIdComponent,
     pub(crate) id: InstIdComponent,
     pub(crate) data: InstDataComponent,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Component)]
-pub struct ValueBundle {
+pub struct NetBundle {
     pub(crate) unit: UnitIdComponent,
     pub(crate) id: InstIdComponent,
     pub(crate) value: ValueComponent,
