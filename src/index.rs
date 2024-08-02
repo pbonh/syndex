@@ -41,7 +41,7 @@ pub type DesignGateIndex = (
 );
 
 /// `FlatIndex` for Design Nets
-pub type DesignDNetIndex = (
+pub type DesignNetIndex = (
     UnitId,
     Inst,
     Value,
@@ -131,8 +131,8 @@ mod tests {
     #[test]
     fn ascent_column_compatability_design_net_index() {
         ascent! {
-           relation node(DesignDNetIndex, Rc<Vec<DesignDNetIndex>>);
-           relation edge(DesignDNetIndex, DesignDNetIndex);
+           relation node(DesignNetIndex, Rc<Vec<DesignNetIndex>>);
+           relation edge(DesignNetIndex, DesignNetIndex);
 
            edge(x, y) <--
               node(x, neighbors),
