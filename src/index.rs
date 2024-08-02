@@ -31,6 +31,9 @@ pub struct SynthesisUnitBundle {
 /// `FlatIndex` for Design Units
 pub type DesignUnitIndex = (UnitId, BTreeSet<LCircuitEdgeID>, Vec<Box2D<usize>>);
 
+/// `FlatIndex` for Design Ports
+pub type DesignPortIndex = (UnitId, Value, BTreeSet<LCircuitEdgeID>, Vec<Box2D<usize>>);
+
 /// `FlatIndex` for Design Gates
 pub type DesignGateIndex = (
     UnitId,
@@ -85,6 +88,37 @@ mod tests {
         let unit2_nets = 2;
         let unit2 = (
             UnitId::new(2),
+            BTreeSet::from([unit2_nets]),
+            vec![Box2D::new(unit_loc, unit_loc)],
+        );
+        let mut prog = AscentProgram::default();
+        prog.edge = vec![(unit1, unit2)];
+        prog.run();
+    }
+
+    #[test]
+    fn ascent_column_compatability_design_port_index() {
+        ascent! {
+           relation node(DesignPortIndex, Rc<Vec<DesignPortIndex>>);
+           relation edge(DesignPortIndex, DesignPortIndex);
+
+           edge(x, y) <--
+              node(x, neighbors),
+              for y in neighbors.iter(),
+              if *x != *y;
+        }
+        let unit1_nets = 1;
+        let unit_loc = Point2D::zero();
+        let unit1 = (
+            UnitId::new(1),
+            Value::new(0),
+            BTreeSet::from([unit1_nets]),
+            vec![Box2D::new(unit_loc, unit_loc)],
+        );
+        let unit2_nets = 2;
+        let unit2 = (
+            UnitId::new(2),
+            Value::new(1),
             BTreeSet::from([unit2_nets]),
             vec![Box2D::new(unit_loc, unit_loc)],
         );
