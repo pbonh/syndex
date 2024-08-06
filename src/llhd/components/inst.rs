@@ -26,7 +26,7 @@ pub struct GateBundle {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Component)]
-pub struct NetBundle {
+pub struct ValueRefBundle {
     pub(crate) unit: UnitIdComponent,
     pub(crate) id: InstIdComponent,
     pub(crate) value: ValueComponent,

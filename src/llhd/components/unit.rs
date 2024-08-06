@@ -49,9 +49,9 @@ pub struct ValueComponent {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Bundle)]
-pub struct PortBundle {
+pub struct ValueDefBundle {
     pub(crate) unit: UnitIdComponent,
-    pub(crate) arg: ValueComponent,
+    pub(crate) value: ValueComponent,
 }
 
 #[cfg(test)]

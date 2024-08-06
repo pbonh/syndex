@@ -32,7 +32,7 @@ pub struct SynthesisUnitBundle {
 pub type DesignUnitIndex = (UnitId, BTreeSet<LCircuitEdgeID>, Vec<Box2D<usize>>);
 
 /// `FlatIndex` for Design Ports
-pub type DesignPortIndex = (UnitId, Value, BTreeSet<LCircuitEdgeID>, Vec<Box2D<usize>>);
+pub type DesignValueDefIndex = (UnitId, Value, BTreeSet<LCircuitEdgeID>, Vec<Box2D<usize>>);
 
 /// `FlatIndex` for Design Gates
 pub type DesignGateIndex = (
@@ -44,7 +44,7 @@ pub type DesignGateIndex = (
 );
 
 /// `FlatIndex` for Design Nets
-pub type DesignNetIndex = (
+pub type DesignValueRefIndex = (
     UnitId,
     Inst,
     Value,
@@ -99,8 +99,8 @@ mod tests {
     #[test]
     fn ascent_column_compatability_design_port_index() {
         ascent! {
-           relation node(DesignPortIndex, Rc<Vec<DesignPortIndex>>);
-           relation edge(DesignPortIndex, DesignPortIndex);
+           relation node(DesignValueDefIndex, Rc<Vec<DesignValueDefIndex>>);
+           relation edge(DesignValueDefIndex, DesignValueDefIndex);
 
            edge(x, y) <--
               node(x, neighbors),
@@ -165,8 +165,8 @@ mod tests {
     #[test]
     fn ascent_column_compatability_design_net_index() {
         ascent! {
-           relation node(DesignNetIndex, Rc<Vec<DesignNetIndex>>);
-           relation edge(DesignNetIndex, DesignNetIndex);
+           relation node(DesignValueRefIndex, Rc<Vec<DesignValueRefIndex>>);
+           relation edge(DesignValueRefIndex, DesignValueRefIndex);
 
            edge(x, y) <--
               node(x, neighbors),
@@ -290,25 +290,25 @@ mod tests {
         };
         let _unit_entity_id = ecs.spawn(test_unit_bundle);
 
-        let test_unit_arg1_bundle = PortBundle {
+        let test_unit_arg1_bundle = ValueDefBundle {
             unit: unit_id_component.clone(),
-            arg: ValueComponent { value: args[0] },
+            value: ValueComponent { value: args[0] },
         };
-        let test_unit_arg2_bundle = PortBundle {
+        let test_unit_arg2_bundle = ValueDefBundle {
             unit: unit_id_component.clone(),
-            arg: ValueComponent { value: args[1] },
+            value: ValueComponent { value: args[1] },
         };
-        let test_unit_arg3_bundle = PortBundle {
+        let test_unit_arg3_bundle = ValueDefBundle {
             unit: unit_id_component.clone(),
-            arg: ValueComponent { value: args[2] },
+            value: ValueComponent { value: args[2] },
         };
-        let test_unit_arg4_bundle = PortBundle {
+        let test_unit_arg4_bundle = ValueDefBundle {
             unit: unit_id_component.clone(),
-            arg: ValueComponent { value: args[3] },
+            value: ValueComponent { value: args[3] },
         };
-        let test_unit_out1_bundle = PortBundle {
+        let test_unit_out1_bundle = ValueDefBundle {
             unit: unit_id_component.clone(),
-            arg: ValueComponent { value: args[4] },
+            value: ValueComponent { value: args[4] },
         };
         let arg_entities = ecs
             .spawn_batch([
@@ -369,63 +369,63 @@ mod tests {
             .collect_vec();
         assert_eq!(5, inst_entities.len());
 
-        let test_unit_inst_value1_bundle = NetBundle {
+        let test_unit_inst_value1_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_and1_id },
             value: ValueComponent {
                 value: inst_and1_arg1,
             },
         };
-        let test_unit_inst_value2_bundle = NetBundle {
+        let test_unit_inst_value2_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_and1_id },
             value: ValueComponent {
                 value: inst_and1_arg2,
             },
         };
-        let test_unit_inst_value3_bundle = NetBundle {
+        let test_unit_inst_value3_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_and2_id },
             value: ValueComponent {
                 value: inst_and2_arg1,
             },
         };
-        let test_unit_inst_value4_bundle = NetBundle {
+        let test_unit_inst_value4_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_and2_id },
             value: ValueComponent {
                 value: inst_and2_arg2,
             },
         };
-        let test_unit_inst_value5_bundle = NetBundle {
+        let test_unit_inst_value5_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_or1_id },
             value: ValueComponent {
                 value: inst_or1_arg1,
             },
         };
-        let test_unit_inst_value6_bundle = NetBundle {
+        let test_unit_inst_value6_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_or1_id },
             value: ValueComponent {
                 value: inst_or1_arg2,
             },
         };
-        let test_unit_inst_value7_bundle = NetBundle {
+        let test_unit_inst_value7_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_drv1_id },
             value: ValueComponent {
                 value: inst_drv1_arg1,
             },
         };
-        let test_unit_inst_value8_bundle = NetBundle {
+        let test_unit_inst_value8_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_drv1_id },
             value: ValueComponent {
                 value: inst_drv1_arg2,
             },
         };
-        let test_unit_inst_value9_bundle = NetBundle {
+        let test_unit_inst_value9_bundle = ValueRefBundle {
             unit: unit_id_component,
             id: InstIdComponent { id: inst_drv1_id },
             value: ValueComponent {
