@@ -276,6 +276,10 @@ mod tests {
         let inst_drv1_arg2 = inst_drv1_data.args()[1];
         let inst_drv1_arg3 = inst_drv1_data.args()[2];
 
+        let inst_and1_result1 = test_unit.inst_result(inst_and1_id);
+        let inst_and2_result1 = test_unit.inst_result(inst_and2_id);
+        let inst_or1_result1 = test_unit.inst_result(inst_or1_id);
+
         let unit_id_component = UnitIdComponent { id: test_unit_id };
         let test_unit_bundle = SynthesisUnitBundle {
             unit: UnitBundle {
@@ -310,7 +314,7 @@ mod tests {
             unit: unit_id_component.clone(),
             value: ValueComponent { value: args[4] },
         };
-        let arg_entities = ecs
+        let value_def_entities = ecs
             .spawn_batch([
                 test_unit_arg1_bundle,
                 test_unit_arg2_bundle,
@@ -319,7 +323,7 @@ mod tests {
                 test_unit_out1_bundle,
             ])
             .collect_vec();
-        assert_eq!(5, arg_entities.len());
+        assert_eq!(5, value_def_entities.len());
 
         let test_unit_inst1_bundle = GateBundle {
             unit: unit_id_component.clone(),
@@ -385,54 +389,75 @@ mod tests {
         };
         let test_unit_inst_value3_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
-            id: InstIdComponent { id: inst_and2_id },
+            id: InstIdComponent { id: inst_and1_id },
             value: ValueComponent {
-                value: inst_and2_arg1,
+                value: inst_and1_result1,
             },
         };
         let test_unit_inst_value4_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_and2_id },
             value: ValueComponent {
-                value: inst_and2_arg2,
+                value: inst_and2_arg1,
             },
         };
         let test_unit_inst_value5_bundle = ValueRefBundle {
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_and2_id },
+            value: ValueComponent {
+                value: inst_and2_arg2,
+            },
+        };
+        let test_unit_inst_value6_bundle = ValueRefBundle {
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_and2_id },
+            value: ValueComponent {
+                value: inst_and2_result1,
+            },
+        };
+        let test_unit_inst_value7_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_or1_id },
             value: ValueComponent {
                 value: inst_or1_arg1,
             },
         };
-        let test_unit_inst_value6_bundle = ValueRefBundle {
+        let test_unit_inst_value8_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_or1_id },
             value: ValueComponent {
                 value: inst_or1_arg2,
             },
         };
-        let test_unit_inst_value7_bundle = ValueRefBundle {
+        let test_unit_inst_value9_bundle = ValueRefBundle {
+            unit: unit_id_component.clone(),
+            id: InstIdComponent { id: inst_or1_id },
+            value: ValueComponent {
+                value: inst_or1_result1,
+            },
+        };
+        let test_unit_inst_value10_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_drv1_id },
             value: ValueComponent {
                 value: inst_drv1_arg1,
             },
         };
-        let test_unit_inst_value8_bundle = ValueRefBundle {
+        let test_unit_inst_value11_bundle = ValueRefBundle {
             unit: unit_id_component.clone(),
             id: InstIdComponent { id: inst_drv1_id },
             value: ValueComponent {
                 value: inst_drv1_arg2,
             },
         };
-        let test_unit_inst_value9_bundle = ValueRefBundle {
+        let test_unit_inst_value12_bundle = ValueRefBundle {
             unit: unit_id_component,
             id: InstIdComponent { id: inst_drv1_id },
             value: ValueComponent {
                 value: inst_drv1_arg3,
             },
         };
-        let value_entities = ecs
+        let value_ref_entities = ecs
             .spawn_batch([
                 test_unit_inst_value1_bundle,
                 test_unit_inst_value2_bundle,
@@ -443,8 +468,11 @@ mod tests {
                 test_unit_inst_value7_bundle,
                 test_unit_inst_value8_bundle,
                 test_unit_inst_value9_bundle,
+                test_unit_inst_value10_bundle,
+                test_unit_inst_value11_bundle,
+                test_unit_inst_value12_bundle,
             ])
             .collect_vec();
-        assert_eq!(9, value_entities.len());
+        assert_eq!(12, value_ref_entities.len());
     }
 }
