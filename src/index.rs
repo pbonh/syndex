@@ -1,3 +1,4 @@
+pub mod category;
 pub mod macros;
 
 use std::collections::BTreeSet;
@@ -38,6 +39,7 @@ pub type DesignValueDefIndex = (UnitId, Value, BTreeSet<LCircuitEdgeID>, Vec<Box
 pub type DesignGateIndex = (
     UnitId,
     Inst,
+    Value,
     InstData,
     BTreeSet<LCircuitEdgeID>,
     Vec<Box2D<usize>>,
@@ -141,18 +143,22 @@ mod tests {
         let node1_nets = 1;
         let node_loc = Point2D::zero();
         let node1_data = InstData::default();
+        let node1_value = Value::new(1);
         let node1 = (
             UnitId::new(1),
             Inst::new(1),
+            node1_value,
             node1_data,
             BTreeSet::from([node1_nets]),
             vec![Box2D::new(node_loc, node_loc)],
         );
         let node2_nets = 2;
         let node2_data = InstData::default();
+        let node2_value = Value::new(2);
         let node2 = (
             UnitId::new(1),
             Inst::new(2),
+            node2_value,
             node2_data,
             BTreeSet::from([node2_nets]),
             vec![Box2D::new(node_loc, node_loc)],
