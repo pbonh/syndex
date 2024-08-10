@@ -6,9 +6,11 @@ use std::hash::Hash;
 
 use bevy_ecs::bundle::Bundle;
 use bevy_ecs::component::Component;
+use derive_getters::Getters;
 use euclid::default::Box2D;
 use llhd::ir::prelude::*;
 use llhd::ir::InstData;
+use typed_builder::TypedBuilder;
 
 use crate::circuit::graph::{LCircuit, LCircuitEdgeID};
 use crate::llhd::components::unit::UnitBundle;
@@ -30,29 +32,42 @@ pub struct SynthesisUnitBundle {
 }
 
 /// `FlatIndex` for Design Units
-pub type DesignUnitIndex = (UnitId, BTreeSet<LCircuitEdgeID>, Vec<Box2D<usize>>);
+#[derive(Debug, Clone, PartialEq, Eq, Hash, TypedBuilder, Getters)]
+pub struct DesignUnitIndex {
+    unit: UnitId,
+    nets: BTreeSet<LCircuitEdgeID>,
+    bb: Vec<Box2D<usize>>,
+}
 
 /// `FlatIndex` for Design Ports
-pub type DesignValueDefIndex = (UnitId, Value, BTreeSet<LCircuitEdgeID>, Vec<Box2D<usize>>);
+#[derive(Debug, Clone, PartialEq, Eq, Hash, TypedBuilder, Getters)]
+pub struct DesignValueDefIndex {
+    unit: UnitId,
+    value: Value,
+    nets: BTreeSet<LCircuitEdgeID>,
+    bb: Vec<Box2D<usize>>,
+}
 
 /// `FlatIndex` for Design Gates
-pub type DesignGateIndex = (
-    UnitId,
-    Inst,
-    Value,
-    InstData,
-    BTreeSet<LCircuitEdgeID>,
-    Vec<Box2D<usize>>,
-);
+#[derive(Debug, Clone, PartialEq, Eq, Hash, TypedBuilder, Getters)]
+pub struct DesignGateIndex {
+    unit: UnitId,
+    id: Inst,
+    value: Value,
+    data: InstData,
+    nets: BTreeSet<LCircuitEdgeID>,
+    bb: Vec<Box2D<usize>>,
+}
 
 /// `FlatIndex` for Design Nets
-pub type DesignValueRefIndex = (
-    UnitId,
-    Inst,
-    Value,
-    BTreeSet<LCircuitEdgeID>,
-    Vec<Box2D<usize>>,
-);
+#[derive(Debug, Clone, PartialEq, Eq, Hash, TypedBuilder, Getters)]
+pub struct DesignValueRefIndex {
+    unit: UnitId,
+    id: Inst,
+    value: Value,
+    nets: BTreeSet<LCircuitEdgeID>,
+    bb: Vec<Box2D<usize>>,
+}
 
 #[cfg(test)]
 mod tests {
@@ -82,17 +97,17 @@ mod tests {
         }
         let unit1_nets = 1;
         let unit_loc = Point2D::zero();
-        let unit1 = (
-            UnitId::new(1),
-            BTreeSet::from([unit1_nets]),
-            vec![Box2D::new(unit_loc, unit_loc)],
-        );
+        let unit1 = DesignUnitIndex::builder()
+            .unit(UnitId::new(1))
+            .nets(BTreeSet::from([unit1_nets]))
+            .bb(vec![Box2D::new(unit_loc, unit_loc)])
+            .build();
         let unit2_nets = 2;
-        let unit2 = (
-            UnitId::new(2),
-            BTreeSet::from([unit2_nets]),
-            vec![Box2D::new(unit_loc, unit_loc)],
-        );
+        let unit2 = DesignUnitIndex::builder()
+            .unit(UnitId::new(2))
+            .nets(BTreeSet::from([unit2_nets]))
+            .bb(vec![Box2D::new(unit_loc, unit_loc)])
+            .build();
         let mut prog = AscentProgram::default();
         prog.edge = vec![(unit1, unit2)];
         prog.run();
@@ -111,19 +126,19 @@ mod tests {
         }
         let unit1_nets = 1;
         let unit_loc = Point2D::zero();
-        let unit1 = (
-            UnitId::new(1),
-            Value::new(0),
-            BTreeSet::from([unit1_nets]),
-            vec![Box2D::new(unit_loc, unit_loc)],
-        );
+        let unit1 = DesignValueDefIndex::builder()
+            .unit(UnitId::new(1))
+            .value(Value::new(0))
+            .nets(BTreeSet::from([unit1_nets]))
+            .bb(vec![Box2D::new(unit_loc, unit_loc)])
+            .build();
         let unit2_nets = 2;
-        let unit2 = (
-            UnitId::new(2),
-            Value::new(1),
-            BTreeSet::from([unit2_nets]),
-            vec![Box2D::new(unit_loc, unit_loc)],
-        );
+        let unit2 = DesignValueDefIndex::builder()
+            .unit(UnitId::new(2))
+            .value(Value::new(0))
+            .nets(BTreeSet::from([unit2_nets]))
+            .bb(vec![Box2D::new(unit_loc, unit_loc)])
+            .build();
         let mut prog = AscentProgram::default();
         prog.edge = vec![(unit1, unit2)];
         prog.run();
@@ -144,25 +159,25 @@ mod tests {
         let node_loc = Point2D::zero();
         let node1_data = InstData::default();
         let node1_value = Value::new(1);
-        let node1 = (
-            UnitId::new(1),
-            Inst::new(1),
-            node1_value,
-            node1_data,
-            BTreeSet::from([node1_nets]),
-            vec![Box2D::new(node_loc, node_loc)],
-        );
+        let node1 = DesignGateIndex::builder()
+            .unit(UnitId::new(1))
+            .id(Inst::new(1))
+            .value(node1_value)
+            .data(node1_data)
+            .nets(BTreeSet::from([node1_nets]))
+            .bb(vec![Box2D::new(node_loc, node_loc)])
+            .build();
         let node2_nets = 2;
         let node2_data = InstData::default();
         let node2_value = Value::new(2);
-        let node2 = (
-            UnitId::new(1),
-            Inst::new(2),
-            node2_value,
-            node2_data,
-            BTreeSet::from([node2_nets]),
-            vec![Box2D::new(node_loc, node_loc)],
-        );
+        let node2 = DesignGateIndex::builder()
+            .unit(UnitId::new(1))
+            .id(Inst::new(2))
+            .value(node2_value)
+            .data(node2_data)
+            .nets(BTreeSet::from([node2_nets]))
+            .bb(vec![Box2D::new(node_loc, node_loc)])
+            .build();
         let mut prog = AscentProgram::default();
         prog.edge = vec![(node1, node2)];
         prog.run();
@@ -181,23 +196,23 @@ mod tests {
         }
         let node1_nets = 1;
         let node_loc = Point2D::zero();
-        let node1_net = Value::new(0);
-        let node1 = (
-            UnitId::new(1),
-            Inst::new(1),
-            node1_net,
-            BTreeSet::from([node1_nets]),
-            vec![Box2D::new(node_loc, node_loc)],
-        );
+        let node1_value = Value::new(0);
+        let node1 = DesignValueRefIndex::builder()
+            .unit(UnitId::new(1))
+            .id(Inst::new(1))
+            .value(node1_value)
+            .nets(BTreeSet::from([node1_nets]))
+            .bb(vec![Box2D::new(node_loc, node_loc)])
+            .build();
         let node2_nets = 2;
-        let node2_net = Value::new(0);
-        let node2 = (
-            UnitId::new(1),
-            Inst::new(2),
-            node2_net,
-            BTreeSet::from([node2_nets]),
-            vec![Box2D::new(node_loc, node_loc)],
-        );
+        let node2_value = Value::new(0);
+        let node2 = DesignValueRefIndex::builder()
+            .unit(UnitId::new(1))
+            .id(Inst::new(2))
+            .value(node2_value)
+            .nets(BTreeSet::from([node2_nets]))
+            .bb(vec![Box2D::new(node_loc, node_loc)])
+            .build();
         let mut prog = AscentProgram::default();
         prog.edge = vec![(node1, node2)];
         prog.run();

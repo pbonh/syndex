@@ -23,16 +23,17 @@ pub trait DICagetoryMorphism {
 
 #[cfg(test)]
 mod tests {
-    use crate::circuit::graph::LCircuitEdgeID;
+    use std::collections::BTreeSet;
+
     use ascent::ascent_run;
     use euclid::default::Box2D;
     use itertools::Itertools;
     use llhd::ir::prelude::*;
     use llhd::ir::InstData;
     use llhd::table::TableKey;
-    use std::collections::BTreeSet;
 
     use super::*;
+    use crate::circuit::graph::LCircuitEdgeID;
 
     struct ExampleCategory;
 
@@ -40,14 +41,14 @@ mod tests {
         let units = design_index_sets.units().clone();
         let value_defs = design_index_sets.value_defs().clone();
         let value_refs = design_index_sets.value_refs().clone();
-        let unit_id = design_index_sets.gates()[0].0;
+        let unit_id = design_index_sets.gates()[0].unit();
         let facts: Vec<(Opcode, Value, Value, Value)> = design_index_sets
             .gates()
             .iter()
             .map(|domain_object| {
-                let inst_data = &domain_object.3;
+                let inst_data = &domain_object.data();
                 let opcode = inst_data.opcode();
-                let inst_val = domain_object.2;
+                let inst_val = domain_object.value().to_owned();
                 let arg1 = inst_data.args()[0];
                 let arg2 = inst_data.args()[1];
                 (opcode, inst_val, arg1, arg2)
@@ -70,14 +71,14 @@ mod tests {
                 design_unit_demorgans
                     .into_iter()
                     .map(|_gate| {
-                        (
-                            unit_id,
-                            Inst::new(0),
-                            Value::new(0),
-                            InstData::default(),
-                            BTreeSet::<LCircuitEdgeID>::default(),
-                            Vec::<Box2D<usize>>::default(),
-                        )
+                        DesignGateIndex::builder()
+                            .unit(*unit_id)
+                            .id(Inst::new(0))
+                            .value(Value::new(0))
+                            .data(InstData::default())
+                            .nets(BTreeSet::<LCircuitEdgeID>::default())
+                            .bb(Vec::<Box2D<usize>>::default())
+                            .build()
                     })
                     .collect_vec(),
             )
