@@ -1,12 +1,14 @@
 pub mod category;
 pub mod macros;
 
+use core::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::hash::Hash;
 
+use ascent::Lattice;
 use bevy_ecs::bundle::Bundle;
 use bevy_ecs::component::Component;
-use derive_getters::Getters;
+use derive_getters::{Dissolve, Getters};
 use euclid::default::Box2D;
 use llhd::ir::prelude::*;
 use llhd::ir::InstData;
@@ -49,7 +51,7 @@ pub struct DesignValueDefIndex {
 }
 
 /// `FlatIndex` for Design Gates
-#[derive(Debug, Clone, PartialEq, Eq, Hash, TypedBuilder, Getters)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, TypedBuilder, Getters, Dissolve)]
 pub struct DesignGateIndex {
     unit: UnitId,
     id: Inst,
@@ -57,6 +59,22 @@ pub struct DesignGateIndex {
     data: InstData,
     nets: BTreeSet<LCircuitEdgeID>,
     bb: Vec<Box2D<usize>>,
+}
+
+impl PartialOrd for DesignGateIndex {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.nets.cmp(&other.nets))
+    }
+}
+
+impl Lattice for DesignGateIndex {
+    fn meet(self, _other: Self) -> Self {
+        todo!()
+    }
+
+    fn join(self, _other: Self) -> Self {
+        todo!()
+    }
 }
 
 /// `FlatIndex` for Design Nets

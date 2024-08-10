@@ -23,46 +23,40 @@ pub trait DICagetoryMorphism {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
 
     use ascent::ascent_run;
-    use euclid::default::Box2D;
     use itertools::Itertools;
     use llhd::ir::prelude::*;
-    use llhd::ir::InstData;
-    use llhd::table::TableKey;
 
     use super::*;
-    use crate::circuit::graph::LCircuitEdgeID;
 
     struct ExampleCategory;
 
-    fn transform_design_unit(design_index_sets: &DICategoryObject) -> DICategoryObject {
+    fn transform_design_unit_via_lattice(design_index_sets: &DICategoryObject) -> DICategoryObject {
         let units = design_index_sets.units().clone();
         let value_defs = design_index_sets.value_defs().clone();
         let value_refs = design_index_sets.value_refs().clone();
-        let unit_id = design_index_sets.gates()[0].unit();
-        let facts: Vec<(Opcode, Value, Value, Value)> = design_index_sets
+        let facts: Vec<(Opcode, Value, Value, Value, DesignGateIndex)> = design_index_sets
             .gates()
             .iter()
-            .map(|domain_object| {
-                let inst_data = &domain_object.data();
+            .map(|gate_object| {
+                let inst_data = &gate_object.data();
                 let opcode = inst_data.opcode();
-                let inst_val = domain_object.value().to_owned();
+                let inst_val = gate_object.value().to_owned();
                 let arg1 = inst_data.args()[0];
                 let arg2 = inst_data.args()[1];
-                (opcode, inst_val, arg1, arg2)
+                (opcode, inst_val, arg1, arg2, gate_object.clone())
             })
             .collect_vec();
         let design_unit_demorgans = ascent_run! {
-           relation gates(Opcode, Value, Value, Value) = facts;
-           relation demorgan(Opcode, Value, Value, Value);
+           lattice gates(Opcode, Value, Value, Value, DesignGateIndex) = facts;
+           lattice demorgan(Opcode, Value, Value, Value, DesignGateIndex);
 
-           demorgan(Opcode::And, out_idx, a, and1_idx),
-           demorgan(Opcode::Or, and1_idx, b, c)
-           <-- gates(Opcode::Or, out_idx, and1_idx, and2_idx),
-               gates(Opcode::And, and1_idx, a, b),
-               gates(Opcode::And, and2_idx, a, c);
+           demorgan(Opcode::And, out_idx, a, and1_idx, obj_or),
+           demorgan(Opcode::Or, and1_idx, b, c, obj_and1)
+           <-- gates(Opcode::Or, out_idx, and1_idx, and2_idx, obj_or),
+               gates(Opcode::And, and1_idx, a, b, obj_and1),
+               gates(Opcode::And, and2_idx, a, c, obj_and2);
         }
         .demorgan;
         DICategoryObject::builder()
@@ -70,14 +64,77 @@ mod tests {
             .gates(
                 design_unit_demorgans
                     .into_iter()
-                    .map(|_gate| {
+                    .map(|gate| {
+                        let _new_opcode = gate.0;
+                        let new_value = gate.1;
+                        let _new_arg1 = gate.2;
+                        let _new_arg2 = gate.3;
+                        let gate_object = gate.4;
+                        let (unit, id, _value, data, nets, bb) = gate_object.dissolve();
                         DesignGateIndex::builder()
-                            .unit(*unit_id)
-                            .id(Inst::new(0))
-                            .value(Value::new(0))
-                            .data(InstData::default())
-                            .nets(BTreeSet::<LCircuitEdgeID>::default())
-                            .bb(Vec::<Box2D<usize>>::default())
+                            .unit(unit)
+                            .id(id)
+                            .value(new_value)
+                            .data(data)
+                            .nets(nets)
+                            .bb(bb)
+                            .build()
+                    })
+                    .collect_vec(),
+            )
+            .value_defs(value_defs)
+            .value_refs(value_refs)
+            .build()
+    }
+
+    fn transform_design_unit_via_values_and_opcode(
+        design_index_sets: &DICategoryObject,
+    ) -> DICategoryObject {
+        let units = design_index_sets.units().clone();
+        let value_defs = design_index_sets.value_defs().clone();
+        let value_refs = design_index_sets.value_refs().clone();
+        let facts: Vec<(Opcode, Value, Value, Value, DesignGateIndex)> = design_index_sets
+            .gates()
+            .iter()
+            .map(|gate_object| {
+                let inst_data = &gate_object.data();
+                let opcode = inst_data.opcode();
+                let inst_val = gate_object.value().to_owned();
+                let arg1 = inst_data.args()[0];
+                let arg2 = inst_data.args()[1];
+                (opcode, inst_val, arg1, arg2, gate_object.clone())
+            })
+            .collect_vec();
+        let design_unit_demorgans = ascent_run! {
+           relation gates(Opcode, Value, Value, Value, DesignGateIndex) = facts;
+           relation demorgan(Opcode, Value, Value, Value, DesignGateIndex);
+
+           demorgan(Opcode::And, out_idx, a, and1_idx, obj_or),
+           demorgan(Opcode::Or, and1_idx, b, c, obj_and1)
+           <-- gates(Opcode::Or, out_idx, and1_idx, and2_idx, obj_or),
+               gates(Opcode::And, and1_idx, a, b, obj_and1),
+               gates(Opcode::And, and2_idx, a, c, obj_and2);
+        }
+        .demorgan;
+        DICategoryObject::builder()
+            .units(units)
+            .gates(
+                design_unit_demorgans
+                    .into_iter()
+                    .map(|gate| {
+                        let _new_opcode = gate.0;
+                        let new_value = gate.1;
+                        let _new_arg1 = gate.2;
+                        let _new_arg2 = gate.3;
+                        let gate_object = gate.4;
+                        let (unit, id, _value, data, nets, bb) = gate_object.dissolve();
+                        DesignGateIndex::builder()
+                            .unit(unit)
+                            .id(id)
+                            .value(new_value)
+                            .data(data)
+                            .nets(nets)
+                            .bb(bb)
                             .build()
                     })
                     .collect_vec(),
