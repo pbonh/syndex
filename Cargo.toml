@@ -38,6 +38,7 @@ mhgl = "0.2.2"
 layout21 = "3.0.0-pre.2"
 peginator = "0.7.0"
 peginator_macro = "0.7.0"
+egglog = "0.2.0"
 
 [dev-dependencies]
 criterion = "0.4"

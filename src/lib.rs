@@ -87,6 +87,8 @@ mod config;
 pub mod synthesis_state;
 pub use synthesis_state::builder::{DesignState, Flow, SynthesisState, TechnologyState};
 
+pub mod synthesis;
+
 /// Library Technology Representation
 ///
 /// Build a representation of the underlying technology
