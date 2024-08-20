@@ -45,6 +45,7 @@ criterion = "0.4"
 indoc = "2.0.4"
 petgraph = "0.6.4"
 pretty_assertions = "1"
+test-log = "0.2.13"
 
 [package.metadata.cargo-udeps.ignore]
 development = ["criterion", "pretty_assertions"]
