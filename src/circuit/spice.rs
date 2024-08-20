@@ -262,8 +262,8 @@ mod tests {
         let spice_netlist_str: String = fs::read_to_string(spice_netlist_path).unwrap();
         let ast = SPICENetlist::parse(&spice_netlist_str).unwrap();
         let netlist_scope = &ast.netlist_scope;
-        println!("Comments: {:?}", netlist_scope.comments);
-        println!("Statements: {:?}", netlist_scope.statements);
+        // println!("Comments: {:?}", netlist_scope.comments);
+        // println!("Statements: {:?}", netlist_scope.statements);
         // println!(
         //     "Options Statements: {:?}",
         //     netlist_scope.statements[0]
@@ -273,7 +273,7 @@ mod tests {
         //         .id
         //         .clone()
         // );
-        println!("Elements: {:?}", netlist_scope.elements);
+        // println!("Elements: {:?}", netlist_scope.elements);
         assert_eq!(
             (4, 5, 33),
             (
@@ -313,7 +313,7 @@ mod tests {
             netlist_scope.subcircuits.len(),
             "There should be 1 Subcircuits in netlist."
         );
-        println!("Netlist Scope Comments: {:?}", netlist_scope.comments);
+        // println!("Netlist Scope Comments: {:?}", netlist_scope.comments);
         // println!(
         //     "Netlist Scope Last Comment: {:?}",
         //     netlist_scope.comments.last().unwrap().comment
@@ -384,7 +384,7 @@ mod tests {
             netlist_scope.elements.len(),
             "There should be 0 Elements in netlist."
         );
-        println!("Netlist Scope Comments: {:?}", netlist_scope.comments);
+        // println!("Netlist Scope Comments: {:?}", netlist_scope.comments);
         // println!(
         //     "Netlist Scope Last Comment: {:?}",
         //     netlist_scope.comments.last().unwrap().comment
