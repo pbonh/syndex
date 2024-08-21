@@ -52,3 +52,7 @@
 ; (let and1_gate_extracted (Gate (Inst 3) And (Value 4) (Value 1) (Value 6)))
 
 (run 100)
+
+; Check for Extracted Divisor Gates
+(query-extract (Gate (Inst 1) Or (Value 0) (Value 2) (Value 4)))
+(query-extract (Gate (Inst 3) And (Value 4) (Value 1) (Value 6)))
