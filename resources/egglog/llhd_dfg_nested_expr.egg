@@ -1,0 +1,61 @@
+; LLHD Opcodes
+(datatype LLHDOpcode)
+(declare And LLHDOpcode)
+(declare Or LLHDOpcode)
+(declare NAnd LLHDOpcode)
+(declare NOr LLHDOpcode)
+(declare Not LLHDOpcode)
+
+; LLHD Value ID
+(datatype LLHDValue
+    (Value i64)
+)
+
+; LLHD "Gate"
+(datatype LLHDSubcircuit
+    (ValueDef LLHDValue)
+    (AndGate LLHDSubcircuit LLHDSubcircuit)
+    (OrGate LLHDSubcircuit LLHDSubcircuit)
+    (NotGate LLHDSubcircuit)
+)
+
+; Divisor Extraction
+(ruleset div-ext)
+(rewrite (OrGate
+  (AndGate (ValueDef a) (ValueDef c))
+  (AndGate (ValueDef b) (ValueDef c))
+)(AndGate
+  (OrGate (ValueDef a) (ValueDef b))
+  (ValueDef c)
+):ruleset div-ext)
+
+; Entity Under Test
+; ```llhd
+; entity @test_entity (i1 %in1, i1 %in2, i1 %in3, i1 %in4) -> (i1$ %out1) {
+;     %null = const time 0s 1e
+;     %and1 = and i1 %in1, %in2
+;     %and2 = and i1 %in3, %in4
+;     %or1 = or i1 %and1, %and2
+;     drv i1$ %out1, %or1, %null
+; }
+; ```
+;
+; Create Global Database Entries
+(let unextracted_divisor (OrGate (AndGate
+                            (ValueDef (Value 0))
+                            (ValueDef (Value 1))
+                            ) (AndGate
+                            (ValueDef (Value 2))
+                            (ValueDef (Value 1))
+                            )))
+
+; Run Divisor Extraction Rules & Rewrites
+(run-schedule (saturate div-ext))
+
+(let extracted_divisor (AndGate (OrGate
+                          (ValueDef (Value 0))
+                          (ValueDef (Value 2))
+                          ) (ValueDef (Value 1))
+                          ))
+
+(check (= unextracted_divisor extracted_divisor))
