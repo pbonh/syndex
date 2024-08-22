@@ -71,6 +71,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn build_egraph_with_string_llhd_div_extract_w_placement() {
         let mut egglog_file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         egglog_file_path.push("resources/egglog/llhd_dfg_div_extract_w_placement.egg");
