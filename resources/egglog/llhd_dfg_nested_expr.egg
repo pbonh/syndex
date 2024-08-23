@@ -1,11 +1,3 @@
-; LLHD Opcodes
-(datatype LLHDOpcode)
-(declare And LLHDOpcode)
-(declare Or LLHDOpcode)
-(declare NAnd LLHDOpcode)
-(declare NOr LLHDOpcode)
-(declare Not LLHDOpcode)
-
 ; LLHD Value ID
 (datatype LLHDValue
     (Value i64)

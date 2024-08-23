@@ -113,9 +113,9 @@ mod tests {
             "There should be 1 rule match in program."
         );
         assert_eq!(
-            23,
+            13,
             egraph.num_tuples(),
-            "There should be 23 facts remaining in the egraph."
+            "There should be 13 facts remaining in the egraph."
         );
     }
 }
