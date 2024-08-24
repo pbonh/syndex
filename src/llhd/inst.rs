@@ -257,7 +257,8 @@ mod tests {
         assert_eq!(
             time_expected_str,
             time_value_datatype.to_string(),
-            "Datatype should be named 'LLHDTimeValue' and should have 1 field named (TimeValue i64)."
+            "Datatype should be named 'LLHDTimeValue' and should have 1 field named (TimeValue \
+             i64)."
         );
     }
 
