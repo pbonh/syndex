@@ -1,4 +1,4 @@
-use egglog::ast::{Command, Symbol, Variant};
+use egglog::ast::{Command, Expr, Symbol, Variant};
 use egglog::sort::*;
 use itertools::Itertools;
 use llhd::ir::prelude::*;
@@ -24,6 +24,7 @@ fn opcode_symbol(opcode: Opcode) -> Symbol {
 }
 
 const EGGLOG_I64_SORT: &str = "i64";
+const EGGLOG_VEC_SORT: &str = "Vec";
 const LLHD_VALUE_FIELD: &str = "Value";
 const LLHD_INT_VALUE_FIELD: &str = "IntValue";
 const LLHD_TIME_VALUE_FIELD: &str = "TimeValue";
@@ -32,6 +33,9 @@ const LLHD_VALUE_REF_FIELD: &str = "ValueRef";
 const LLHD_VALUE_DATATYPE: &str = "LLHDValue";
 const LLHD_INT_VALUE_DATATYPE: &str = "LLHDIntValue";
 const LLHD_TIME_VALUE_DATATYPE: &str = "LLHDTimeValue";
+const LLHD_VEC_VALUE_DATATYPE: &str = "LLHDVecValue";
+const LLHD_BLOCK_FIELD: &str = "Block";
+const LLHD_BLOCK_DATATYPE: &str = "LLHDBlock";
 const LLHD_DFG_DATATYPE: &str = "LLHDDFG";
 const LLHD_CFG_DATATYPE: &str = "LLHDCFG";
 
@@ -81,11 +85,33 @@ impl LLHDDatatypes {
         }
     }
 
+    pub(crate) fn vec_sort() -> Command {
+        let vec_sort_symbol = Symbol::new(LLHD_VEC_VALUE_DATATYPE);
+        let symbol_vec = Symbol::new(EGGLOG_VEC_SORT);
+        let i64_sort = I64Sort::new(EGGLOG_I64_SORT.into());
+        let i64_expr = Expr::Var((), i64_sort.name());
+        Command::Sort(vec_sort_symbol, Some((symbol_vec, vec![i64_expr])))
+    }
+
     fn value_ref_variant() -> Variant {
         Variant {
             name: Symbol::new(LLHD_VALUE_REF_FIELD),
             types: vec![Symbol::new(LLHD_VALUE_DATATYPE)],
             cost: None,
+        }
+    }
+
+    pub(crate) fn block() -> Command {
+        let i64_sort = I64Sort::new(EGGLOG_I64_SORT.into());
+        let block_variant = Variant {
+            name: Symbol::new(LLHD_BLOCK_FIELD),
+            types: vec![i64_sort.name()],
+            cost: None,
+        };
+        let symbol = Symbol::new(LLHD_BLOCK_DATATYPE);
+        Command::Datatype {
+            name: symbol,
+            variants: vec![block_variant],
         }
     }
 
@@ -104,6 +130,10 @@ impl LLHDDatatypes {
             Self::variant(Opcode::ConstInt, vec![LLHD_INT_VALUE_DATATYPE]),
             Self::variant(Opcode::ConstTime, vec![LLHD_TIME_VALUE_DATATYPE]),
             Self::variant(Opcode::Alias, vec![LLHD_DFG_DATATYPE]),
+            Self::variant(
+                Opcode::Wait,
+                vec![LLHD_BLOCK_DATATYPE, LLHD_VEC_VALUE_DATATYPE],
+            ),
         ];
         Command::Datatype {
             name: dfg_symbol,
@@ -263,6 +293,28 @@ mod tests {
     }
 
     #[test]
+    fn llhd_egglog_vec_sort() {
+        let vec_sort = LLHDDatatypes::vec_sort();
+        let expected_str = "(sort LLHDVecValue (Vec i64))".to_owned();
+        assert_eq!(
+            expected_str,
+            vec_sort.to_string(),
+            "Sort should be named 'LLHDVecValue' and should have 1 field named (Vec i64)."
+        );
+    }
+
+    #[test]
+    fn llhd_egglog_block_datatypes() {
+        let block_datatype = LLHDDatatypes::block();
+        let expected_str = "(datatype LLHDBlock (Block i64))".to_owned();
+        assert_eq!(
+            expected_str,
+            block_datatype.to_string(),
+            "Datatype should be named 'LLHDBlock' and should have 1 field named (Block i64)."
+        );
+    }
+
+    #[test]
     fn llhd_egglog_dfg_datatypes() {
         let dfg_datatype = LLHDDatatypes::dfg();
         let expected_str = trim_whitespace(indoc::indoc! {"
@@ -270,7 +322,8 @@ mod tests {
                 (ValueRef LLHDValue)
                 (ConstInt LLHDIntValue)
                 (ConstTime LLHDTimeValue)
-                (Alias LLHDDFG))
+                (Alias LLHDDFG)
+                (Wait LLHDBlock LLHDVecValue))
         "});
         assert_eq!(
             expected_str,
