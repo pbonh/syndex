@@ -130,6 +130,13 @@ impl LLHDDatatypes {
             Self::variant(Opcode::ConstInt, vec![LLHD_INT_VALUE_DATATYPE]),
             Self::variant(Opcode::ConstTime, vec![LLHD_TIME_VALUE_DATATYPE]),
             Self::variant(Opcode::Alias, vec![LLHD_DFG_DATATYPE]),
+            Self::variant(Opcode::Not, vec![LLHD_DFG_DATATYPE]),
+            Self::variant(Opcode::Neg, vec![LLHD_DFG_DATATYPE]),
+            Self::variant(Opcode::Add, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+            Self::variant(Opcode::Sub, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+            Self::variant(Opcode::And, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+            Self::variant(Opcode::Or, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+            Self::variant(Opcode::Xor, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
             Self::variant(
                 Opcode::Wait,
                 vec![LLHD_BLOCK_DATATYPE, LLHD_VEC_VALUE_DATATYPE],
@@ -323,6 +330,13 @@ mod tests {
                 (ConstInt LLHDIntValue)
                 (ConstTime LLHDTimeValue)
                 (Alias LLHDDFG)
+                (Not LLHDDFG)
+                (Neg LLHDDFG)
+                (Add LLHDDFG LLHDDFG)
+                (Sub LLHDDFG LLHDDFG)
+                (And LLHDDFG LLHDDFG)
+                (Or LLHDDFG LLHDDFG)
+                (Xor LLHDDFG LLHDDFG)
                 (Wait LLHDBlock LLHDVecValue))
         "});
         assert_eq!(
