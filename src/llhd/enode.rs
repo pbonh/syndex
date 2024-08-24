@@ -23,7 +23,7 @@ impl fmt::Display for LLHDENode {
 impl Default for LLHDENode {
     fn default() -> Self {
         Self {
-            id: Value::new(usize::max_value()),
+            id: Value::new(usize::MAX),
             ty: Arc::new(TypeKind::VoidType),
             data: InstData::default(),
         }

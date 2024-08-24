@@ -220,7 +220,7 @@ impl LModule {
             .map(|inst| LLHDENode {
                 id: unit
                     .get_inst_result(inst)
-                    .unwrap_or_else(|| Value::new(usize::max_value())),
+                    .unwrap_or_else(|| Value::new(usize::MAX)),
                 ty: unit.inst_type(inst),
                 data: unit[inst].clone(),
             })
@@ -236,7 +236,7 @@ impl LModule {
                     (
                         unit.id(),
                         unit.get_inst_result(inst)
-                            .unwrap_or_else(|| Value::new(usize::max_value())),
+                            .unwrap_or_else(|| Value::new(usize::MAX)),
                     )
                 }),
         )
