@@ -165,4 +165,9 @@ mod tests {
             "Generated LLHD Egglog expression doesn't match expected value."
         );
     }
+
+    #[test]
+    fn llhd_testbench_egglog_program() {
+        // let _module = load_llhd_module("testbench_paper.llhd");
+    }
 }

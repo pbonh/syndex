@@ -1,0 +1,45 @@
+entity @acc_tb () -> () {
+  %zero0 = const i1 0
+  %zero1 = const i32 0 %clk = sig i1 %zero0
+  %en = sig i1 %zero0
+  %x = sig i32 %zero1
+  %q = sig i32 %zero1 inst @acc (i1$ %clk, i32$ %x, i1$ %en) -> (i32$ %q)
+  inst @acc_tb_initial (i32$ %q) -> (i1$ %clk, i32$ %x, i1$ %en)
+}
+proc @acc_tb_initial (i32$ %q) -> (i1$ %clk, i32$ %x, i1$ %en) {
+  entry:
+    %bit0 = const i1 0
+    %bit1 = const i1 1 %zero = const i32 0
+    %one = const i32 1
+    %many = const i32 1337 %del1ns = const time 1ns
+    %del2ns = const time 2ns
+    %i = var i32 %zero
+    drv i1$ %en, %bit1 after %del2ns
+    br %loop
+  loop:
+    %ip = ld i32* %i
+    drv i32$ %x, %ip after %del2ns
+    drv i1$ %clk, %bit1 after %del1ns
+    drv i1$ %clk, %bit0 after %del2ns
+    wait %next for %del2ns
+  next:
+    %qp = prb i32$ %q
+    call void @acc_tb_check (i32 %ip, i32 %qp)
+    %in = add i32 %ip, %one
+    st i32* %i, %in
+    %cont = ult i32 %ip, %many
+    br %cont, %end, %loop
+  end:
+    halt
+}
+func @acc_tb_check (i32 %i, i32 %q) void {
+  entry:
+    %one = const i32 1
+    %two = const i32 2
+    %ip1 = add i32 %i, %one ; i+1
+    %ixip1 = mul i32 %i, %ip1 ; i*(i+1)
+    %qexp = div i32 %ixip1, %two ; i*(i+1)/2
+    %eq = eq i32 %qexp, %q ; q == i*(i+1)/2
+    call void @llhd.assert (i1 %eq) ; not yet implemented
+    ret
+}
