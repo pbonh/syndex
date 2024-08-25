@@ -257,6 +257,16 @@ pub(crate) fn iterate_unit_insts<'unit>(
     })
 }
 
+pub(crate) fn last_unit_inst<'unit>(
+    unit: &'unit Unit,
+) -> LLHDInst {
+    let blocks = unit.blocks().collect_vec();
+    let last_block = blocks.last().expect("Unit empty.");
+    (unit.id(), unit.last_inst(*last_block).expect("Empty Unit Block."))
+    // let last_block = unit.last_block().expect("Unit empty.");
+    // (unit.id(), unit.last_inst(last_block).expect("Empty Unit Block."))
+}
+
 pub(crate) fn iterate_unit_value_defs<'unit>(
     unit: &'unit Unit,
 ) -> impl Iterator<Item = LLHDValue> + 'unit {
@@ -323,6 +333,16 @@ mod tests {
             value_refs[1].2,
             "Second Id should be Arg with Id: 5(4 args first)"
         );
+    }
+
+    #[test]
+    #[should_panic]
+    fn get_last_llhd_unit_inst() {
+        let unit_data = build_entity(UnitName::anonymous(0));
+        let unit = Unit::new(UnitId::new(0), &unit_data);
+        let add2_inst = last_unit_inst(&unit);
+        let add2_inst_data = &unit[add2_inst.1];
+        assert_eq!(Opcode::Add, add2_inst_data.opcode(), "Inst should be Add.");
     }
 
     #[test]
