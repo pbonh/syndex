@@ -1,8 +1,10 @@
-use egglog::ast::{Command, Expr, Symbol, Variant};
+use egglog::ast::{Command, Expr, GenericExpr, Literal, Symbol, Variant};
 use egglog::sort::*;
 use itertools::Itertools;
 use llhd::ir::prelude::*;
-use llhd::ir::InstData;
+use llhd::ir::{InstData, ValueData};
+use llhd::table::TableKey;
+use llhd::{IntValue, TimeValue};
 
 use crate::llhd::{LLHDInst, LLHDValue};
 
@@ -12,7 +14,7 @@ fn uppercase_first_letter(s: &mut str) {
     }
 }
 
-fn opcode_symbol(opcode: Opcode) -> Symbol {
+pub(super) fn opcode_symbol(opcode: Opcode) -> Symbol {
     let mut opcode_str = opcode.to_string();
     match opcode {
         Opcode::ConstTime => opcode_str.push_str("Time"),
@@ -137,6 +139,9 @@ impl LLHDDatatypes {
             Self::variant(Opcode::And, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
             Self::variant(Opcode::Or, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
             Self::variant(Opcode::Xor, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+            Self::variant(Opcode::Sig, vec![LLHD_DFG_DATATYPE]),
+            Self::variant(Opcode::Prb, vec![LLHD_DFG_DATATYPE]),
+            Self::variant(Opcode::Drv, vec![LLHD_DFG_DATATYPE]),
             Self::variant(
                 Opcode::Wait,
                 vec![LLHD_BLOCK_DATATYPE, LLHD_VEC_VALUE_DATATYPE],
@@ -152,6 +157,65 @@ impl LLHDDatatypes {
         let _symbol = Symbol::new(LLHD_CFG_DATATYPE);
         todo!()
     }
+}
+
+fn value_def_expr(value: impl TableKey) -> Expr {
+    let converted_unsigned_num =
+        i64::try_from(value.index()).expect("Out-of-bound value for u32 -> i64 conversion.");
+    let converted_literal = Literal::Int(converted_unsigned_num);
+    let literal_value = GenericExpr::lit(converted_literal);
+    let llhd_value_datatype_symbol = Symbol::new(LLHD_VALUE_FIELD);
+    GenericExpr::call(llhd_value_datatype_symbol, [literal_value])
+}
+
+fn value_data_expr(unit: &Unit<'_>, value_data: &ValueData) -> Expr {
+    match value_data {
+        ValueData::Inst { inst, .. } => inst_expr(unit, &unit[inst.to_owned()]),
+        ValueData::Arg { arg, .. } => value_def_expr(arg.to_owned()),
+        _ => panic!("Value type not supported."),
+    }
+}
+
+fn int_value_expr(int_value: IntValue) -> Expr {
+    let converted_literal = Literal::String(int_value.to_string().into());
+    let literal_value = GenericExpr::lit(converted_literal);
+    let llhd_value_datatype_symbol = Symbol::new(LLHD_VALUE_FIELD);
+    GenericExpr::call(llhd_value_datatype_symbol, [literal_value])
+}
+
+fn time_value_expr(time_value: TimeValue) -> Expr {
+    let converted_literal = Literal::String(time_value.to_string().into());
+    let literal_value = GenericExpr::lit(converted_literal);
+    let llhd_value_datatype_symbol = Symbol::new(LLHD_VALUE_FIELD);
+    GenericExpr::call(llhd_value_datatype_symbol, [literal_value])
+}
+
+pub(super) fn inst_expr(unit: &Unit<'_>, inst_data: &InstData) -> Expr {
+    let inst_symbol = opcode_symbol(inst_data.opcode());
+    let mut children: Vec<Expr> = vec![];
+    match inst_data {
+        InstData::Binary { args, .. } => {
+            let expr_left = value_data_expr(&unit, &unit[args[0]]);
+            let expr_right = value_data_expr(&unit, &unit[args[1]]);
+            children = vec![expr_left, expr_right];
+        }
+        InstData::Unary { args, .. } => {
+            let value_data = &unit[args[0]];
+            let expr_left = value_data_expr(&unit, value_data);
+            children = vec![expr_left];
+        }
+        InstData::ConstInt { imm, .. } => {
+            children = vec![int_value_expr(imm.clone())];
+        }
+        InstData::ConstTime { imm, .. } => {
+            children = vec![time_value_expr(imm.clone())];
+        }
+        InstData::Nullary { .. } => {}
+        _ => {
+            panic!("No implementation for this InstData type.")
+        }
+    }
+    GenericExpr::call(inst_symbol, children)
 }
 
 pub(crate) fn inst_data_let_stmt(inst_data: &InstData) -> Command {
@@ -193,7 +257,7 @@ pub(crate) fn iterate_unit_insts<'unit>(
     })
 }
 
-pub(crate) fn iterate_unit_value_refs<'unit>(
+pub(crate) fn iterate_unit_value_defs<'unit>(
     unit: &'unit Unit,
 ) -> impl Iterator<Item = LLHDValue> + 'unit {
     unit.all_insts()
@@ -242,7 +306,7 @@ mod tests {
         let unit_data = build_entity(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
         let insts = iterate_unit_insts(&unit).collect_vec();
-        let value_refs = iterate_unit_value_refs(&unit).collect_vec();
+        let value_refs = iterate_unit_value_defs(&unit).collect_vec();
         assert_eq!(5, insts.len(), "There should be 5 Insts defined in Unit.");
         assert_eq!(
             5,
@@ -337,12 +401,45 @@ mod tests {
                 (And LLHDDFG LLHDDFG)
                 (Or LLHDDFG LLHDDFG)
                 (Xor LLHDDFG LLHDDFG)
+                (Sig LLHDDFG)
+                (Prb LLHDDFG)
+                (Drv LLHDDFG)
                 (Wait LLHDBlock LLHDVecValue))
         "});
         assert_eq!(
             expected_str,
             dfg_datatype.to_string(),
             "Datatype should be named 'LLHDValue' and should have 1 field named (Value i64)."
+        );
+    }
+
+    #[test]
+    fn llhd_value_egglog_expr() {
+        let value1 = Value::new(1);
+        let value1_expr = value_def_expr(value1);
+        let expected_str = "(Value 1)";
+        assert_eq!(
+            expected_str,
+            value1_expr.to_string(),
+            "Expr should match LLHDValue Constructor, (Value _)."
+        );
+    }
+
+    #[test]
+    fn llhd_inst_egglog_expr() {
+        let unit_data = build_entity(UnitName::anonymous(0));
+        let unit = Unit::new(UnitId::new(0), &unit_data);
+        let insts = iterate_unit_insts(&unit).collect_vec();
+        let add2_inst = insts[4];
+        let add2_inst_data = &unit[add2_inst.1];
+        assert_eq!(Opcode::Add, add2_inst_data.opcode(), "Inst should be Add.");
+        let add2_expr = inst_expr(&unit, &add2_inst_data);
+        let expected_str =
+            "(Add (Add (ConstInt (Value \"i1 0\")) (ConstInt (Value \"i1 1\"))) (Prb (Value 2)))";
+        assert_eq!(
+            expected_str,
+            add2_expr.to_string(),
+            "Expr should match nested Add expr."
         );
     }
 
