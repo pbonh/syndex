@@ -232,12 +232,13 @@ pub(crate) fn iterate_unit_insts<'unit>(
     })
 }
 
-pub(crate) fn last_unit_inst<'unit>(
-    unit: &'unit Unit,
-) -> LLHDInst {
+pub(crate) fn last_unit_inst<'unit>(unit: &'unit Unit) -> LLHDInst {
     let blocks = unit.blocks().collect_vec();
     let last_block = blocks.last().expect("Unit empty.");
-    (unit.id(), unit.last_inst(*last_block).expect("Empty Unit Block."))
+    (
+        unit.id(),
+        unit.last_inst(*last_block).expect("Empty Unit Block."),
+    )
     // let last_block = unit.last_block().expect("Unit empty.");
     // (unit.id(), unit.last_inst(last_block).expect("Empty Unit Block."))
 }
@@ -287,25 +288,25 @@ mod tests {
     }
 
     #[test]
-    fn create_insts_and_value_refs() {
+    fn create_insts_and_value_defs() {
         let unit_data = build_entity(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
         let insts = iterate_unit_insts(&unit).collect_vec();
-        let value_refs = iterate_unit_value_defs(&unit).collect_vec();
+        let value_defs = iterate_unit_value_defs(&unit).collect_vec();
         assert_eq!(5, insts.len(), "There should be 5 Insts defined in Unit.");
         assert_eq!(
             5,
-            value_refs.len(),
+            value_defs.len(),
             "There should be 5 Values defined in Unit."
         );
         assert_eq!(
             Value::new(4),
-            value_refs[0].2,
+            value_defs[0].2,
             "First Id should be Arg with Id: 4(4 args first)"
         );
         assert_eq!(
             Value::new(5),
-            value_refs[1].2,
+            value_defs[1].2,
             "Second Id should be Arg with Id: 5(4 args first)"
         );
     }
