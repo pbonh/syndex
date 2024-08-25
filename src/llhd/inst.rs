@@ -218,31 +218,6 @@ pub(super) fn inst_expr(unit: &Unit<'_>, inst_data: &InstData) -> Expr {
     GenericExpr::call(inst_symbol, children)
 }
 
-pub(crate) fn inst_data_let_stmt(inst_data: &InstData) -> Command {
-    match inst_data {
-        InstData::Binary { opcode, args } => {
-            let symbol = opcode_symbol(*opcode);
-            let _arg1 = args[0];
-            let _arg2 = args[1];
-            Command::Datatype {
-                name: symbol,
-                variants: vec![],
-            }
-        }
-        InstData::Unary { opcode, args } => {
-            let symbol = opcode_symbol(*opcode);
-            let _arg1 = args[0];
-            Command::Datatype {
-                name: symbol,
-                variants: vec![],
-            }
-        }
-        _ => {
-            panic!("No implementation for this InstData type.")
-        }
-    }
-}
-
 pub(crate) fn iterate_unit_insts<'unit>(
     unit: &'unit Unit,
 ) -> impl Iterator<Item = LLHDInst> + 'unit {
@@ -461,12 +436,5 @@ mod tests {
             add2_expr.to_string(),
             "Expr should match nested Add expr."
         );
-    }
-
-    #[test]
-    #[should_panic]
-    fn egglog_command_builder() {
-        let inst_data = InstData::default();
-        let _egglog_datatype = inst_data_let_stmt(&inst_data);
     }
 }
