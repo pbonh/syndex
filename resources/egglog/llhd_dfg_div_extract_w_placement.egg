@@ -22,11 +22,11 @@
 ; Divisor Extraction
 (ruleset div-ext)
 (rewrite (OrGate
-  (AndGate (ValueDef a) (ValueDef c))
-  (AndGate (ValueDef b) (ValueDef c))
+  (AndGate a c)
+  (AndGate b c)
 )(AndGate
-  (OrGate (ValueDef a) (ValueDef b))
-  (ValueDef c)
+  (OrGate a b)
+  c
 ):ruleset div-ext)
 
 ; Entity Under Test
