@@ -46,6 +46,8 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
 
+    use egglog::ast::{GenericCommand, GenericRunConfig, GenericSchedule};
+    use egglog::EGraph;
     use llhd::table::TableKey;
 
     use super::*;
@@ -58,6 +60,18 @@ mod tests {
         let llhd_module_str: String = fs::read_to_string(llhd_module_file_path).unwrap();
         llhd::assembly::parse_module(llhd_module_str)
             .expect(&format!("Error loading module: {}", filename))
+    }
+
+    fn load_egraph(filename: &str) -> (EGraph, Vec<String>) {
+        let mut egglog_program_file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        egglog_program_file_path.push("resources/egglog");
+        egglog_program_file_path.push(filename);
+        let egglog_program_str: String = fs::read_to_string(egglog_program_file_path).unwrap();
+        let mut egraph = EGraph::default();
+        let msgs = egraph
+            .parse_and_run_program(&egglog_program_str)
+            .expect("Failure to run program on egraph.");
+        (egraph, msgs)
     }
 
     #[test]
@@ -197,7 +211,41 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "EGraph failed to run schedule.")]
     fn llhd_testbench_egglog_program() {
-        // let _module = load_llhd_module("testbench_paper.llhd");
+        let egraph_info = load_egraph("llhd_div_extract.egg");
+        let mut egraph = egraph_info.0;
+        assert_eq!(
+            0,
+            egraph.num_tuples(),
+            "There should be 0 facts initially in the egraph."
+        );
+
+        let module = load_llhd_module("2and_1or.llhd");
+        let units = iterate_unit_ids(&module).collect_vec();
+        let unit = module.unit(*units.first().unwrap());
+        let egglog_expr = LLHDDFGExprTree::from_unit(&unit);
+        let facts = egglog_expr.to_string();
+        println!("{}", facts);
+        let egraph_run_facts = egraph.parse_and_run_program(&facts);
+        assert!(egraph_run_facts.is_ok(), "EGraph failed to run schedule.");
+
+        let div_extract_ruleset_symbol = Symbol::new("div-ext");
+        let div_extract_schedule = GenericRunConfig::<Symbol, Symbol, ()> {
+            ruleset: div_extract_ruleset_symbol,
+            until: None,
+        };
+        let extract_cmd =
+            GenericCommand::RunSchedule(GenericSchedule::Run(div_extract_schedule).saturate());
+        let egraph_run_schedule = egraph.run_program(vec![extract_cmd]);
+        assert!(
+            egraph_run_schedule.is_ok(),
+            "EGraph failed to run schedule."
+        );
+        assert_eq!(
+            13,
+            egraph.num_tuples(),
+            "There should be 13 facts remaining in the egraph."
+        );
     }
 }

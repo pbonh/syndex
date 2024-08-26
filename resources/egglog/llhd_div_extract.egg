@@ -1,0 +1,31 @@
+(sort LLHDVecValue (Vec i64))
+(datatype LLHDValue (Value i64))
+(datatype LLHDIntValue (IntValue i64))
+(datatype LLHDTimeValue (TimeValue i64))
+(datatype LLHDBlock (Block i64))
+(datatype LLHDDFG
+    (ValueRef LLHDValue)
+    (ConstInt LLHDIntValue)
+    (ConstTime LLHDTimeValue)
+    (Alias LLHDDFG)
+    (Not LLHDDFG)
+    (Neg LLHDDFG)
+    (Add LLHDDFG LLHDDFG)
+    (Sub LLHDDFG LLHDDFG)
+    (And LLHDDFG LLHDDFG)
+    (Or LLHDDFG LLHDDFG)
+    (Xor LLHDDFG LLHDDFG)
+    (Sig LLHDDFG)
+    (Prb LLHDDFG)
+    (Drv LLHDDFG)
+    (Wait LLHDBlock LLHDVecValue))
+
+; Divisor Extraction
+(ruleset div-ext)
+(rewrite (Or
+  (And a c)
+  (And b c)
+)(And
+  (Or a b)
+  c
+):ruleset div-ext)
