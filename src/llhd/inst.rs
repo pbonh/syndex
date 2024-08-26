@@ -141,7 +141,10 @@ impl LLHDDatatypes {
             Self::variant(Opcode::Xor, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
             Self::variant(Opcode::Sig, vec![LLHD_DFG_DATATYPE]),
             Self::variant(Opcode::Prb, vec![LLHD_DFG_DATATYPE]),
-            Self::variant(Opcode::Drv, vec![LLHD_DFG_DATATYPE]),
+            Self::variant(
+                Opcode::Drv,
+                vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE],
+            ),
             Self::variant(
                 Opcode::Wait,
                 vec![LLHD_BLOCK_DATATYPE, LLHD_VEC_VALUE_DATATYPE],
@@ -178,16 +181,12 @@ fn value_data_expr(unit: &Unit<'_>, value_data: &ValueData) -> Expr {
 
 fn int_value_expr(int_value: IntValue) -> Expr {
     let converted_literal = Literal::String(int_value.to_string().into());
-    let literal_value = GenericExpr::lit(converted_literal);
-    let llhd_value_datatype_symbol = Symbol::new(LLHD_VALUE_FIELD);
-    GenericExpr::call(llhd_value_datatype_symbol, [literal_value])
+    GenericExpr::lit(converted_literal)
 }
 
 fn time_value_expr(time_value: TimeValue) -> Expr {
     let converted_literal = Literal::String(time_value.to_string().into());
-    let literal_value = GenericExpr::lit(converted_literal);
-    let llhd_value_datatype_symbol = Symbol::new(LLHD_VALUE_FIELD);
-    GenericExpr::call(llhd_value_datatype_symbol, [literal_value])
+    GenericExpr::lit(converted_literal)
 }
 
 pub(super) fn inst_expr(unit: &Unit<'_>, inst_data: &InstData) -> Expr {
@@ -405,7 +404,7 @@ mod tests {
                 (Xor LLHDDFG LLHDDFG)
                 (Sig LLHDDFG)
                 (Prb LLHDDFG)
-                (Drv LLHDDFG)
+                (Drv LLHDDFG LLHDDFG LLHDDFG)
                 (Wait LLHDBlock LLHDVecValue))
         "});
         assert_eq!(
@@ -436,8 +435,13 @@ mod tests {
         let add2_inst_data = &unit[add2_inst.1];
         assert_eq!(Opcode::Add, add2_inst_data.opcode(), "Inst should be Add.");
         let add2_expr = inst_expr(&unit, &add2_inst_data);
-        let expected_str =
-            "(Add (Add (ConstInt (Value \"i1 0\")) (ConstInt (Value \"i1 1\"))) (Prb (Value 2)))";
+        let expected_str = trim_whitespace(indoc::indoc! {"
+            (Add
+                (Add
+                    (ConstInt \"i1 0\")
+                    (ConstInt \"i1 1\"))
+                (Prb (Value 2)))
+        "});
         assert_eq!(
             expected_str,
             add2_expr.to_string(),

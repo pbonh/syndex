@@ -30,7 +30,8 @@ pub(crate) struct LLHDDFGExprTree;
 
 impl LLHDDFGExprTree {
     pub(crate) fn from_unit(unit: &Unit<'_>) -> Action {
-        let unit_symbol = Symbol::new(unit.name().to_string());
+        let unit_name = unit.name().to_string().replace(&['@', '%', ','][..], "");
+        let unit_symbol = Symbol::new(unit_name);
         let insts = iterate_unit_insts(unit).collect_vec();
         let root_inst_data = &unit[insts
             .last()
@@ -154,10 +155,10 @@ mod tests {
 
         let egglog_expr = LLHDDFGExprTree::from_unit(&unit);
         let expected_str = trim_whitespace(indoc::indoc! {"
-            (let %0 (Add
+            (let 0 (Add
                 (Add
-                    (ConstInt (Value \"i1 0\"))
-                    (ConstInt (Value \"i1 1\")))
+                    (ConstInt \"i1 0\")
+                    (ConstInt \"i1 1\"))
                 (Prb (Value 2))))
         "});
         assert_eq!(
@@ -197,11 +198,11 @@ mod tests {
 
         let egglog_expr = LLHDDFGExprTree::from_unit(&unit);
         let expected_str = trim_whitespace(indoc::indoc! {"
-            (let @test_entity (Drv
+            (let test_entity (Drv
                 (Value 4) (Or
                     (And (Value 0) (Value 1))
                     (And (Value 2) (Value 3)))
-                (ConstTime (Value \"0s 1e\"))))
+                (ConstTime \"0s 1e\")))
         "});
         assert_eq!(
             expected_str,
@@ -211,7 +212,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "EGraph failed to run schedule.")]
     fn llhd_testbench_egglog_program() {
         let egraph_info = load_egraph("llhd_div_extract.egg");
         let mut egraph = egraph_info.0;
@@ -241,9 +241,9 @@ mod tests {
             "EGraph failed to run schedule."
         );
         assert_eq!(
-            13,
+            11,
             egraph.num_tuples(),
-            "There should be 13 facts remaining in the egraph."
+            "There should be 11 facts remaining in the egraph."
         );
     }
 }
