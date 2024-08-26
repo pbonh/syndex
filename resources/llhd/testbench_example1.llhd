@@ -1,0 +1,23 @@
+proc %top.and (i1$ %in1, i1$ %in2, i1$ %in3) -> (i1$ %out1) {
+%init:
+    %epsilon = const time 0s 1e
+    %in1_prb = prb i1$ %in1
+    %in2_prb = prb i1$ %in2
+    %in3_prb = prb i1$ %in2
+    %and1 = and i1 %in1_prb, %in2_prb
+    %and2 = and i1 %in3_prb, %and1
+    drv i1$ %out1, %and2, %epsilon
+    wait %init for %epsilon
+}
+
+entity @top () -> () {
+    %top_input1 = const i1 0
+    %in1 = sig i1 %top_input1
+    %top_input2 = const i1 1
+    %in2 = sig i1 %top_input2
+    %top_input3 = const i1 1
+    %in3 = sig i1 %top_input3
+    %top_out1 = const i1 0
+    %out1 = sig i1 %top_out1
+    inst %top.and (i1$ %in1, i1$ %in2, i1$ %in3) -> (i1$ %out1)
+}

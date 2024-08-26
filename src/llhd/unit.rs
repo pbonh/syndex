@@ -43,39 +43,26 @@ impl LLHDDFGExprTree {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::path::PathBuf;
+
     use llhd::table::TableKey;
 
     use super::*;
     use crate::llhd::inst::iterate_unit_value_defs;
 
+    fn load_llhd_module(filename: &str) -> Module {
+        let mut llhd_module_file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        llhd_module_file_path.push("resources/llhd");
+        llhd_module_file_path.push(filename);
+        let llhd_module_str: String = fs::read_to_string(llhd_module_file_path).unwrap();
+        llhd::assembly::parse_module(llhd_module_str)
+            .expect(&format!("Error loading module: {}", filename))
+    }
+
     #[test]
     fn build_unit_component() {
-        let input = indoc::indoc! {"
-            proc %top.and (i1$ %in1, i1$ %in2, i1$ %in3) -> (i1$ %out1) {
-            %init:
-                %epsilon = const time 0s 1e
-                %in1_prb = prb i1$ %in1
-                %in2_prb = prb i1$ %in2
-                %in3_prb = prb i1$ %in2
-                %and1 = and i1 %in1_prb, %in2_prb
-                %and2 = and i1 %in3_prb, %and1
-                drv i1$ %out1, %and2, %epsilon
-                wait %init for %epsilon
-            }
-
-            entity @top () -> () {
-                %top_input1 = const i1 0
-                %in1 = sig i1 %top_input1
-                %top_input2 = const i1 1
-                %in2 = sig i1 %top_input2
-                %top_input3 = const i1 1
-                %in3 = sig i1 %top_input3
-                %top_out1 = const i1 0
-                %out1 = sig i1 %top_out1
-                inst %top.and (i1$ %in1, i1$ %in2, i1$ %in3) -> (i1$ %out1)
-            }
-        "};
-        let module = llhd::assembly::parse_module(input).unwrap();
+        let module = load_llhd_module("testbench_example1.llhd");
         let units = iterate_unit_ids(&module).collect_vec();
         assert_eq!(2, units.len(), "There should be 2 Units present in Module.");
         let first_unit = module.units().collect_vec()[0];
@@ -121,7 +108,7 @@ mod tests {
     }
 
     #[test]
-    fn llhd_egglog_dfg_expression_tree() {
+    fn llhd_egglog_dfg_expression_tree1() {
         let unit_data = build_entity(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
         let insts = iterate_unit_insts(&unit).collect_vec();
@@ -158,6 +145,49 @@ mod tests {
                     (ConstInt (Value \"i1 0\"))
                     (ConstInt (Value \"i1 1\")))
                 (Prb (Value 2))))
+        "});
+        assert_eq!(
+            expected_str,
+            egglog_expr.to_string(),
+            "Generated LLHD Egglog expression doesn't match expected value."
+        );
+    }
+
+    #[test]
+    fn llhd_egglog_dfg_expression_tree2() {
+        let module = load_llhd_module("2and_1or.llhd");
+        let units = iterate_unit_ids(&module).collect_vec();
+        let unit = module.unit(*units.first().unwrap());
+        let insts = iterate_unit_insts(&unit).collect_vec();
+        let _value_refs = iterate_unit_value_defs(&unit).collect_vec();
+
+        let const_time_inst = insts[0];
+        let const_time_inst_data = &unit[const_time_inst.1];
+        assert_eq!(
+            Opcode::ConstTime,
+            const_time_inst_data.opcode(),
+            "Inst should be Const Time."
+        );
+        let and1_inst = insts[1];
+        let and1_inst_data = &unit[and1_inst.1];
+        assert_eq!(Opcode::And, and1_inst_data.opcode(), "Inst should be And.");
+        let and2_inst = insts[2];
+        let and2_inst_data = &unit[and2_inst.1];
+        assert_eq!(Opcode::And, and2_inst_data.opcode(), "Inst should be And.");
+        let or1_inst = insts[3];
+        let or1_inst_data = &unit[or1_inst.1];
+        assert_eq!(Opcode::Or, or1_inst_data.opcode(), "Inst should be Or.");
+        let drv_inst = insts[4];
+        let drv_inst_data = &unit[drv_inst.1];
+        assert_eq!(Opcode::Drv, drv_inst_data.opcode(), "Inst should be Drv.");
+
+        let egglog_expr = LLHDDFGExprTree::from_unit(&unit);
+        let expected_str = trim_whitespace(indoc::indoc! {"
+            (let @test_entity (Drv
+                (Value 4) (Or
+                    (And (Value 0) (Value 1))
+                    (And (Value 2) (Value 3)))
+                (ConstTime (Value \"0s 1e\"))))
         "});
         assert_eq!(
             expected_str,

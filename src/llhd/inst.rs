@@ -210,6 +210,12 @@ pub(super) fn inst_expr(unit: &Unit<'_>, inst_data: &InstData) -> Expr {
         InstData::ConstTime { imm, .. } => {
             children = vec![time_value_expr(imm.clone())];
         }
+        InstData::Ternary { args, .. } => {
+            let expr_x = value_data_expr(&unit, &unit[args[0]]);
+            let expr_y = value_data_expr(&unit, &unit[args[1]]);
+            let expr_z = value_data_expr(&unit, &unit[args[2]]);
+            children = vec![expr_x, expr_y, expr_z];
+        }
         InstData::Nullary { .. } => {}
         _ => {
             panic!("No implementation for this InstData type.")
