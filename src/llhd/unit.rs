@@ -221,12 +221,27 @@ mod tests {
             "There should be 0 facts initially in the egraph."
         );
 
-        let module = load_llhd_module("2and_1or.llhd");
+        let module = load_llhd_module("2and_1or_common.llhd");
         let units = iterate_unit_ids(&module).collect_vec();
         let unit = module.unit(*units.first().unwrap());
         let egglog_expr = LLHDDFGExprTree::from_unit(&unit);
         let egraph_run_facts = egraph.run_program(vec![GenericCommand::Action(egglog_expr)]);
-        assert!(egraph_run_facts.is_ok(), "EGraph failed to run schedule.");
+        assert!(egraph_run_facts.is_ok(), "EGraph failed to add facts.");
+        assert!(
+            egraph
+                .get_overall_run_report()
+                .num_matches_per_rule
+                .values()
+                .next()
+                .is_none(),
+            "There should be no matches yet, as the rule schedule hasn't run yet."
+        );
+
+        assert_eq!(
+            10,
+            egraph.num_tuples(),
+            "There should be 10 facts remaining in the egraph."
+        );
 
         let div_extract_ruleset_symbol = Symbol::new("div-ext");
         let div_extract_schedule = GenericRunConfig::<Symbol, Symbol, ()> {
@@ -241,9 +256,19 @@ mod tests {
             "EGraph failed to run schedule."
         );
         assert_eq!(
-            11,
+            12,
             egraph.num_tuples(),
-            "There should be 11 facts remaining in the egraph."
+            "There should be 12 facts remaining in the egraph(new 'And', new 'Or' nodes)."
+        );
+        let egraph_run_rules_matches = egraph
+            .get_overall_run_report()
+            .num_matches_per_rule
+            .values()
+            .next()
+            .unwrap();
+        assert_eq!(
+            1, *egraph_run_rules_matches,
+            "There should be 1 match for divisor extraction rewrite rule."
         );
     }
 }
