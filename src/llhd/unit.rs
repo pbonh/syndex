@@ -225,9 +225,7 @@ mod tests {
         let units = iterate_unit_ids(&module).collect_vec();
         let unit = module.unit(*units.first().unwrap());
         let egglog_expr = LLHDDFGExprTree::from_unit(&unit);
-        let facts = egglog_expr.to_string();
-        println!("{}", facts);
-        let egraph_run_facts = egraph.parse_and_run_program(&facts);
+        let egraph_run_facts = egraph.run_program(vec![GenericCommand::Action(egglog_expr)]);
         assert!(egraph_run_facts.is_ok(), "EGraph failed to run schedule.");
 
         let div_extract_ruleset_symbol = Symbol::new("div-ext");
