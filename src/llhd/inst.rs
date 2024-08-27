@@ -26,7 +26,9 @@ pub(super) fn opcode_symbol(opcode: Opcode) -> Symbol {
 }
 
 const EGGLOG_I64_SORT: &str = "i64";
+const EGGLOG_STRING_SORT: &str = "String";
 const EGGLOG_VEC_SORT: &str = "Vec";
+const LLHD_UNIT_FIELD: &str = "LLHDUnit";
 const LLHD_VALUE_FIELD: &str = "Value";
 const LLHD_INT_VALUE_FIELD: &str = "IntValue";
 const LLHD_TIME_VALUE_FIELD: &str = "TimeValue";
@@ -97,8 +99,20 @@ impl LLHDDatatypes {
 
     fn value_ref_variant() -> Variant {
         Variant {
-            name: Symbol::new(LLHD_VALUE_REF_FIELD),
-            types: vec![Symbol::new(LLHD_VALUE_DATATYPE)],
+            name: Symbol::new(LLHD_VALUE_FIELD),
+            types: vec![Symbol::new(EGGLOG_I64_SORT)],
+            cost: None,
+        }
+    }
+
+    pub(crate) fn unit_root_variant_symbol() -> Symbol {
+        Symbol::new(LLHD_UNIT_FIELD)
+    }
+
+    fn unit_root_variant() -> Variant {
+        Variant {
+            name: Self::unit_root_variant_symbol(),
+            types: vec![Symbol::new(LLHD_DFG_DATATYPE)],
             cost: None,
         }
     }
@@ -129,8 +143,8 @@ impl LLHDDatatypes {
         let dfg_symbol = Symbol::new(LLHD_DFG_DATATYPE);
         let dfg_variants = vec![
             Self::value_ref_variant(),
-            Self::variant(Opcode::ConstInt, vec![LLHD_INT_VALUE_DATATYPE]),
-            Self::variant(Opcode::ConstTime, vec![LLHD_TIME_VALUE_DATATYPE]),
+            Self::variant(Opcode::ConstInt, vec![EGGLOG_STRING_SORT]),
+            Self::variant(Opcode::ConstTime, vec![EGGLOG_STRING_SORT]),
             Self::variant(Opcode::Alias, vec![LLHD_DFG_DATATYPE]),
             Self::variant(Opcode::Not, vec![LLHD_DFG_DATATYPE]),
             Self::variant(Opcode::Neg, vec![LLHD_DFG_DATATYPE]),
@@ -145,10 +159,8 @@ impl LLHDDatatypes {
                 Opcode::Drv,
                 vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE],
             ),
-            Self::variant(
-                Opcode::Wait,
-                vec![LLHD_BLOCK_DATATYPE, LLHD_VEC_VALUE_DATATYPE],
-            ),
+            Self::variant(Opcode::Wait, vec![EGGLOG_I64_SORT, LLHD_VEC_VALUE_DATATYPE]),
+            Self::unit_root_variant(),
         ];
         Command::Datatype {
             name: dfg_symbol,
@@ -391,9 +403,9 @@ mod tests {
         let dfg_datatype = LLHDDatatypes::dfg();
         let expected_str = trim_whitespace(indoc::indoc! {"
             (datatype LLHDDFG
-                (ValueRef LLHDValue)
-                (ConstInt LLHDIntValue)
-                (ConstTime LLHDTimeValue)
+                (Value i64)
+                (ConstInt String)
+                (ConstTime String)
                 (Alias LLHDDFG)
                 (Not LLHDDFG)
                 (Neg LLHDDFG)
@@ -405,7 +417,8 @@ mod tests {
                 (Sig LLHDDFG)
                 (Prb LLHDDFG)
                 (Drv LLHDDFG LLHDDFG LLHDDFG)
-                (Wait LLHDBlock LLHDVecValue))
+                (Wait i64 LLHDVecValue)
+                (LLHDUnit LLHDDFG))
         "});
         assert_eq!(
             expected_str,

@@ -13,8 +13,9 @@
     (Xor LLHDDFG LLHDDFG)
     (Sig LLHDDFG)
     (Prb LLHDDFG)
-    (Drv LLHDDFG LLHDDFG LLHDDFG )
-    (Wait i64 LLHDVecValue))
+    (Drv LLHDDFG LLHDDFG LLHDDFG)
+    (Wait i64 LLHDVecValue)
+    (LLHDUnit LLHDDFG))
 
 ; Divisor Extraction
 (ruleset div-ext)

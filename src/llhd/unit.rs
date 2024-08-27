@@ -1,8 +1,8 @@
-use egglog::ast::{Action, Symbol};
+use egglog::ast::{Action, GenericExpr, Symbol};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
 
-use super::inst::inst_expr;
+use super::inst::{inst_expr, LLHDDatatypes};
 use super::LLHDUnitArg;
 use crate::llhd::inst::iterate_unit_insts;
 
@@ -25,20 +25,27 @@ pub(crate) fn iterate_unit_arg_defs<'unit>(
         .map(|arg| (unit.id(), arg))
 }
 
+pub(crate) fn unit_symbol(unit: &Unit<'_>) -> Symbol {
+    let unit_name = unit.name().to_string().replace(&['@', '%', ','][..], "");
+    Symbol::new(unit_name)
+}
+
 #[derive(Debug)]
 pub(crate) struct LLHDDFGExprTree;
 
 impl LLHDDFGExprTree {
     pub(crate) fn from_unit(unit: &Unit<'_>) -> Action {
-        let unit_name = unit.name().to_string().replace(&['@', '%', ','][..], "");
-        let unit_symbol = Symbol::new(unit_name);
         let insts = iterate_unit_insts(unit).collect_vec();
         let root_inst_data = &unit[insts
             .last()
             .expect("Empty Unit can't construct a valid Egglog Expr.")
             .1];
-        let unit_expr = inst_expr(unit, root_inst_data);
-        Action::Let((), unit_symbol, unit_expr)
+        let root_inst_expr = inst_expr(unit, root_inst_data);
+        let unit_expr = GenericExpr::call(
+            LLHDDatatypes::unit_root_variant_symbol(),
+            vec![root_inst_expr],
+        );
+        Action::Let((), unit_symbol(unit), unit_expr)
     }
 }
 
@@ -155,11 +162,11 @@ mod tests {
 
         let egglog_expr = LLHDDFGExprTree::from_unit(&unit);
         let expected_str = trim_whitespace(indoc::indoc! {"
-            (let 0 (Add
+            (let 0 (LLHDUnit (Add
                 (Add
                     (ConstInt \"i1 0\")
                     (ConstInt \"i1 1\"))
-                (Prb (Value 2))))
+                (Prb (Value 2)))))
         "});
         assert_eq!(
             expected_str,
@@ -198,11 +205,11 @@ mod tests {
 
         let egglog_expr = LLHDDFGExprTree::from_unit(&unit);
         let expected_str = trim_whitespace(indoc::indoc! {"
-            (let test_entity (Drv
+            (let test_entity (LLHDUnit (Drv
                 (Value 4) (Or
                     (And (Value 0) (Value 1))
                     (And (Value 2) (Value 3)))
-                (ConstTime \"0s 1e\")))
+                (ConstTime \"0s 1e\"))))
         "});
         assert_eq!(
             expected_str,
@@ -238,9 +245,9 @@ mod tests {
         );
 
         assert_eq!(
-            10,
+            11,
             egraph.num_tuples(),
-            "There should be 10 facts remaining in the egraph."
+            "There should be 11 facts remaining in the egraph."
         );
 
         let div_extract_ruleset_symbol = Symbol::new("div-ext");
@@ -248,18 +255,19 @@ mod tests {
             ruleset: div_extract_ruleset_symbol,
             until: None,
         };
-        let extract_cmd =
+        let schedule_cmd =
             GenericCommand::RunSchedule(GenericSchedule::Run(div_extract_schedule).saturate());
-        let egraph_run_schedule = egraph.run_program(vec![extract_cmd]);
+        let egraph_run_schedule = egraph.run_program(vec![schedule_cmd]);
         assert!(
             egraph_run_schedule.is_ok(),
             "EGraph failed to run schedule."
         );
         assert_eq!(
-            12,
+            13,
             egraph.num_tuples(),
-            "There should be 12 facts remaining in the egraph(new 'And', new 'Or' nodes)."
+            "There should be 13 facts remaining in the egraph(new 'And', new 'Or' nodes)."
         );
+
         let egraph_run_rules_matches = egraph
             .get_overall_run_report()
             .num_matches_per_rule
@@ -270,5 +278,59 @@ mod tests {
             1, *egraph_run_rules_matches,
             "There should be 1 match for divisor extraction rewrite rule."
         );
+
+        let test_entity_symbol = Symbol::new("test_entity");
+        // let unit_symbol = LLHDDatatypes::unit_root_variant_symbol();
+        // let unit_symbol_var = GenericExpr::call(
+        //     unit_symbol,
+        //     vec![GenericExpr::Var((), Symbol::new("program"))],
+        // );
+        // let unit_symbol_var = GenericExpr::Var((), unit_symbol);
+        // let extract_cmd_action = Action::Extract((), unit_symbol_var, GenericExpr::lit(1));
+        // let extract_cmd = GenericCommand::Action(extract_cmd_action);
+        let extract_cmd = GenericCommand::QueryExtract {
+            variants: 0,
+            expr: GenericExpr::Var((), test_entity_symbol),
+        };
+        let egraph_extract_expr = egraph.run_program(vec![extract_cmd]);
+        assert!(
+            egraph_extract_expr.is_ok(),
+            "EGraph failed to extract expression."
+        );
+
+        // let mut extracted_termdag = TermDag::default();
+        // let (unit_sort, test_unit_symbol_value) = egraph
+        //     .eval_expr(&GenericExpr::Var((), Symbol::new("test_entity")))
+        //     .unwrap();
+        // let (unit_cost, unit_term) =
+        //     egraph.extract(test_unit_symbol_value, &mut extracted_termdag, &unit_sort);
+        // println!("unit_cost {} unit_term {:?}", unit_cost, unit_term);
+        // println!("extracted_termdag {:?}", extracted_termdag);
+        let (extracted_termdag, _term) = egraph.extract_value(test_entity_symbol.into());
+        assert_eq!(
+            18,
+            extracted_termdag.nodes.len(),
+            "There should be 10 nodes in the extracted egraph after divisor extraction."
+        );
+        // let extract_report = egraph
+        //     .get_extract_report()
+        //     .clone()
+        //     .expect("Extract report not created.");
+        // match extract_report {
+        //     egglog::ExtractReport::Best { termdag, cost, .. } => {
+        //         assert_eq!(
+        //             9,
+        //             termdag.nodes.len(),
+        //             "Number of extracted divisor nodes should be 9(terms/literals)."
+        //         );
+        //         assert_eq!(
+        //             9, cost,
+        //             "Cost of extracted divisor should be 9(terms/literals)."
+        //         );
+        //     }
+        //     _ => {
+        //         panic!("Did not find best expression in EGraph.")
+        //     }
+        // }
     }
 }
