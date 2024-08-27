@@ -280,14 +280,6 @@ mod tests {
         );
 
         let test_entity_symbol = Symbol::new("test_entity");
-        // let unit_symbol = LLHDDatatypes::unit_root_variant_symbol();
-        // let unit_symbol_var = GenericExpr::call(
-        //     unit_symbol,
-        //     vec![GenericExpr::Var((), Symbol::new("program"))],
-        // );
-        // let unit_symbol_var = GenericExpr::Var((), unit_symbol);
-        // let extract_cmd_action = Action::Extract((), unit_symbol_var, GenericExpr::lit(1));
-        // let extract_cmd = GenericCommand::Action(extract_cmd_action);
         let extract_cmd = GenericCommand::QueryExtract {
             variants: 0,
             expr: GenericExpr::Var((), test_entity_symbol),
@@ -304,12 +296,6 @@ mod tests {
             .unwrap();
         let (_unit_cost, unit_term) =
             egraph.extract(test_unit_symbol_value, &mut extracted_termdag, &unit_sort);
-        assert_eq!(
-            extracted_termdag.to_string(&unit_term),
-            "(LLHDUnit (Drv (Value 3) (And (Or (Value 0) (Value 2)) (Value 1)) (ConstTime \"0s \
-             1e\")))"
-        );
-        println!("extracted_termdag {:?}", extracted_termdag);
         let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
         assert!(
             matches!(extracted_expr, GenericExpr::Call { .. }),
@@ -318,92 +304,6 @@ mod tests {
         assert_eq!(
             extracted_expr.to_string(),
             "(LLHDUnit (Drv (Value 3) (And (Or (Value 0) (Value 2)) (Value 1)) (ConstTime \"0s \
-             1e\")))"
-        );
-        // println!("unit_cost {} unit_term {:?}", unit_cost, unit_term);
-        // println!("extracted_termdag {:?}", extracted_termdag);
-
-        // let (extracted_termdag, extracted_term) = egraph.extract_value(test_entity_symbol.into());
-        // let new_expression = extracted_termdag.term_to_expr(&extracted_term);
-        // println!("{}", new_expression.to_string());
-        // assert_eq!(
-        //     10,
-        //     extracted_termdag.nodes.len(),
-        //     "There should be 10 nodes in the extracted egraph after divisor extraction."
-        // );
-
-        // let extract_report = egraph
-        //     .get_extract_report()
-        //     .clone()
-        //     .expect("Extract report not created.");
-        // match extract_report {
-        //     egglog::ExtractReport::Best { termdag, cost, .. } => {
-        //         assert_eq!(
-        //             9,
-        //             termdag.nodes.len(),
-        //             "Number of extracted divisor nodes should be 9(terms/literals)."
-        //         );
-        //         assert_eq!(
-        //             9, cost,
-        //             "Cost of extracted divisor should be 9(terms/literals)."
-        //         );
-        //     }
-        //     _ => {
-        //         panic!("Did not find best expression in EGraph.")
-        //     }
-        // }
-    }
-
-    #[test]
-    fn egglog_extract_example() {
-        use egglog::{EGraph, TermDag};
-        let program = indoc::indoc! {"
-            (sort LLHDVecValue (Vec i64))
-            (datatype LLHDDFG
-                (Value i64)
-                (ConstInt String)
-                (ConstTime String)
-                (Alias LLHDDFG)
-                (Not LLHDDFG)
-                (Neg LLHDDFG)
-                (Add LLHDDFG LLHDDFG)
-                (Sub LLHDDFG LLHDDFG)
-                (And LLHDDFG LLHDDFG)
-                (Or LLHDDFG LLHDDFG)
-                (Xor LLHDDFG LLHDDFG)
-                (Sig LLHDDFG)
-                (Prb LLHDDFG)
-                (Drv LLHDDFG LLHDDFG LLHDDFG)
-                (Wait i64 LLHDVecValue)
-                (LLHDUnit LLHDDFG))
-
-            ; Divisor Extraction
-            (ruleset div-ext)
-            (rewrite (Or
-              (And a c)
-              (And b c)
-            )(And
-              (Or a b)
-              c
-            ):ruleset div-ext)
-            (let test_entity (LLHDUnit (Drv
-                (Value 4) (Or
-                    (And (Value 0) (Value 1))
-                    (And (Value 2) (Value 1)))
-                (ConstTime \"0s 1e\"))))
-            (run-schedule div-ext)
-            ; (query-extract test_entity)
-        "};
-        let mut egraph = EGraph::default();
-        egraph.parse_and_run_program(program).unwrap();
-        let mut termdag = TermDag::default();
-        let (sort, value) = egraph
-            .eval_expr(&egglog::ast::Expr::Var((), "test_entity".into()))
-            .unwrap();
-        let (_, extracted) = egraph.extract(value, &mut termdag, &sort);
-        assert_eq!(
-            termdag.to_string(&extracted),
-            "(LLHDUnit (Drv (Value 4) (And (Or (Value 0) (Value 2)) (Value 1)) (ConstTime \"0s \
              1e\")))"
         );
     }
