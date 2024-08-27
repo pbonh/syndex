@@ -1,4 +1,7 @@
 use egglog::ast::{Command, Expr, GenericExpr, Literal, Symbol, Variant};
+use lazy_static::lazy_static;
+use std::collections::HashMap;
+
 use egglog::sort::*;
 use itertools::Itertools;
 use llhd::ir::prelude::*;
@@ -23,6 +26,23 @@ pub(super) fn opcode_symbol(opcode: Opcode) -> Symbol {
     }
     uppercase_first_letter(&mut opcode_str);
     Symbol::new(opcode_str)
+}
+
+type LLHDOpcodeSymbolLookup = HashMap<Symbol, Opcode>;
+
+lazy_static! {
+    static ref OPCODESYMBOLMAP: LLHDOpcodeSymbolLookup = {
+        let mut m = HashMap::new();
+        m.insert(opcode_symbol(Opcode::Eq), Opcode::Eq);
+        m.insert(opcode_symbol(Opcode::Neq), Opcode::Neq);
+        m.insert(opcode_symbol(Opcode::Slt), Opcode::Slt);
+        m
+    };
+    static ref OPCODESYMBOLMAP_COUNT: usize = OPCODESYMBOLMAP.len();
+}
+
+pub(super) fn symbol_opcode(symbol: Symbol) -> Opcode {
+    OPCODESYMBOLMAP[&symbol]
 }
 
 const EGGLOG_I64_SORT: &str = "i64";
@@ -347,6 +367,18 @@ mod tests {
             expected_str,
             egglog_symbol.to_string(),
             "Opcode::Eq should be represented as 'Eq'."
+        );
+    }
+
+    #[test]
+    fn llhd_opcode_from_egglog_symbol() {
+        let symbol = Symbol::new("Eq");
+        let opcode = symbol_opcode(symbol);
+        let expected_opcode = Opcode::Eq;
+        assert_eq!(
+            expected_opcode,
+            opcode,
+            "Symbol('Eq') should be map to Opcode::Eq."
         );
     }
 

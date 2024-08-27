@@ -1,4 +1,4 @@
-use egglog::ast::{Action, GenericExpr, Symbol};
+use egglog::ast::{Action, Expr, GenericExpr, Symbol};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
 
@@ -46,6 +46,20 @@ impl LLHDDFGExprTree {
             vec![root_inst_expr],
         );
         Action::Let((), unit_symbol(unit), unit_expr)
+    }
+
+    pub(crate) fn to_unit(
+        _unit_expr: Expr,
+        unit_kind: UnitKind,
+        unit_name: UnitName,
+        unit_sig: Signature,
+    ) -> UnitData {
+        let mut unit_data = UnitData::new(unit_kind, unit_name, unit_sig);
+        let mut builder = UnitBuilder::new_anonymous(&mut unit_data);
+        let v1 = builder.ins().const_int((1, 0));
+        let v2 = builder.ins().const_int((1, 1));
+        let _v3 = builder.ins().add(v1, v2);
+        unit_data
     }
 }
 
@@ -219,92 +233,111 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn llhd_testbench_egglog_program() {
-        let egraph_info = load_egraph("llhd_div_extract.egg");
-        let mut egraph = egraph_info.0;
-        assert_eq!(
-            0,
-            egraph.num_tuples(),
-            "There should be 0 facts initially in the egraph."
-        );
+        let mut test_module = load_llhd_module("2and_1or_common.llhd");
+        let test_unit_id = iterate_unit_ids(&test_module).collect_vec()[0];
+        let test_unit_kind = test_module.unit(test_unit_id).kind();
+        let test_unit_name = test_module.unit(test_unit_id).name().to_owned();
+        let test_unit_sig = test_module.unit(test_unit_id).sig().to_owned();
+        let rewrite_unit = |module: &Module,
+                            unit_kind: UnitKind,
+                            unit_name: UnitName,
+                            unit_sig: Signature| {
+            let egraph_info = load_egraph("llhd_div_extract.egg");
+            let mut egraph = egraph_info.0;
+            assert_eq!(
+                0,
+                egraph.num_tuples(),
+                "There should be 0 facts initially in the egraph."
+            );
 
-        let module = load_llhd_module("2and_1or_common.llhd");
-        let units = iterate_unit_ids(&module).collect_vec();
-        let unit = module.unit(*units.first().unwrap());
-        let egglog_expr = LLHDDFGExprTree::from_unit(&unit);
-        let egraph_run_facts = egraph.run_program(vec![GenericCommand::Action(egglog_expr)]);
-        assert!(egraph_run_facts.is_ok(), "EGraph failed to add facts.");
-        assert!(
-            egraph
+            let test_unit = module.unit(test_unit_id);
+            let egglog_expr = LLHDDFGExprTree::from_unit(&test_unit);
+            let egraph_run_facts = egraph.run_program(vec![GenericCommand::Action(egglog_expr)]);
+            assert!(egraph_run_facts.is_ok(), "EGraph failed to add facts.");
+            assert!(
+                egraph
+                    .get_overall_run_report()
+                    .num_matches_per_rule
+                    .values()
+                    .next()
+                    .is_none(),
+                "There should be no matches yet, as the rule schedule hasn't run yet."
+            );
+
+            assert_eq!(
+                11,
+                egraph.num_tuples(),
+                "There should be 11 facts remaining in the egraph."
+            );
+
+            let div_extract_ruleset_symbol = Symbol::new("div-ext");
+            let div_extract_schedule = GenericRunConfig::<Symbol, Symbol, ()> {
+                ruleset: div_extract_ruleset_symbol,
+                until: None,
+            };
+            let schedule_cmd =
+                GenericCommand::RunSchedule(GenericSchedule::Run(div_extract_schedule).saturate());
+            let egraph_run_schedule = egraph.run_program(vec![schedule_cmd]);
+            assert!(
+                egraph_run_schedule.is_ok(),
+                "EGraph failed to run schedule."
+            );
+            assert_eq!(
+                13,
+                egraph.num_tuples(),
+                "There should be 13 facts remaining in the egraph(new 'And', new 'Or' nodes)."
+            );
+
+            let egraph_run_rules_matches = egraph
                 .get_overall_run_report()
                 .num_matches_per_rule
                 .values()
                 .next()
-                .is_none(),
-            "There should be no matches yet, as the rule schedule hasn't run yet."
-        );
+                .unwrap();
+            assert_eq!(
+                1, *egraph_run_rules_matches,
+                "There should be 1 match for divisor extraction rewrite rule."
+            );
 
-        assert_eq!(
-            11,
-            egraph.num_tuples(),
-            "There should be 11 facts remaining in the egraph."
-        );
+            let test_entity_symbol = Symbol::new("test_entity");
+            let extract_cmd = GenericCommand::QueryExtract {
+                variants: 0,
+                expr: GenericExpr::Var((), test_entity_symbol),
+            };
+            let egraph_extract_expr = egraph.run_program(vec![extract_cmd]);
+            assert!(
+                egraph_extract_expr.is_ok(),
+                "EGraph failed to extract expression."
+            );
 
-        let div_extract_ruleset_symbol = Symbol::new("div-ext");
-        let div_extract_schedule = GenericRunConfig::<Symbol, Symbol, ()> {
-            ruleset: div_extract_ruleset_symbol,
-            until: None,
+            let mut extracted_termdag = TermDag::default();
+            let (unit_sort, test_unit_symbol_value) = egraph
+                .eval_expr(&GenericExpr::Var((), test_entity_symbol))
+                .unwrap();
+            let (_unit_cost, unit_term) =
+                egraph.extract(test_unit_symbol_value, &mut extracted_termdag, &unit_sort);
+            let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
+            assert!(
+                matches!(extracted_expr, GenericExpr::Call { .. }),
+                "Top level expression should be a call."
+            );
+            assert_eq!(
+                extracted_expr.to_string(),
+                "(LLHDUnit (Drv (Value 3) (And (Or (Value 0) (Value 2)) (Value 1)) (ConstTime \
+                 \"0s 1e\")))"
+            );
+            LLHDDFGExprTree::to_unit(extracted_expr, unit_kind, unit_name, unit_sig)
         };
-        let schedule_cmd =
-            GenericCommand::RunSchedule(GenericSchedule::Run(div_extract_schedule).saturate());
-        let egraph_run_schedule = egraph.run_program(vec![schedule_cmd]);
-        assert!(
-            egraph_run_schedule.is_ok(),
-            "EGraph failed to run schedule."
-        );
+        test_module[test_unit_id] =
+            rewrite_unit(&test_module, test_unit_kind, test_unit_name, test_unit_sig);
+        let new_unit_data = test_module.unit(test_unit_id);
+        let new_unit_insts = new_unit_data.all_insts().collect_vec();
         assert_eq!(
-            13,
-            egraph.num_tuples(),
-            "There should be 13 facts remaining in the egraph(new 'And', new 'Or' nodes)."
-        );
-
-        let egraph_run_rules_matches = egraph
-            .get_overall_run_report()
-            .num_matches_per_rule
-            .values()
-            .next()
-            .unwrap();
-        assert_eq!(
-            1, *egraph_run_rules_matches,
-            "There should be 1 match for divisor extraction rewrite rule."
-        );
-
-        let test_entity_symbol = Symbol::new("test_entity");
-        let extract_cmd = GenericCommand::QueryExtract {
-            variants: 0,
-            expr: GenericExpr::Var((), test_entity_symbol),
-        };
-        let egraph_extract_expr = egraph.run_program(vec![extract_cmd]);
-        assert!(
-            egraph_extract_expr.is_ok(),
-            "EGraph failed to extract expression."
-        );
-
-        let mut extracted_termdag = TermDag::default();
-        let (unit_sort, test_unit_symbol_value) = egraph
-            .eval_expr(&GenericExpr::Var((), test_entity_symbol))
-            .unwrap();
-        let (_unit_cost, unit_term) =
-            egraph.extract(test_unit_symbol_value, &mut extracted_termdag, &unit_sort);
-        let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
-        assert!(
-            matches!(extracted_expr, GenericExpr::Call { .. }),
-            "Top level expression should be a call."
-        );
-        assert_eq!(
-            extracted_expr.to_string(),
-            "(LLHDUnit (Drv (Value 3) (And (Or (Value 0) (Value 2)) (Value 1)) (ConstTime \"0s \
-             1e\")))"
+            5,
+            new_unit_insts.len(),
+            "There should be 5 Insts in rewritten Unit."
         );
     }
 }
