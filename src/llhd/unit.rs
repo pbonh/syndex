@@ -1,8 +1,12 @@
-use egglog::ast::{Action, Expr, GenericExpr, Symbol};
+use std::collections::VecDeque;
+
+use egglog::ast::{Action, Expr, GenericExpr, Literal, Symbol};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
 
-use super::inst::{inst_expr, unit_root_variant_symbol};
+use super::inst::{
+    expr_value_data, get_symbol_opcode, inst_expr, symbol_opcode, unit_root_variant_symbol,
+};
 use super::LLHDUnitArg;
 use crate::llhd::inst::iterate_unit_insts;
 
@@ -29,6 +33,9 @@ pub(crate) fn unit_symbol(unit: &Unit<'_>) -> Symbol {
     let unit_name = unit.name().to_string().replace(&['@', '%', ','][..], "");
     Symbol::new(unit_name)
 }
+
+type ExprList = Vec<Expr>;
+type ValueStack = VecDeque<Value>;
 
 #[derive(Debug)]
 pub(crate) struct LLHDDFGExprTree;
@@ -63,30 +70,89 @@ impl LLHDDFGExprTree {
         }
     }
 
-    fn process_expr(expr: &Expr, unit_builder: &mut UnitBuilder) -> Result<(), String> {
+    fn process_expr(expr: &Expr, expr_list: &mut ExprList) {
         match expr {
             GenericExpr::Lit(_span, literal) => {
                 // Do nothing for literals, or handle them as needed
-                println!("Processing Literal(Lit): {:?}", literal);
-                Ok(())
+                expr_list.push(Expr::Lit((), literal.to_owned()));
             }
             GenericExpr::Var(_span, symbol) => {
                 // Process the leaf node (Var) here
                 // process_leaf(symbol)
-                println!("Processing Symbol(Var): {:?}", symbol);
-                Ok(())
+                expr_list.push(Expr::Var((), symbol.to_owned()));
             }
             GenericExpr::Call(_, symbol, dependencies) => {
-                println!("Processing Call(Call): {:?}", symbol);
                 // First, process all dependencies (bottom-up traversal)
                 for dep in dependencies {
-                    Self::process_expr(dep, unit_builder)?;
+                    Self::process_expr(dep, expr_list);
                 }
                 // Then, process the current Call node
                 // Here you can add logic to handle the current Call node if needed
-                Ok(())
+                if get_symbol_opcode(symbol).is_some() {
+                    expr_list.push(Expr::Call((), symbol.to_owned(), vec![]));
+                }
             }
         }
+    }
+
+    fn process_expr_list(
+        expr_list: ExprList,
+        value_stack: &mut ValueStack,
+        unit_builder: &mut UnitBuilder,
+    ) {
+        for expr in expr_list {
+            match expr {
+                GenericExpr::Lit(_span, literal) => match literal {
+                    Literal::Int(_value) => {
+                        value_stack.push_back(expr_value_data(&literal));
+                    }
+                    _ => {}
+                },
+                GenericExpr::Var(_span, _symbol) => {}
+                GenericExpr::Call(_, symbol, _dependencies) => match symbol_opcode(symbol) {
+                    Opcode::Or => {
+                        let arg2_value = value_stack
+                            .pop_back()
+                            .expect("Stack empty despite still trying to process operation.");
+                        let arg1_value = value_stack
+                            .pop_back()
+                            .expect("Stack empty despite still trying to process operation.");
+                        value_stack.push_back(unit_builder.ins().or(arg1_value, arg2_value));
+                    }
+                    Opcode::And => {
+                        let arg2_value = value_stack
+                            .pop_back()
+                            .expect("Stack empty despite still trying to process operation.");
+                        let arg1_value = value_stack
+                            .pop_back()
+                            .expect("Stack empty despite still trying to process operation.");
+                        value_stack.push_back(unit_builder.ins().and(arg1_value, arg2_value));
+                    }
+                    Opcode::ConstTime => {
+                        let _arg1_value = value_stack
+                            .pop_back()
+                            .expect("Stack empty despite still trying to process operation.");
+                        // value_stack.push_back(unit_builder.ins().const_time(arg1_value));
+                    }
+                    Opcode::Drv => {
+                        let arg3_value = value_stack
+                            .pop_back()
+                            .expect("Stack empty despite still trying to process operation.");
+                        let arg2_value = value_stack
+                            .pop_back()
+                            .expect("Stack empty despite still trying to process operation.");
+                        let arg1_value = value_stack
+                            .pop_back()
+                            .expect("Stack empty despite still trying to process operation.");
+                        unit_builder.ins().drv(arg1_value, arg2_value, arg3_value);
+                    }
+                    _ => {}
+                },
+            }
+        }
+        // let v1 = builder.ins().const_int((1, 0));
+        // let v2 = builder.ins().const_int((1, 1));
+        // let _v3 = builder.ins().add(v1, v2);
     }
 
     pub(crate) fn to_unit(
@@ -96,12 +162,15 @@ impl LLHDDFGExprTree {
         unit_sig: Signature,
     ) -> UnitData {
         let mut unit_data = UnitData::new(unit_kind, unit_name, unit_sig);
-        let mut builder = UnitBuilder::new_anonymous(&mut unit_data);
-        let _result = Self::process_expr(&unit_expr, &mut builder);
+        let mut unit_builder = UnitBuilder::new_anonymous(&mut unit_data);
+        let mut expr_list: ExprList = Default::default();
 
-        let v1 = builder.ins().const_int((1, 0));
-        let v2 = builder.ins().const_int((1, 1));
-        let _v3 = builder.ins().add(v1, v2);
+        Self::process_expr(&unit_expr, &mut expr_list);
+        let _root_expr = expr_list.pop();
+
+        let mut expr_stack: ValueStack = Default::default();
+        Self::process_expr_list(expr_list, &mut expr_stack, &mut unit_builder);
+
         unit_data
     }
 }
@@ -276,6 +345,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn llhd_testbench_egglog_program() {
         let mut test_module = load_llhd_module("2and_1or_common.llhd");
         let test_unit_id = iterate_unit_ids(&test_module).collect_vec()[0];

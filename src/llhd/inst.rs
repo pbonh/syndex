@@ -163,6 +163,10 @@ lazy_static! {
     static ref LLHD_DFG_VARIANTS_COUNT: usize = LLHD_DFG_VARIANTS.len();
 }
 
+pub(super) fn get_symbol_opcode(symbol: &Symbol) -> Option<Opcode> {
+    OPCODESYMBOLMAP.get(&symbol).copied()
+}
+
 pub(super) fn symbol_opcode(symbol: Symbol) -> Opcode {
     OPCODESYMBOLMAP[&symbol]
 }
@@ -361,14 +365,37 @@ fn value_data_expr(unit: &Unit<'_>, value_data: &ValueData) -> Expr {
     }
 }
 
+pub(super) fn expr_value_data(literal: &Literal) -> Value {
+    match literal {
+        Literal::Int(value) => {
+            Value::new(usize::try_from(*value).expect("Failure to convert from i64 to usize."))
+        }
+        _ => panic!("Non-Int Literal"),
+    }
+}
+
 fn int_value_expr(int_value: IntValue) -> Expr {
     let converted_literal = Literal::String(int_value.to_string().into());
     GenericExpr::lit(converted_literal)
 }
 
+pub(super) fn expr_int_value(literal: &Literal) -> IntValue {
+    match literal {
+        Literal::Int(value) => IntValue::from_isize(
+            64,
+            isize::try_from(*value).expect("Failure to convert from i64 to isize."),
+        ),
+        _ => panic!("Non-Int Literal"),
+    }
+}
+
 fn time_value_expr(time_value: TimeValue) -> Expr {
     let converted_literal = Literal::String(time_value.to_string().into());
     GenericExpr::lit(converted_literal)
+}
+
+pub(super) fn expr_time_value(_literal: &Literal) -> TimeValue {
+    TimeValue::zero()
 }
 
 pub(super) fn inst_expr(unit: &Unit<'_>, inst_data: &InstData) -> Expr {
