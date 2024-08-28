@@ -1,3 +1,9 @@
+#[derive(Debug)]
+pub(crate) struct LLHDUtils;
+
+#[derive(Debug)]
+pub(crate) struct LLHDEgglog;
+
 /// LLHD Inst `ENode` Type
 pub mod enode;
 

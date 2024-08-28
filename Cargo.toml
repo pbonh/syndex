@@ -47,6 +47,7 @@ indoc = "2.0.4"
 petgraph = "0.6.4"
 pretty_assertions = "1"
 test-log = "0.2.13"
+utilities = { path = "utilities" }
 
 [package.metadata.cargo-udeps.ignore]
 development = ["criterion", "pretty_assertions"]
