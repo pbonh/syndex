@@ -1,6 +1,6 @@
 //! Project-level documentation.
 
-#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::multiple_inherent_impl)]
 #![allow(dead_code)]
 // clippy WARN level lints
 #![warn(
