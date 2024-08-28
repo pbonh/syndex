@@ -2,7 +2,7 @@ use egglog::ast::{Action, Expr, GenericExpr, Symbol};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
 
-use super::inst::{inst_expr, LLHDDatatypes};
+use super::inst::{inst_expr, unit_root_variant_symbol};
 use super::LLHDUnitArg;
 use crate::llhd::inst::iterate_unit_insts;
 
@@ -41,21 +41,64 @@ impl LLHDDFGExprTree {
             .expect("Empty Unit can't construct a valid Egglog Expr.")
             .1];
         let root_inst_expr = inst_expr(unit, root_inst_data);
-        let unit_expr = GenericExpr::call(
-            LLHDDatatypes::unit_root_variant_symbol(),
-            vec![root_inst_expr],
-        );
+        let unit_expr = GenericExpr::call(unit_root_variant_symbol(), vec![root_inst_expr]);
         Action::Let((), unit_symbol(unit), unit_expr)
     }
 
+    fn traverse_bottom_up(expr: &Expr) {
+        match expr {
+            GenericExpr::Lit(_span, _literal) => {}
+            GenericExpr::Var(_span, _symbol) => {
+                // Leaf node, apply the function
+                // f(self);
+            }
+            GenericExpr::Call(_span, _symbol, args) => {
+                // Traverse child nodes first (bottom-up)
+                for _arg in args {
+                    Self::traverse_bottom_up(expr);
+                }
+                // Apply the function to the current node after children
+                // f(self);
+            }
+        }
+    }
+
+    fn process_expr(expr: &Expr, unit_builder: &mut UnitBuilder) -> Result<(), String> {
+        match expr {
+            GenericExpr::Lit(_span, literal) => {
+                // Do nothing for literals, or handle them as needed
+                println!("Processing Literal(Lit): {:?}", literal);
+                Ok(())
+            }
+            GenericExpr::Var(_span, symbol) => {
+                // Process the leaf node (Var) here
+                // process_leaf(symbol)
+                println!("Processing Symbol(Var): {:?}", symbol);
+                Ok(())
+            }
+            GenericExpr::Call(_, symbol, dependencies) => {
+                println!("Processing Call(Call): {:?}", symbol);
+                // First, process all dependencies (bottom-up traversal)
+                for dep in dependencies {
+                    Self::process_expr(dep, unit_builder)?;
+                }
+                // Then, process the current Call node
+                // Here you can add logic to handle the current Call node if needed
+                Ok(())
+            }
+        }
+    }
+
     pub(crate) fn to_unit(
-        _unit_expr: Expr,
+        unit_expr: Expr,
         unit_kind: UnitKind,
         unit_name: UnitName,
         unit_sig: Signature,
     ) -> UnitData {
         let mut unit_data = UnitData::new(unit_kind, unit_name, unit_sig);
         let mut builder = UnitBuilder::new_anonymous(&mut unit_data);
+        let _result = Self::process_expr(&unit_expr, &mut builder);
+
         let v1 = builder.ins().const_int((1, 0));
         let v2 = builder.ins().const_int((1, 1));
         let _v3 = builder.ins().add(v1, v2);
@@ -233,7 +276,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn llhd_testbench_egglog_program() {
         let mut test_module = load_llhd_module("2and_1or_common.llhd");
         let test_unit_id = iterate_unit_ids(&test_module).collect_vec()[0];
@@ -328,6 +370,20 @@ mod tests {
                 "(LLHDUnit (Drv (Value 3) (And (Or (Value 0) (Value 2)) (Value 1)) (ConstTime \
                  \"0s 1e\")))"
             );
+            // Processing Call(Call): "LLHDUnit"
+            // Processing Call(Call): "Drv"
+            // Processing Call(Call): "Value"
+            // Processing Literal(Lit): Int(3)
+            // Processing Call(Call): "And"
+            // Processing Call(Call): "Or"
+            // Processing Call(Call): "Value"
+            // Processing Literal(Lit): Int(0)
+            // Processing Call(Call): "Value"
+            // Processing Literal(Lit): Int(2)
+            // Processing Call(Call): "Value"
+            // Processing Literal(Lit): Int(1)
+            // Processing Call(Call): "ConstTime"
+            // Processing Literal(Lit): String("0s 1e")
             LLHDDFGExprTree::to_unit(extracted_expr, unit_kind, unit_name, unit_sig)
         };
         test_module[test_unit_id] =
