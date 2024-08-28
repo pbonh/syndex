@@ -9,7 +9,7 @@ use llhd::ir::{InstData, ValueData};
 use llhd::table::TableKey;
 use llhd::{IntValue, TimeValue};
 
-use crate::llhd::LLHDEgglog;
+use crate::llhd::LLHDEGraph;
 
 const EGGLOG_I64_SORT: &str = "i64";
 const EGGLOG_STRING_SORT: &str = "String";
@@ -42,155 +42,155 @@ lazy_static! {
     static ref OPCODESYMBOLMAP: LLHDOpcodeSymbolLookup = {
         let mut opcode_symbol_map = HashMap::new();
         opcode_symbol_map.insert(
-            LLHDEgglog::opcode_symbol(Opcode::ConstInt),
+            LLHDEGraph::opcode_symbol(Opcode::ConstInt),
             Opcode::ConstInt,
         );
         opcode_symbol_map.insert(
-            LLHDEgglog::opcode_symbol(Opcode::ConstTime),
+            LLHDEGraph::opcode_symbol(Opcode::ConstTime),
             Opcode::ConstTime,
         );
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Alias), Opcode::Alias);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Alias), Opcode::Alias);
         opcode_symbol_map.insert(
-            LLHDEgglog::opcode_symbol(Opcode::ArrayUniform),
+            LLHDEGraph::opcode_symbol(Opcode::ArrayUniform),
             Opcode::ArrayUniform,
         );
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Array), Opcode::Array);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Struct), Opcode::Struct);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Not), Opcode::Not);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Neg), Opcode::Neg);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Add), Opcode::Add);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Sub), Opcode::Sub);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::And), Opcode::And);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Or), Opcode::Or);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Xor), Opcode::Xor);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Smul), Opcode::Smul);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Sdiv), Opcode::Sdiv);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Smod), Opcode::Smod);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Srem), Opcode::Srem);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Umul), Opcode::Umul);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Udiv), Opcode::Udiv);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Umod), Opcode::Umod);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Urem), Opcode::Urem);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Eq), Opcode::Eq);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Neq), Opcode::Neq);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Slt), Opcode::Slt);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Sgt), Opcode::Sgt);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Sle), Opcode::Sle);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Sge), Opcode::Sge);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Ult), Opcode::Ult);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Ugt), Opcode::Ugt);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Ule), Opcode::Ule);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Uge), Opcode::Uge);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Shl), Opcode::Shl);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Shr), Opcode::Shr);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Mux), Opcode::Mux);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Reg), Opcode::Reg);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Array), Opcode::Array);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Struct), Opcode::Struct);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Not), Opcode::Not);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Neg), Opcode::Neg);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Add), Opcode::Add);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Sub), Opcode::Sub);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::And), Opcode::And);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Or), Opcode::Or);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Xor), Opcode::Xor);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Smul), Opcode::Smul);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Sdiv), Opcode::Sdiv);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Smod), Opcode::Smod);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Srem), Opcode::Srem);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Umul), Opcode::Umul);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Udiv), Opcode::Udiv);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Umod), Opcode::Umod);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Urem), Opcode::Urem);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Eq), Opcode::Eq);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Neq), Opcode::Neq);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Slt), Opcode::Slt);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Sgt), Opcode::Sgt);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Sle), Opcode::Sle);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Sge), Opcode::Sge);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Ult), Opcode::Ult);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Ugt), Opcode::Ugt);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Ule), Opcode::Ule);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Uge), Opcode::Uge);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Shl), Opcode::Shl);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Shr), Opcode::Shr);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Mux), Opcode::Mux);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Reg), Opcode::Reg);
         opcode_symbol_map.insert(
-            LLHDEgglog::opcode_symbol(Opcode::InsField),
+            LLHDEGraph::opcode_symbol(Opcode::InsField),
             Opcode::InsField,
         );
         opcode_symbol_map.insert(
-            LLHDEgglog::opcode_symbol(Opcode::InsSlice),
+            LLHDEGraph::opcode_symbol(Opcode::InsSlice),
             Opcode::InsSlice,
         );
         opcode_symbol_map.insert(
-            LLHDEgglog::opcode_symbol(Opcode::ExtField),
+            LLHDEGraph::opcode_symbol(Opcode::ExtField),
             Opcode::ExtField,
         );
         opcode_symbol_map.insert(
-            LLHDEgglog::opcode_symbol(Opcode::ExtSlice),
+            LLHDEGraph::opcode_symbol(Opcode::ExtSlice),
             Opcode::ExtSlice,
         );
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Con), Opcode::Con);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Del), Opcode::Del);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Call), Opcode::Call);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Inst), Opcode::Inst);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Sig), Opcode::Sig);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Prb), Opcode::Prb);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Drv), Opcode::Drv);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::DrvCond), Opcode::DrvCond);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Var), Opcode::Var);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Ld), Opcode::Ld);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::St), Opcode::St);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Halt), Opcode::Halt);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Ret), Opcode::Ret);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Con), Opcode::Con);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Del), Opcode::Del);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Call), Opcode::Call);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Inst), Opcode::Inst);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Sig), Opcode::Sig);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Prb), Opcode::Prb);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Drv), Opcode::Drv);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::DrvCond), Opcode::DrvCond);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Var), Opcode::Var);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Ld), Opcode::Ld);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::St), Opcode::St);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Halt), Opcode::Halt);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Ret), Opcode::Ret);
         opcode_symbol_map.insert(
-            LLHDEgglog::opcode_symbol(Opcode::RetValue),
+            LLHDEGraph::opcode_symbol(Opcode::RetValue),
             Opcode::RetValue,
         );
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Phi), Opcode::Phi);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Br), Opcode::Br);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::BrCond), Opcode::BrCond);
-        opcode_symbol_map.insert(LLHDEgglog::opcode_symbol(Opcode::Wait), Opcode::Wait);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Phi), Opcode::Phi);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Br), Opcode::Br);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::BrCond), Opcode::BrCond);
+        opcode_symbol_map.insert(LLHDEGraph::opcode_symbol(Opcode::Wait), Opcode::Wait);
         opcode_symbol_map.insert(
-            LLHDEgglog::opcode_symbol(Opcode::WaitTime),
+            LLHDEGraph::opcode_symbol(Opcode::WaitTime),
             Opcode::WaitTime,
         );
         opcode_symbol_map
     };
     static ref OPCODESYMBOLMAP_COUNT: usize = OPCODESYMBOLMAP.len();
     static ref LLHD_DFG_VARIANTS: Vec<Variant> = vec![
-        LLHDEgglog::value_ref_variant(),
-        LLHDEgglog::variant(Opcode::ConstInt, vec![EGGLOG_STRING_SORT]),
-        LLHDEgglog::variant(Opcode::ConstTime, vec![EGGLOG_STRING_SORT]),
-        LLHDEgglog::variant(Opcode::Alias, vec![LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(
+        LLHDEGraph::value_ref_variant(),
+        LLHDEGraph::variant(Opcode::ConstInt, vec![EGGLOG_STRING_SORT]),
+        LLHDEGraph::variant(Opcode::ConstTime, vec![EGGLOG_STRING_SORT]),
+        LLHDEGraph::variant(Opcode::Alias, vec![LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(
             Opcode::ArrayUniform,
             vec![EGGLOG_I64_SORT, LLHD_DFG_DATATYPE]
         ),
-        LLHDEgglog::variant(Opcode::Array, vec![LLHD_VEC_VALUE_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Struct, vec![LLHD_VEC_VALUE_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Not, vec![LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Neg, vec![LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Add, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Sub, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::And, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Or, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Xor, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Smul, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Sdiv, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Smod, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Srem, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Umul, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Udiv, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Umod, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Urem, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Eq, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Neq, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Slt, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Sgt, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Sle, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Sge, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Ult, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Ugt, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Ule, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Uge, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(
+        LLHDEGraph::variant(Opcode::Array, vec![LLHD_VEC_VALUE_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Struct, vec![LLHD_VEC_VALUE_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Not, vec![LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Neg, vec![LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Add, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Sub, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::And, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Or, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Xor, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Smul, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Sdiv, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Smod, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Srem, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Umul, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Udiv, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Umod, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Urem, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Eq, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Neq, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Slt, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Sgt, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Sle, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Sge, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Ult, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Ugt, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Ule, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Uge, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(
             Opcode::Shl,
             vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]
         ),
-        LLHDEgglog::variant(
+        LLHDEGraph::variant(
             Opcode::Shr,
             vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]
         ),
-        LLHDEgglog::variant(Opcode::Mux, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(
+        LLHDEGraph::variant(Opcode::Mux, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(
             Opcode::Reg,
             vec![LLHD_VEC_VALUE_DATATYPE, LLHD_VEC_REGMODE_DATATYPE]
         ),
-        LLHDEgglog::variant(Opcode::Sig, vec![LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(Opcode::Prb, vec![LLHD_DFG_DATATYPE]),
-        LLHDEgglog::variant(
+        LLHDEGraph::variant(Opcode::Sig, vec![LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(Opcode::Prb, vec![LLHD_DFG_DATATYPE]),
+        LLHDEGraph::variant(
             Opcode::Drv,
             vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE],
         ),
-        LLHDEgglog::variant(Opcode::Wait, vec![EGGLOG_I64_SORT, LLHD_VEC_VALUE_DATATYPE]),
-        LLHDEgglog::unit_root_variant(),
+        LLHDEGraph::variant(Opcode::Wait, vec![EGGLOG_I64_SORT, LLHD_VEC_VALUE_DATATYPE]),
+        LLHDEGraph::unit_root_variant(),
     ];
     static ref LLHD_DFG_VARIANTS_COUNT: usize = LLHD_DFG_VARIANTS.len();
 }
 
-impl LLHDEgglog {
+impl LLHDEGraph {
     pub(crate) fn get_symbol_opcode(symbol: &Symbol) -> Option<Opcode> {
         OPCODESYMBOLMAP.get(&symbol).copied()
     }
@@ -479,7 +479,7 @@ mod tests {
     #[test]
     fn egglog_symbol_from_llhd_opcode() {
         let opcode = Opcode::Eq;
-        let egglog_symbol = LLHDEgglog::opcode_symbol(opcode);
+        let egglog_symbol = LLHDEGraph::opcode_symbol(opcode);
         let expected_str = "Eq".to_owned();
         assert_eq!(
             expected_str,
@@ -491,7 +491,7 @@ mod tests {
     #[test]
     fn llhd_opcode_from_egglog_symbol() {
         let symbol = Symbol::new("Eq");
-        let opcode = LLHDEgglog::symbol_opcode(symbol);
+        let opcode = LLHDEGraph::symbol_opcode(symbol);
         let expected_opcode = Opcode::Eq;
         assert_eq!(
             expected_opcode, opcode,
@@ -501,21 +501,21 @@ mod tests {
 
     #[test]
     fn llhd_egglog_value_datatypes() {
-        let value_datatype = LLHDEgglog::value();
+        let value_datatype = LLHDEGraph::value();
         let expected_str = "(datatype LLHDValue (Value i64))".to_owned();
         assert_eq!(
             expected_str,
             value_datatype.to_string(),
             "Datatype should be named 'LLHDValue' and should have 1 field named (Value i64)."
         );
-        let int_value_datatype = LLHDEgglog::int_value();
+        let int_value_datatype = LLHDEGraph::int_value();
         let int_expected_str = "(datatype LLHDIntValue (IntValue i64))".to_owned();
         assert_eq!(
             int_expected_str,
             int_value_datatype.to_string(),
             "Datatype should be named 'LLHDIntValue' and should have 1 field named (IntValue i64)."
         );
-        let time_value_datatype = LLHDEgglog::time_value();
+        let time_value_datatype = LLHDEGraph::time_value();
         let time_expected_str = "(datatype LLHDTimeValue (TimeValue i64))".to_owned();
         assert_eq!(
             time_expected_str,
@@ -523,7 +523,7 @@ mod tests {
             "Datatype should be named 'LLHDTimeValue' and should have 1 field named (TimeValue \
              i64)."
         );
-        let reg_mode_datatype = LLHDEgglog::reg_mode();
+        let reg_mode_datatype = LLHDEGraph::reg_mode();
         let reg_mode_expected_str = utilities::trim_whitespace(indoc::indoc! {"
             (datatype LLHDRegMode
                 (Low)
@@ -541,14 +541,14 @@ mod tests {
 
     #[test]
     fn llhd_egglog_vec_sort() {
-        let vec_sort = LLHDEgglog::vec_sort();
+        let vec_sort = LLHDEGraph::vec_sort();
         let expected_str = "(sort LLHDVecValue (Vec i64))".to_owned();
         assert_eq!(
             expected_str,
             vec_sort.to_string(),
             "Sort should be named 'LLHDVecValue' and should have 1 field named (Vec i64)."
         );
-        let vec_regmode_sort = LLHDEgglog::vec_regmode_sort();
+        let vec_regmode_sort = LLHDEGraph::vec_regmode_sort();
         let vec_regmode_expected_str = "(sort LLHDVecRegMode (Vec LLHDRegMode))".to_owned();
         assert_eq!(
             vec_regmode_expected_str,
@@ -560,7 +560,7 @@ mod tests {
 
     #[test]
     fn llhd_egglog_block_datatypes() {
-        let block_datatype = LLHDEgglog::block();
+        let block_datatype = LLHDEGraph::block();
         let expected_str = "(datatype LLHDBlock (Block i64))".to_owned();
         assert_eq!(
             expected_str,
@@ -572,7 +572,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn llhd_egglog_dfg_datatypes() {
-        let dfg_datatype = LLHDEgglog::dfg();
+        let dfg_datatype = LLHDEGraph::dfg();
         let expected_str = utilities::trim_whitespace(indoc::indoc! {"
             (datatype LLHDDFG
                 (Value i64)
@@ -602,7 +602,7 @@ mod tests {
     #[test]
     fn llhd_value_egglog_expr() {
         let value1 = Value::new(1);
-        let value1_expr = LLHDEgglog::value_def_expr(value1);
+        let value1_expr = LLHDEGraph::value_def_expr(value1);
         let expected_str = "(Value 1)";
         assert_eq!(
             expected_str,
@@ -619,7 +619,7 @@ mod tests {
         let add2_inst = insts[4];
         let add2_inst_data = &unit[add2_inst.1];
         assert_eq!(Opcode::Add, add2_inst_data.opcode(), "Inst should be Add.");
-        let add2_expr = LLHDEgglog::inst_expr(&unit, &add2_inst_data);
+        let add2_expr = LLHDEGraph::inst_expr(&unit, &add2_inst_data);
         let expected_str = utilities::trim_whitespace(indoc::indoc! {"
             (Add
                 (Add

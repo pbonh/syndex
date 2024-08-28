@@ -4,12 +4,12 @@ use egglog::ast::{Action, Expr, GenericExpr, Literal, Symbol};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
 
-use crate::llhd::{LLHDEgglog, LLHDUtils};
+use crate::llhd::{LLHDEGraph, LLHDUtils};
 
 type ExprList = Vec<Expr>;
 type ValueStack = VecDeque<Value>;
 
-impl LLHDEgglog {
+impl LLHDEGraph {
     pub(crate) fn unit_symbol(unit: &Unit<'_>) -> Symbol {
         let unit_name = unit.name().to_string().replace(&['@', '%', ','][..], "");
         Symbol::new(unit_name)
@@ -188,7 +188,7 @@ mod tests {
         let add2_inst_data = &unit[add2_inst.1];
         assert_eq!(Opcode::Add, add2_inst_data.opcode(), "Inst should be Add.");
 
-        let egglog_expr = LLHDEgglog::from_unit(&unit);
+        let egglog_expr = LLHDEGraph::from_unit(&unit);
         let expected_str = utilities::trim_whitespace(indoc::indoc! {"
             (let 0 (LLHDUnit (Add
                 (Add
@@ -231,7 +231,7 @@ mod tests {
         let drv_inst_data = &unit[drv_inst.1];
         assert_eq!(Opcode::Drv, drv_inst_data.opcode(), "Inst should be Drv.");
 
-        let egglog_expr = LLHDEgglog::from_unit(&unit);
+        let egglog_expr = LLHDEGraph::from_unit(&unit);
         let expected_str = utilities::trim_whitespace(indoc::indoc! {"
             (let test_entity (LLHDUnit (Drv
                 (Value 4) (Or
@@ -267,7 +267,7 @@ mod tests {
             );
 
             let test_unit = module.unit(test_unit_id);
-            let egglog_expr = LLHDEgglog::from_unit(&test_unit);
+            let egglog_expr = LLHDEGraph::from_unit(&test_unit);
             let egraph_run_facts = egraph.run_program(vec![GenericCommand::Action(egglog_expr)]);
             assert!(egraph_run_facts.is_ok(), "EGraph failed to add facts.");
             assert!(
@@ -356,7 +356,7 @@ mod tests {
             // Processing Literal(Lit): Int(1)
             // Processing Call(Call): "ConstTime"
             // Processing Literal(Lit): String("0s 1e")
-            LLHDEgglog::to_unit(extracted_expr, unit_kind, unit_name, unit_sig)
+            LLHDEGraph::to_unit(extracted_expr, unit_kind, unit_name, unit_sig)
         };
         test_module[test_unit_id] =
             rewrite_unit(&test_module, test_unit_kind, test_unit_name, test_unit_sig);

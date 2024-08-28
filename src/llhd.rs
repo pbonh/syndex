@@ -2,7 +2,7 @@
 pub(crate) struct LLHDUtils;
 
 #[derive(Debug)]
-pub(crate) struct LLHDEgglog;
+pub(crate) struct LLHDEGraph;
 
 /// LLHD Inst `ENode` Type
 pub mod enode;
