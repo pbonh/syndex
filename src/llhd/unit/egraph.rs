@@ -3,11 +3,14 @@ use std::collections::VecDeque;
 use egglog::ast::{Action, Expr, GenericExpr, Literal, Symbol};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
+use llhd::{IntValue, TimeValue};
 
 use crate::llhd::{LLHDEGraph, LLHDUtils};
 
-type ExprList = Vec<Expr>;
+type ExprFIFO = VecDeque<Expr>;
 type ValueStack = VecDeque<Value>;
+type IntValueStack = VecDeque<IntValue>;
+type TimeValueStack = VecDeque<TimeValue>;
 
 impl LLHDEGraph {
     pub(crate) fn unit_symbol(unit: &Unit<'_>) -> Symbol {
@@ -26,107 +29,93 @@ impl LLHDEGraph {
         Action::Let((), Self::unit_symbol(unit), unit_expr)
     }
 
-    fn traverse_bottom_up(expr: &Expr) {
-        match expr {
-            GenericExpr::Lit(_span, _literal) => {}
-            GenericExpr::Var(_span, _symbol) => {
-                // Leaf node, apply the function
-                // f(self);
-            }
-            GenericExpr::Call(_span, _symbol, args) => {
-                // Traverse child nodes first (bottom-up)
-                for _arg in args {
-                    Self::traverse_bottom_up(expr);
-                }
-                // Apply the function to the current node after children
-                // f(self);
-            }
-        }
-    }
-
-    fn process_expr(expr: &Expr, expr_list: &mut ExprList) {
+    fn process_expr(expr: &Expr, expr_fifo: &mut ExprFIFO) {
         match expr {
             GenericExpr::Lit(_span, literal) => {
-                // Do nothing for literals, or handle them as needed
-                expr_list.push(Expr::Lit((), literal.to_owned()));
+                expr_fifo.push_front(Expr::Lit((), literal.to_owned()));
             }
             GenericExpr::Var(_span, symbol) => {
-                // Process the leaf node (Var) here
-                // process_leaf(symbol)
-                expr_list.push(Expr::Var((), symbol.to_owned()));
+                expr_fifo.push_front(Expr::Var((), symbol.to_owned()));
             }
             GenericExpr::Call(_, symbol, dependencies) => {
-                // First, process all dependencies (bottom-up traversal)
-                for dep in dependencies {
-                    Self::process_expr(dep, expr_list);
-                }
-                // Then, process the current Call node
-                // Here you can add logic to handle the current Call node if needed
                 if Self::get_symbol_opcode(symbol).is_some() {
-                    expr_list.push(Expr::Call((), symbol.to_owned(), vec![]));
+                    expr_fifo.push_front(Expr::Call((), symbol.to_owned(), vec![]));
+                }
+                for dep in dependencies {
+                    Self::process_expr(dep, expr_fifo);
                 }
             }
         }
     }
 
-    fn process_expr_list(
-        expr_list: ExprList,
+    fn process_expr_fifo(
+        expr_fifo: ExprFIFO,
         value_stack: &mut ValueStack,
+        _int_value_stack: &mut IntValueStack,
+        time_value_stack: &mut TimeValueStack,
         unit_builder: &mut UnitBuilder,
     ) {
-        for expr in expr_list {
+        for expr in expr_fifo {
             match expr {
                 GenericExpr::Lit(_span, literal) => match literal {
                     Literal::Int(_value) => {
                         value_stack.push_back(Self::expr_value_data(&literal));
                     }
+                    Literal::String(_value) => {
+                        time_value_stack.push_back(Self::expr_time_value(&literal));
+                    }
                     _ => {}
                 },
                 GenericExpr::Var(_span, _symbol) => {}
-                GenericExpr::Call(_, symbol, _dependencies) => match Self::symbol_opcode(symbol) {
-                    Opcode::Or => {
-                        let arg2_value = value_stack
-                            .pop_back()
-                            .expect("Stack empty despite still trying to process operation.");
-                        let arg1_value = value_stack
-                            .pop_back()
-                            .expect("Stack empty despite still trying to process operation.");
-                        value_stack.push_back(unit_builder.ins().or(arg1_value, arg2_value));
+                GenericExpr::Call(_, symbol, _dependencies) => {
+                    if let Some(opcode) = Self::get_symbol_opcode(&symbol) {
+                        match opcode {
+                            Opcode::Or => {
+                                let arg2_value = value_stack.pop_back().expect(
+                                    "Stack empty despite still trying to process operation.",
+                                );
+                                let arg1_value = value_stack.pop_back().expect(
+                                    "Stack empty despite still trying to process operation.",
+                                );
+                                value_stack
+                                    .push_back(unit_builder.ins().or(arg1_value, arg2_value));
+                            }
+                            Opcode::And => {
+                                let arg2_value = value_stack.pop_back().expect(
+                                    "Stack empty despite still trying to process operation.",
+                                );
+                                let arg1_value = value_stack.pop_back().expect(
+                                    "Stack empty despite still trying to process operation.",
+                                );
+                                value_stack
+                                    .push_back(unit_builder.ins().and(arg1_value, arg2_value));
+                            }
+                            Opcode::ConstTime => {
+                                let arg1_value = time_value_stack.pop_back().expect(
+                                    "Stack empty despite still trying to process operation.",
+                                );
+                                value_stack.push_back(unit_builder.ins().const_time(arg1_value));
+                            }
+                            Opcode::Drv => {
+                                let arg3_value = value_stack.pop_back().expect(
+                                    "Stack empty despite still trying to process operation.",
+                                );
+                                let arg2_value = value_stack.pop_back().expect(
+                                    "Stack empty despite still trying to process operation.",
+                                );
+                                let arg1_value = value_stack.pop_back().expect(
+                                    "Stack empty despite still trying to process operation.",
+                                );
+                                let _ = unit_builder.ins().drv(arg1_value, arg2_value, arg3_value);
+                            }
+                            _ => {
+                                println!("Unknown opcode.");
+                            }
+                        }
                     }
-                    Opcode::And => {
-                        let arg2_value = value_stack
-                            .pop_back()
-                            .expect("Stack empty despite still trying to process operation.");
-                        let arg1_value = value_stack
-                            .pop_back()
-                            .expect("Stack empty despite still trying to process operation.");
-                        value_stack.push_back(unit_builder.ins().and(arg1_value, arg2_value));
-                    }
-                    Opcode::ConstTime => {
-                        let _arg1_value = value_stack
-                            .pop_back()
-                            .expect("Stack empty despite still trying to process operation.");
-                        // value_stack.push_back(unit_builder.ins().const_time(arg1_value));
-                    }
-                    Opcode::Drv => {
-                        let arg3_value = value_stack
-                            .pop_back()
-                            .expect("Stack empty despite still trying to process operation.");
-                        let arg2_value = value_stack
-                            .pop_back()
-                            .expect("Stack empty despite still trying to process operation.");
-                        let arg1_value = value_stack
-                            .pop_back()
-                            .expect("Stack empty despite still trying to process operation.");
-                        unit_builder.ins().drv(arg1_value, arg2_value, arg3_value);
-                    }
-                    _ => {}
-                },
+                }
             }
         }
-        // let v1 = builder.ins().const_int((1, 0));
-        // let v2 = builder.ins().const_int((1, 1));
-        // let _v3 = builder.ins().add(v1, v2);
     }
 
     pub(crate) fn to_unit(
@@ -137,13 +126,21 @@ impl LLHDEGraph {
     ) -> UnitData {
         let mut unit_data = UnitData::new(unit_kind, unit_name, unit_sig);
         let mut unit_builder = UnitBuilder::new_anonymous(&mut unit_data);
-        let mut expr_list: ExprList = Default::default();
+        let mut expr_fifo: ExprFIFO = Default::default();
 
-        Self::process_expr(&unit_expr, &mut expr_list);
-        let _root_expr = expr_list.pop();
+        Self::process_expr(&unit_expr, &mut expr_fifo);
 
-        let mut expr_stack: ValueStack = Default::default();
-        Self::process_expr_list(expr_list, &mut expr_stack, &mut unit_builder);
+        let mut value_stack: ValueStack = Default::default();
+        let mut int_value_stack: IntValueStack = Default::default();
+        let mut time_value_stack: TimeValueStack = Default::default();
+
+        Self::process_expr_fifo(
+            expr_fifo,
+            &mut value_stack,
+            &mut int_value_stack,
+            &mut time_value_stack,
+            &mut unit_builder,
+        );
 
         unit_data
     }
@@ -153,6 +150,7 @@ impl LLHDEGraph {
 mod tests {
     use egglog::ast::{GenericCommand, GenericExpr, GenericRunConfig, GenericSchedule, Symbol};
     use egglog::TermDag;
+    use llhd::ir::InstData;
     use llhd::table::TableKey;
 
     use super::*;
@@ -247,7 +245,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn llhd_testbench_egglog_program() {
         let mut test_module = utilities::load_llhd_module("2and_1or_common.llhd");
         let test_unit_id = LLHDUtils::iterate_unit_ids(&test_module).collect_vec()[0];
@@ -342,20 +339,6 @@ mod tests {
                 "(LLHDUnit (Drv (Value 3) (And (Or (Value 0) (Value 2)) (Value 1)) (ConstTime \
                  \"0s 1e\")))"
             );
-            // Processing Call(Call): "LLHDUnit"
-            // Processing Call(Call): "Drv"
-            // Processing Call(Call): "Value"
-            // Processing Literal(Lit): Int(3)
-            // Processing Call(Call): "And"
-            // Processing Call(Call): "Or"
-            // Processing Call(Call): "Value"
-            // Processing Literal(Lit): Int(0)
-            // Processing Call(Call): "Value"
-            // Processing Literal(Lit): Int(2)
-            // Processing Call(Call): "Value"
-            // Processing Literal(Lit): Int(1)
-            // Processing Call(Call): "ConstTime"
-            // Processing Literal(Lit): String("0s 1e")
             LLHDEGraph::to_unit(extracted_expr, unit_kind, unit_name, unit_sig)
         };
         test_module[test_unit_id] =
@@ -366,6 +349,40 @@ mod tests {
             5,
             new_unit_insts.len(),
             "There should be 5 Insts in rewritten Unit."
+        );
+        let inst_const_time_id = new_unit_insts[0];
+        let inst_const_time_data = new_unit_data[inst_const_time_id].clone();
+        assert_eq!(
+            Opcode::ConstTime,
+            inst_const_time_data.opcode(),
+            "First Inst should be `const time`."
+        );
+        let inst_and1_id = new_unit_insts[1];
+        let inst_and1_data = new_unit_data[inst_and1_id].clone();
+        assert_eq!(
+            Opcode::Or,
+            inst_and1_data.opcode(),
+            "Second Inst should be `or`."
+        );
+        let inst_or1_id = new_unit_insts[2];
+        let inst_or1_data = new_unit_data[inst_or1_id].clone();
+        assert_eq!(
+            Opcode::And,
+            inst_or1_data.opcode(),
+            "Third Inst should be `And`."
+        );
+        let inst_drv1_id = new_unit_insts[3];
+        let inst_drv1_data = new_unit_data[inst_drv1_id].clone();
+        assert_eq!(
+            Opcode::Drv,
+            inst_drv1_data.opcode(),
+            "Fourth Inst should be `drv`."
+        );
+        let inst_null_id = new_unit_insts[4];
+        let inst_null_data = new_unit_data[inst_null_id].clone();
+        assert!(
+            matches!(inst_null_data, InstData::Nullary { .. }),
+            "Fifth Inst should be Null instruction(doesn't actually exist)."
         );
     }
 }

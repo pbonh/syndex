@@ -192,7 +192,7 @@ lazy_static! {
 
 impl LLHDEGraph {
     pub(crate) fn get_symbol_opcode(symbol: &Symbol) -> Option<Opcode> {
-        OPCODESYMBOLMAP.get(&symbol).copied()
+        OPCODESYMBOLMAP.get(symbol).copied()
     }
 
     pub(crate) fn symbol_opcode(symbol: Symbol) -> Opcode {
@@ -210,6 +210,7 @@ impl LLHDEGraph {
         match opcode {
             Opcode::ConstTime => opcode_str.push_str("Time"),
             Opcode::ConstInt => opcode_str.push_str("Int"),
+            Opcode::DrvCond => opcode_str.push_str("Cond"),
             _ => (),
         }
         Self::uppercase_first_letter(&mut opcode_str);
@@ -417,7 +418,7 @@ impl LLHDEGraph {
         GenericExpr::lit(converted_literal)
     }
 
-    pub(super) fn expr_time_value(_literal: &Literal) -> TimeValue {
+    pub(crate) fn expr_time_value(_literal: &Literal) -> TimeValue {
         TimeValue::zero()
     }
 
@@ -486,6 +487,14 @@ mod tests {
             egglog_symbol.to_string(),
             "Opcode::Eq should be represented as 'Eq'."
         );
+        let drv_opcode = Opcode::Drv;
+        let drv_egglog_symbol = LLHDEGraph::opcode_symbol(drv_opcode);
+        let drv_expected_str = "Drv".to_owned();
+        assert_eq!(
+            drv_expected_str,
+            drv_egglog_symbol.to_string(),
+            "Opcode::Drv should be represented as 'Drv'."
+        );
     }
 
     #[test]
@@ -496,6 +505,13 @@ mod tests {
         assert_eq!(
             expected_opcode, opcode,
             "Symbol('Eq') should be map to Opcode::Eq."
+        );
+        let drv_symbol = Symbol::new("Drv");
+        let drv_opcode = LLHDEGraph::symbol_opcode(drv_symbol);
+        let drv_expected_opcode = Opcode::Drv;
+        assert_eq!(
+            drv_expected_opcode, drv_opcode,
+            "Symbol('Drv') should be map to Opcode::Drv."
         );
     }
 
