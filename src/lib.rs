@@ -131,8 +131,35 @@ pub mod llhd_world;
 ///
 pub mod index;
 
-/// Types & Utilities for Managing LLHD Modules
+/// Types & Utilities for Managing LLHD Modules/Units/Insts/Blocks/Values
 pub(crate) mod llhd;
+
+/// LLHD EGraph Representation
+/// ```
+/// (datatype LLHDDFG
+///     (Value i64)
+///     (ConstInt String)
+///     (ConstTime String)
+///     (Not LLHDDFG)
+///     (And LLHDDFG LLHDDFG)
+///     (Or LLHDDFG LLHDDFG)
+///     (Xor LLHDDFG LLHDDFG)
+///     (Sig LLHDDFG)
+///     (Prb LLHDDFG)
+///     (Drv LLHDDFG LLHDDFG LLHDDFG)
+///     (LLHDUnit LLHDDFG))
+///
+/// ; Divisor Extraction
+/// (ruleset div-ext)
+/// (rewrite (Or
+///   (And a c)
+///   (And b c)
+/// )(And
+///   (Or a b)
+///   c
+/// ):ruleset div-ext)
+/// ```
+pub(crate) mod egraph;
 
 /// Types & Utilities for Managing FLECS Worlds
 pub(crate) mod world;

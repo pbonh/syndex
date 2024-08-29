@@ -1,4 +1,3 @@
-pub(crate) mod egraph;
 pub(crate) mod utils;
 
 #[cfg(test)]
