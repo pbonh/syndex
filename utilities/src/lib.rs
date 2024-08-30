@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use egglog::EGraph;
+use egglog::{EGraph, Error};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
 
@@ -15,6 +15,17 @@ pub fn load_egraph(filename: &str) -> (EGraph, Vec<String>) {
         .parse_and_run_program(&egglog_program_str)
         .expect("Failure to run program on egraph.");
     (egraph, msgs)
+}
+
+pub fn load_egraph_rewrite_rules(
+    rewrite_filename: &str,
+    egraph: &mut EGraph,
+) -> Result<Vec<String>, Error> {
+    let mut egglog_program_file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    egglog_program_file_path.push("../resources/egglog");
+    egglog_program_file_path.push(rewrite_filename);
+    let egglog_program_str: String = fs::read_to_string(egglog_program_file_path).unwrap();
+    egraph.parse_and_run_program(&egglog_program_str)
 }
 
 pub fn load_llhd_module(filename: &str) -> Module {

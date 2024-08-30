@@ -147,11 +147,12 @@ pub(crate) fn to_unit(
 #[cfg(test)]
 mod tests {
     use egglog::ast::{GenericCommand, GenericExpr, GenericRunConfig, GenericSchedule, Symbol};
-    use egglog::TermDag;
+    use egglog::{EGraph, TermDag};
     use llhd::ir::InstData;
     use llhd::table::TableKey;
 
     use super::*;
+    use crate::egraph::inst;
 
     #[test]
     fn llhd_egglog_dfg_expression_tree1() {
@@ -190,7 +191,7 @@ mod tests {
                 (Add
                     (ConstInt \"i1 0\")
                     (ConstInt \"i1 1\"))
-                (Prb (Value 2)))))
+                (Prb (ValueRef 2)))))
         "});
         assert_eq!(
             expected_str,
@@ -230,9 +231,9 @@ mod tests {
         let egglog_expr = from_unit(&unit);
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
             (let test_entity (LLHDUnit (Drv
-                (Value 4) (Or
-                    (And (Value 0) (Value 1))
-                    (And (Value 2) (Value 3)))
+                (ValueRef 4) (Or
+                    (And (ValueRef 0) (ValueRef 1))
+                    (And (ValueRef 2) (ValueRef 3)))
                 (ConstTime \"0s 1e\"))))
         "});
         assert_eq!(
@@ -243,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn llhd_testbench_egglog_program() {
+    fn llhd_rewrite_egglog_program() {
         let mut test_module = utilities::load_llhd_module("2and_1or_common.llhd");
         let test_unit_id = LLHDUtils::iterate_unit_ids(&test_module).collect_vec()[0];
         let test_unit_kind = test_module.unit(test_unit_id).kind();
@@ -253,8 +254,11 @@ mod tests {
                             unit_kind: UnitKind,
                             unit_name: UnitName,
                             unit_sig: Signature| {
-            let egraph_info = utilities::load_egraph("llhd_div_extract.egg");
-            let mut egraph = egraph_info.0;
+            let dfg_datatype = inst::dfg();
+            let mut egraph = EGraph::default();
+            let _egraph_msgs_datatypes = egraph.run_program(dfg_datatype);
+            let _egraph_msgs_rules =
+                utilities::load_egraph_rewrite_rules("llhd_div_extract.egg", &mut egraph);
             assert_eq!(
                 0,
                 egraph.num_tuples(),
@@ -334,8 +338,8 @@ mod tests {
             );
             assert_eq!(
                 extracted_expr.to_string(),
-                "(LLHDUnit (Drv (Value 3) (And (Or (Value 0) (Value 2)) (Value 1)) (ConstTime \
-                 \"0s 1e\")))"
+                "(LLHDUnit (Drv (ValueRef 3) (And (Or (ValueRef 0) (ValueRef 2)) (ValueRef 1)) \
+                 (ConstTime \"0s 1e\")))"
             );
             to_unit(extracted_expr, unit_kind, unit_name, unit_sig)
         };

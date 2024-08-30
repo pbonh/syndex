@@ -1,22 +1,3 @@
-(sort LLHDVecValue (Vec i64))
-(datatype LLHDDFG
-    (Value i64)
-    (ConstInt String)
-    (ConstTime String)
-    (Alias LLHDDFG)
-    (Not LLHDDFG)
-    (Neg LLHDDFG)
-    (Add LLHDDFG LLHDDFG)
-    (Sub LLHDDFG LLHDDFG)
-    (And LLHDDFG LLHDDFG)
-    (Or LLHDDFG LLHDDFG)
-    (Xor LLHDDFG LLHDDFG)
-    (Sig LLHDDFG)
-    (Prb LLHDDFG)
-    (Drv LLHDDFG LLHDDFG LLHDDFG)
-    (Wait i64 LLHDVecValue)
-    (LLHDUnit LLHDDFG))
-
 ; Divisor Extraction
 (ruleset div-ext)
 (rewrite (Or

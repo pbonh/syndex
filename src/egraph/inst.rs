@@ -323,7 +323,7 @@ fn value_def_expr(value: impl TableKey) -> Expr {
         i64::try_from(value.index()).expect("Out-of-bound value for u32 -> i64 conversion.");
     let converted_literal = Literal::Int(converted_unsigned_num);
     let literal_value = GenericExpr::lit(converted_literal);
-    let llhd_value_datatype_symbol = Symbol::new(LLHD_VALUE_FIELD);
+    let llhd_value_datatype_symbol = Symbol::new(LLHD_VALUE_REF_FIELD);
     GenericExpr::call(llhd_value_datatype_symbol, [literal_value])
 }
 
@@ -595,7 +595,7 @@ mod tests {
     fn llhd_value_egglog_expr() {
         let value1 = Value::new(1);
         let value1_expr = value_def_expr(value1);
-        let expected_str = "(Value 1)";
+        let expected_str = "(ValueRef 1)";
         assert_eq!(
             expected_str,
             value1_expr.to_string(),
@@ -617,7 +617,7 @@ mod tests {
                 (Add
                     (ConstInt \"i1 0\")
                     (ConstInt \"i1 1\"))
-                (Prb (Value 2)))
+                (Prb (ValueRef 2)))
         "});
         assert_eq!(
             expected_str,
