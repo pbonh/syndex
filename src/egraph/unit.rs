@@ -185,7 +185,7 @@ mod tests {
         assert_eq!(Opcode::Add, add2_inst_data.opcode(), "Inst should be Add.");
 
         let egglog_expr = from_unit(&unit);
-        let expected_str = utilities::trim_whitespace(indoc::indoc! {"
+        let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
             (let 0 (LLHDUnit (Add
                 (Add
                     (ConstInt \"i1 0\")
@@ -228,7 +228,7 @@ mod tests {
         assert_eq!(Opcode::Drv, drv_inst_data.opcode(), "Inst should be Drv.");
 
         let egglog_expr = from_unit(&unit);
-        let expected_str = utilities::trim_whitespace(indoc::indoc! {"
+        let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
             (let test_entity (LLHDUnit (Drv
                 (Value 4) (Or
                     (And (Value 0) (Value 1))

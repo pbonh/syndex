@@ -2,6 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use egglog::EGraph;
+use itertools::Itertools;
 use llhd::ir::prelude::*;
 
 pub fn load_egraph(filename: &str) -> (EGraph, Vec<String>) {
@@ -25,9 +26,9 @@ pub fn load_llhd_module(filename: &str) -> Module {
         .expect(&format!("Error loading module: {}", filename))
 }
 
-pub fn trim_whitespace(s: &str) -> String {
-    // first attempt: allocates a vector and a string
-    let words: Vec<_> = s.split_whitespace().collect();
+pub fn trim_expr_whitespace(expr_str: &str) -> String {
+    let newline_stripped_expr = expr_str.replace('\n', "");
+    let words = newline_stripped_expr.split_whitespace().collect_vec();
     words.join(" ")
 }
 

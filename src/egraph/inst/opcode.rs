@@ -84,6 +84,22 @@ pub(in crate::egraph) fn opcode_symbol(opcode: Opcode) -> Symbol {
         Opcode::ConstTime => opcode_str.push_str("Time"),
         Opcode::ConstInt => opcode_str.push_str("Int"),
         Opcode::DrvCond => opcode_str.push_str("Cond"),
+        Opcode::ArrayUniform => opcode_str.push_str("Uniform"),
+        Opcode::InsField => {
+            opcode_str = opcode_str.replace("insf", "insField");
+        }
+        Opcode::InsSlice => {
+            opcode_str = opcode_str.replace("inss", "insSlice");
+        }
+        Opcode::ExtField => {
+            opcode_str = opcode_str.replace("extf", "extField");
+        }
+        Opcode::ExtSlice => {
+            opcode_str = opcode_str.replace("exts", "extSlice");
+        }
+        Opcode::RetValue => opcode_str.push_str("Value"),
+        Opcode::BrCond => opcode_str.push_str("Cond"),
+        Opcode::WaitTime => opcode_str.push_str("Time"),
         _ => (),
     }
     uppercase_first_letter(&mut opcode_str);
@@ -96,4 +112,153 @@ pub(in crate::egraph) fn get_symbol_opcode(symbol: &Symbol) -> Option<Opcode> {
 
 pub(in crate::egraph) fn symbol_opcode(symbol: Symbol) -> Opcode {
     OPCODESYMBOLMAP[&symbol]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::egraph::inst::*;
+
+    #[test]
+    fn all_opcodes_available_in_egglog() {
+        assert_eq!(
+            LLHD_DFG_VARIANTS_COUNT.to_owned(),
+            OPCODESYMBOLMAP_COUNT.to_owned() + 2,
+            "Not all LLHD Inst Opcodes are available in Egglog."
+        );
+    }
+
+    #[test]
+    fn egglog_symbol_from_llhd_opcode() {
+        let opcode = Opcode::Eq;
+        let egglog_symbol = opcode_symbol(opcode);
+        let expected_str = "Eq".to_owned();
+        assert_eq!(
+            expected_str,
+            egglog_symbol.to_string(),
+            "Opcode::Eq should be represented as 'Eq'."
+        );
+        let drv_opcode = Opcode::Drv;
+        let drv_egglog_symbol = opcode_symbol(drv_opcode);
+        let drv_expected_str = "Drv".to_owned();
+        assert_eq!(
+            drv_expected_str,
+            drv_egglog_symbol.to_string(),
+            "Opcode::Drv should be represented as 'Drv'."
+        );
+        let drv_cond_opcode = Opcode::DrvCond;
+        let drv_cond_egglog_symbol = opcode_symbol(drv_cond_opcode);
+        let drv_cond_expected_str = "DrvCond".to_owned();
+        assert_eq!(
+            drv_cond_expected_str,
+            drv_cond_egglog_symbol.to_string(),
+            "Opcode::DrvCond should be represented as 'DrvCond'."
+        );
+        let array_opcode = Opcode::ArrayUniform;
+        let array_egglog_symbol = opcode_symbol(array_opcode);
+        let array_expected_str = "ArrayUniform".to_owned();
+        assert_eq!(
+            array_expected_str,
+            array_egglog_symbol.to_string(),
+            "Opcode::Array should be represented as 'ArrayUniform'."
+        );
+        let ins_field_opcode = Opcode::InsField;
+        let ins_field_egglog_symbol = opcode_symbol(ins_field_opcode);
+        let ins_field_expected_str = "InsField".to_owned();
+        assert_eq!(
+            ins_field_expected_str,
+            ins_field_egglog_symbol.to_string(),
+            "Opcode::InsField should be represented as 'InsField'."
+        );
+        let ins_slice_opcode = Opcode::InsSlice;
+        let ins_slice_egglog_symbol = opcode_symbol(ins_slice_opcode);
+        let ins_slice_expected_str = "InsSlice".to_owned();
+        assert_eq!(
+            ins_slice_expected_str,
+            ins_slice_egglog_symbol.to_string(),
+            "Opcode::InsSlice should be represented as 'InsSlice'."
+        );
+        let ext_field_opcode = Opcode::ExtField;
+        let ext_field_egglog_symbol = opcode_symbol(ext_field_opcode);
+        let ext_field_expected_str = "ExtField".to_owned();
+        assert_eq!(
+            ext_field_expected_str,
+            ext_field_egglog_symbol.to_string(),
+            "Opcode::ExtField should be represented as 'ExtField'."
+        );
+        let ext_slice_opcode = Opcode::ExtSlice;
+        let ext_slice_egglog_symbol = opcode_symbol(ext_slice_opcode);
+        let ext_slice_expected_str = "ExtSlice".to_owned();
+        assert_eq!(
+            ext_slice_expected_str,
+            ext_slice_egglog_symbol.to_string(),
+            "Opcode::ExtSlice should be represented as 'ExtSlice'."
+        );
+        let ret_opcode = Opcode::Ret;
+        let ret_egglog_symbol = opcode_symbol(ret_opcode);
+        let ret_expected_str = "Ret".to_owned();
+        assert_eq!(
+            ret_expected_str,
+            ret_egglog_symbol.to_string(),
+            "Opcode::Ret should be represented as 'Ret'."
+        );
+        let ret_value_opcode = Opcode::RetValue;
+        let ret_value_egglog_symbol = opcode_symbol(ret_value_opcode);
+        let ret_value_expected_str = "RetValue".to_owned();
+        assert_eq!(
+            ret_value_expected_str,
+            ret_value_egglog_symbol.to_string(),
+            "Opcode::RetValue should be represented as 'RetValue'."
+        );
+        let br_opcode = Opcode::Br;
+        let br_egglog_symbol = opcode_symbol(br_opcode);
+        let br_expected_str = "Br".to_owned();
+        assert_eq!(
+            br_expected_str,
+            br_egglog_symbol.to_string(),
+            "Opcode::Br should be represented as 'Br'."
+        );
+        let br_cond_opcode = Opcode::BrCond;
+        let br_cond_egglog_symbol = opcode_symbol(br_cond_opcode);
+        let br_cond_expected_str = "BrCond".to_owned();
+        assert_eq!(
+            br_cond_expected_str,
+            br_cond_egglog_symbol.to_string(),
+            "Opcode::BrCond should be represented as 'BrCond'."
+        );
+        let wait_opcode = Opcode::Wait;
+        let wait_egglog_symbol = opcode_symbol(wait_opcode);
+        let wait_expected_str = "Wait".to_owned();
+        assert_eq!(
+            wait_expected_str,
+            wait_egglog_symbol.to_string(),
+            "Opcode::Wait should be represented as 'Wait'."
+        );
+        let wait_time_opcode = Opcode::WaitTime;
+        let wait_time_egglog_symbol = opcode_symbol(wait_time_opcode);
+        let wait_time_expected_str = "WaitTime".to_owned();
+        assert_eq!(
+            wait_time_expected_str,
+            wait_time_egglog_symbol.to_string(),
+            "Opcode::WaitTime should be represented as 'WaitTime'."
+        );
+    }
+
+    #[test]
+    fn llhd_opcode_from_egglog_symbol() {
+        let symbol = Symbol::new("Eq");
+        let opcode = symbol_opcode(symbol);
+        let expected_opcode = Opcode::Eq;
+        assert_eq!(
+            expected_opcode, opcode,
+            "Symbol('Eq') should be map to Opcode::Eq."
+        );
+        let drv_symbol = Symbol::new("Drv");
+        let drv_opcode = symbol_opcode(drv_symbol);
+        let drv_expected_opcode = Opcode::Drv;
+        assert_eq!(
+            drv_expected_opcode, drv_opcode,
+            "Symbol('Drv') should be map to Opcode::Drv."
+        );
+    }
 }

@@ -15,7 +15,7 @@ pub(in crate::egraph) fn variant(opcode: Opcode, symbol_strs: Vec<&str>) -> Vari
 
 pub(in crate::egraph) fn value_ref_variant() -> Variant {
     Variant {
-        name: Symbol::new(LLHD_VALUE_FIELD),
+        name: Symbol::new(LLHD_VALUE_REF_FIELD),
         types: vec![Symbol::new(EGGLOG_I64_SORT)],
         cost: None,
     }

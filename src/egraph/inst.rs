@@ -12,6 +12,8 @@ use crate::egraph::egglog_names::*;
 pub(in crate::egraph) mod opcode;
 use opcode::*;
 
+use super::EgglogProgram;
+
 lazy_static! {
     static ref LLHD_DFG_VARIANTS: Vec<Variant> = vec![
         value_ref_variant(),
@@ -62,13 +64,101 @@ lazy_static! {
             Opcode::Reg,
             vec![LLHD_VEC_VALUE_DATATYPE, LLHD_VEC_REGMODE_DATATYPE]
         ),
+        variant(
+            Opcode::InsField,
+            vec![
+                LLHD_DFG_DATATYPE,
+                LLHD_DFG_DATATYPE,
+                EGGLOG_I64_SORT,
+                EGGLOG_I64_SORT
+            ]
+        ),
+        variant(
+            Opcode::InsSlice,
+            vec![
+                LLHD_DFG_DATATYPE,
+                LLHD_DFG_DATATYPE,
+                EGGLOG_I64_SORT,
+                EGGLOG_I64_SORT
+            ]
+        ),
+        variant(
+            Opcode::ExtField,
+            vec![
+                LLHD_DFG_DATATYPE,
+                LLHD_DFG_DATATYPE,
+                EGGLOG_I64_SORT,
+                EGGLOG_I64_SORT
+            ]
+        ),
+        variant(
+            Opcode::ExtSlice,
+            vec![
+                LLHD_DFG_DATATYPE,
+                LLHD_DFG_DATATYPE,
+                EGGLOG_I64_SORT,
+                EGGLOG_I64_SORT
+            ]
+        ),
+        variant(Opcode::Con, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
+        variant(
+            Opcode::Del,
+            vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]
+        ),
+        variant(
+            Opcode::Call,
+            vec![
+                LLHD_EXT_UNIT_DATATYPE,
+                EGGLOG_I64_SORT,
+                LLHD_VEC_VALUE_DATATYPE
+            ]
+        ),
+        variant(
+            Opcode::Inst,
+            vec![
+                LLHD_EXT_UNIT_DATATYPE,
+                EGGLOG_I64_SORT,
+                LLHD_VEC_VALUE_DATATYPE
+            ]
+        ),
         variant(Opcode::Sig, vec![LLHD_DFG_DATATYPE]),
         variant(Opcode::Prb, vec![LLHD_DFG_DATATYPE]),
         variant(
             Opcode::Drv,
             vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE],
         ),
-        variant(Opcode::Wait, vec![EGGLOG_I64_SORT, LLHD_VEC_VALUE_DATATYPE]),
+        variant(
+            Opcode::DrvCond,
+            vec![
+                LLHD_DFG_DATATYPE,
+                LLHD_DFG_DATATYPE,
+                LLHD_DFG_DATATYPE,
+                LLHD_DFG_DATATYPE
+            ],
+        ),
+        variant(Opcode::Var, vec![LLHD_DFG_DATATYPE],),
+        variant(Opcode::Ld, vec![LLHD_DFG_DATATYPE],),
+        variant(Opcode::St, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE],),
+        variant(Opcode::Halt, vec![],),
+        variant(Opcode::Ret, vec![],),
+        variant(Opcode::RetValue, vec![LLHD_DFG_DATATYPE],),
+        variant(
+            Opcode::Phi,
+            vec![LLHD_VEC_VALUE_DATATYPE, LLHD_VEC_BLOCK_DATATYPE]
+        ),
+        variant(Opcode::Br, vec![LLHD_BLOCK_DATATYPE]),
+        variant(
+            Opcode::BrCond,
+            vec![LLHD_DFG_DATATYPE, LLHD_BLOCK_DATATYPE, LLHD_BLOCK_DATATYPE]
+        ),
+        variant(
+            Opcode::Wait,
+            vec![LLHD_BLOCK_DATATYPE, LLHD_VEC_VALUE_DATATYPE]
+        ),
+        variant(
+            Opcode::WaitTime,
+            vec![LLHD_BLOCK_DATATYPE, LLHD_VEC_VALUE_DATATYPE]
+        ),
         unit_root_variant(),
     ];
     static ref LLHD_DFG_VARIANTS_COUNT: usize = LLHD_DFG_VARIANTS.len();
@@ -150,7 +240,7 @@ pub(in crate::egraph) fn reg_mode() -> Command {
     }
 }
 
-pub(in crate::egraph) fn vec_sort() -> Command {
+pub(in crate::egraph) fn vec_value_sort() -> Command {
     let vec_sort_symbol = Symbol::new(LLHD_VEC_VALUE_DATATYPE);
     let symbol_vec = Symbol::new(EGGLOG_VEC_SORT);
     let i64_sort = I64Sort::new(EGGLOG_I64_SORT.into());
@@ -180,7 +270,29 @@ pub(in crate::egraph) fn block() -> Command {
     }
 }
 
-pub(in crate::egraph) fn dfg() -> Command {
+pub(in crate::egraph) fn vec_block() -> Command {
+    let vec_sort_symbol = Symbol::new(LLHD_VEC_BLOCK_DATATYPE);
+    let symbol_vec = Symbol::new(EGGLOG_VEC_SORT);
+    let vec_block_datatype = I64Sort::new(LLHD_BLOCK_DATATYPE.into());
+    let vec_block_expr = Expr::Var((), vec_block_datatype.name());
+    Command::Sort(vec_sort_symbol, Some((symbol_vec, vec![vec_block_expr])))
+}
+
+pub(in crate::egraph) fn ext_unit() -> Command {
+    let i64_sort = I64Sort::new(EGGLOG_I64_SORT.into());
+    let ext_unit_variant = Variant {
+        name: Symbol::new(LLHD_EXT_UNIT_FIELD),
+        types: vec![i64_sort.name()],
+        cost: None,
+    };
+    let symbol = Symbol::new(LLHD_EXT_UNIT_DATATYPE);
+    Command::Datatype {
+        name: symbol,
+        variants: vec![ext_unit_variant],
+    }
+}
+
+pub(in crate::egraph) fn dfg_insts() -> Command {
     let dfg_symbol = Symbol::new(LLHD_DFG_DATATYPE);
     Command::Datatype {
         name: dfg_symbol,
@@ -188,7 +300,20 @@ pub(in crate::egraph) fn dfg() -> Command {
     }
 }
 
-pub(in crate::egraph) fn cfg() -> Command {
+pub(in crate::egraph) fn dfg() -> EgglogProgram {
+    vec![
+        value(),
+        vec_value_sort(),
+        block(),
+        vec_block(),
+        ext_unit(),
+        reg_mode(),
+        vec_regmode_sort(),
+        dfg_insts(),
+    ]
+}
+
+pub(in crate::egraph) fn cfg() -> EgglogProgram {
     let _symbol = Symbol::new(LLHD_CFG_DATATYPE);
     todo!()
 }
@@ -281,60 +406,11 @@ pub(in crate::egraph) fn inst_expr(unit: &Unit<'_>, inst_data: &InstData) -> Exp
 mod tests {
     use itertools::Itertools;
     use llhd::table::TableKey;
-    use opcode::symbol_opcode;
 
     use super::*;
     use crate::llhd::LLHDUtils;
 
     extern crate utilities;
-
-    #[test]
-    #[should_panic]
-    fn all_opcodes_available_in_egglog() {
-        assert_eq!(
-            LLHD_DFG_VARIANTS_COUNT.to_owned(),
-            OPCODESYMBOLMAP_COUNT.to_owned(),
-            "Not all LLHD Inst Opcodes are available in Egglog."
-        );
-    }
-
-    #[test]
-    fn egglog_symbol_from_llhd_opcode() {
-        let opcode = Opcode::Eq;
-        let egglog_symbol = opcode_symbol(opcode);
-        let expected_str = "Eq".to_owned();
-        assert_eq!(
-            expected_str,
-            egglog_symbol.to_string(),
-            "Opcode::Eq should be represented as 'Eq'."
-        );
-        let drv_opcode = Opcode::Drv;
-        let drv_egglog_symbol = opcode_symbol(drv_opcode);
-        let drv_expected_str = "Drv".to_owned();
-        assert_eq!(
-            drv_expected_str,
-            drv_egglog_symbol.to_string(),
-            "Opcode::Drv should be represented as 'Drv'."
-        );
-    }
-
-    #[test]
-    fn llhd_opcode_from_egglog_symbol() {
-        let symbol = Symbol::new("Eq");
-        let opcode = symbol_opcode(symbol);
-        let expected_opcode = Opcode::Eq;
-        assert_eq!(
-            expected_opcode, opcode,
-            "Symbol('Eq') should be map to Opcode::Eq."
-        );
-        let drv_symbol = Symbol::new("Drv");
-        let drv_opcode = symbol_opcode(drv_symbol);
-        let drv_expected_opcode = Opcode::Drv;
-        assert_eq!(
-            drv_expected_opcode, drv_opcode,
-            "Symbol('Drv') should be map to Opcode::Drv."
-        );
-    }
 
     #[test]
     fn llhd_egglog_value_datatypes() {
@@ -361,7 +437,7 @@ mod tests {
              i64)."
         );
         let reg_mode_datatype = reg_mode();
-        let reg_mode_expected_str = utilities::trim_whitespace(indoc::indoc! {"
+        let reg_mode_expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
             (datatype LLHDRegMode
                 (Low)
                 (High)
@@ -378,7 +454,7 @@ mod tests {
 
     #[test]
     fn llhd_egglog_vec_sort() {
-        let vec_sort = vec_sort();
+        let vec_sort = vec_value_sort();
         let expected_str = "(sort LLHDVecValue (Vec i64))".to_owned();
         assert_eq!(
             expected_str,
@@ -407,15 +483,52 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    fn llhd_egglog_vec_block_sort() {
+        let block_datatype = vec_block();
+        let expected_str = "(sort LLHDVecBlock (Vec LLHDBlock))".to_owned();
+        assert_eq!(
+            expected_str,
+            block_datatype.to_string(),
+            "Datatype should be named 'LLHDVecBlock' and should have 1 field named (Vec \
+             LLHDBlock)."
+        );
+    }
+
+    #[test]
+    fn llhd_egglog_ext_unit_datatypes() {
+        let ext_unit_datatype = ext_unit();
+        let expected_str = "(datatype LLHDExtUnit (ExtUnit i64))".to_owned();
+        assert_eq!(
+            expected_str,
+            ext_unit_datatype.to_string(),
+            "Datatype should be named 'LLHDExtUnit' and should have 1 field named (ExtUnit i64)."
+        );
+    }
+
+    #[test]
     fn llhd_egglog_dfg_datatypes() {
         let dfg_datatype = dfg();
-        let expected_str = utilities::trim_whitespace(indoc::indoc! {"
+        let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
+            (datatype LLHDValue (Value i64))
+            (sort LLHDVecValue (Vec i64))
+            (datatype LLHDBlock (Block i64))
+            (sort LLHDVecBlock (Vec LLHDBlock))
+            (datatype LLHDExtUnit (ExtUnit i64))
+            (datatype LLHDRegMode
+                (Low)
+                (High)
+                (Rise)
+                (Fall)
+                (Both))
+            (sort LLHDVecRegMode (Vec LLHDRegMode))
             (datatype LLHDDFG
-                (Value i64)
+                (ValueRef i64)
                 (ConstInt String)
                 (ConstTime String)
                 (Alias LLHDDFG)
+                (ArrayUniform i64 LLHDDFG)
+                (Array LLHDVecValue)
+                (Struct LLHDVecValue)
                 (Not LLHDDFG)
                 (Neg LLHDDFG)
                 (Add LLHDDFG LLHDDFG)
@@ -423,16 +536,58 @@ mod tests {
                 (And LLHDDFG LLHDDFG)
                 (Or LLHDDFG LLHDDFG)
                 (Xor LLHDDFG LLHDDFG)
+                (Smul LLHDDFG LLHDDFG)
+                (Sdiv LLHDDFG LLHDDFG)
+                (Smod LLHDDFG LLHDDFG)
+                (Srem LLHDDFG LLHDDFG)
+                (Umul LLHDDFG LLHDDFG)
+                (Udiv LLHDDFG LLHDDFG)
+                (Umod LLHDDFG LLHDDFG)
+                (Urem LLHDDFG LLHDDFG)
+                (Eq LLHDDFG LLHDDFG)
+                (Neq LLHDDFG LLHDDFG)
+                (Slt LLHDDFG LLHDDFG)
+                (Sgt LLHDDFG LLHDDFG)
+                (Sle LLHDDFG LLHDDFG)
+                (Sge LLHDDFG LLHDDFG)
+                (Ult LLHDDFG LLHDDFG)
+                (Ugt LLHDDFG LLHDDFG)
+                (Ule LLHDDFG LLHDDFG)
+                (Uge LLHDDFG LLHDDFG)
+                (Shl LLHDDFG LLHDDFG LLHDDFG)
+                (Shr LLHDDFG LLHDDFG LLHDDFG)
+                (Mux LLHDDFG LLHDDFG)
+                (Reg LLHDVecValue LLHDVecRegMode)
+                (InsField LLHDDFG LLHDDFG i64 i64)
+                (InsSlice LLHDDFG LLHDDFG i64 i64)
+                (ExtField LLHDDFG LLHDDFG i64 i64)
+                (ExtSlice LLHDDFG LLHDDFG i64 i64)
+                (Con LLHDDFG LLHDDFG)
+                (Del LLHDDFG LLHDDFG LLHDDFG)
+                (Call LLHDExtUnit i64 LLHDVecValue)
+                (Inst LLHDExtUnit i64 LLHDVecValue)
                 (Sig LLHDDFG)
                 (Prb LLHDDFG)
                 (Drv LLHDDFG LLHDDFG LLHDDFG)
-                (Wait i64 LLHDVecValue)
-                (LLHDUnit LLHDDFG))
+                (DrvCond LLHDDFG LLHDDFG LLHDDFG LLHDDFG)
+                (Var LLHDDFG)
+                (Ld LLHDDFG)
+                (St LLHDDFG LLHDDFG)
+                (Halt)
+                (Ret)
+                (RetValue LLHDDFG)
+                (Phi LLHDVecValue LLHDVecBlock)
+                (Br LLHDBlock)
+                (BrCond LLHDDFG LLHDBlock LLHDBlock)
+                (Wait LLHDBlock LLHDVecValue)
+                (WaitTime LLHDBlock LLHDVecValue)
+                (LLHDUnit LLHDDFG)
+            )
         "});
         assert_eq!(
             expected_str,
-            dfg_datatype.to_string(),
-            "Datatype should be named 'LLHDValue' and should have 1 field named (Value i64)."
+            dfg_datatype.into_iter().join(""),
+            "LLHD DFG Egglog datatype does not match expected string."
         );
     }
 
@@ -457,7 +612,7 @@ mod tests {
         let add2_inst_data = &unit[add2_inst.1];
         assert_eq!(Opcode::Add, add2_inst_data.opcode(), "Inst should be Add.");
         let add2_expr = inst_expr(&unit, add2_inst_data);
-        let expected_str = utilities::trim_whitespace(indoc::indoc! {"
+        let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
             (Add
                 (Add
                     (ConstInt \"i1 0\")

@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 egglog = "0.2.0"
+itertools = "0.13.0"
 llhd = "0.16.0"
