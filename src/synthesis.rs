@@ -86,19 +86,18 @@ mod tests {
 
     #[test]
     fn synthesize_ecs_with_egraph() {
-        let mut world = World::new();
-        world.register::<Pos>();
-        world.register::<Vel>();
+        let world = World::new();
 
         let m1 = |mut chip_world: World| {
+            chip_world.register::<Pos>();
             chip_world
                 .create_entity()
-                .with(Vel(2.0))
                 .with(Pos(0.0))
                 .build();
             (chip_world, LLHDEGraph::try_from(vec![]).unwrap())
         };
         let m2 = |mut chip_world: World| {
+        chip_world.register::<Vel>();
             chip_world
                 .create_entity()
                 .with(Vel(4.0))
