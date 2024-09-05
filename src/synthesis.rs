@@ -4,9 +4,10 @@ pub type SynthesisMonad<T> = (T, LLHDEGraph);
 
 pub fn cmap<T>(chip: T) -> SynthesisMonad<T>
 where
-    T: Clone + Into<LLHDEGraph>,
+    LLHDEGraph: for<'world> From<&'world T>,
 {
-    (chip.clone(), chip.into())
+    let egraph = LLHDEGraph::from(&chip);
+    (chip, egraph)
 }
 
 pub fn synthesize<A, B, C, F1, F2>(m1: F1, m2: F2) -> impl Fn(A) -> SynthesisMonad<C>
@@ -23,6 +24,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use specs::prelude::*;
+
     use super::*;
 
     #[test]
@@ -34,5 +37,76 @@ mod tests {
         let _result = synthesized(5);
 
         // println!("{:?}", result); // Output: (12, 30)
+    }
+
+    #[derive(Debug)]
+    struct Vel(f32);
+
+    impl Component for Vel {
+        type Storage = VecStorage<Self>;
+    }
+
+    #[derive(Debug)]
+    struct Pos(f32);
+
+    impl Component for Pos {
+        type Storage = VecStorage<Self>;
+    }
+
+    struct SysA;
+
+    impl<'a> System<'a> for SysA {
+        // These are the resources required for execution.
+        // You can also define a struct and `#[derive(SystemData)]`,
+        // see the `full` example.
+        type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
+
+        fn run(&mut self, (mut pos, vel): Self::SystemData) {
+            // The `.join()` combines multiple component storages,
+            // so we get access to all entities which have
+            // both a position and a velocity.
+            for (pos, vel) in (&mut pos, &vel).join() {
+                pos.0 += vel.0;
+            }
+        }
+    }
+
+    impl Into<LLHDEGraph> for World {
+        fn into(self) -> LLHDEGraph {
+            todo!()
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "not yet implemented")]
+    fn initialize_egraph_with_ecs() {
+        let world = World::new();
+        let _synthesis_monad = cmap(world);
+    }
+
+    #[test]
+    fn synthesize_ecs_with_egraph() {
+        let mut world = World::new();
+        world.register::<Pos>();
+        world.register::<Vel>();
+
+        let m1 = |mut chip_world: World| {
+            chip_world
+                .create_entity()
+                .with(Vel(2.0))
+                .with(Pos(0.0))
+                .build();
+            (chip_world, LLHDEGraph::try_from(vec![]).unwrap())
+        };
+        let m2 = |mut chip_world: World| {
+            chip_world
+                .create_entity()
+                .with(Vel(4.0))
+                .with(Pos(1.6))
+                .build();
+            (chip_world, LLHDEGraph::try_from(vec![]).unwrap())
+        };
+        let synthesizer = synthesize(m1, m2);
+        let _synthesized = synthesizer(world);
     }
 }

@@ -1,5 +1,6 @@
 use egglog::ast::Command;
 use egglog::{EGraph, Error};
+use specs::World;
 
 mod datatype;
 mod egglog_names;
@@ -21,6 +22,12 @@ impl TryFrom<EgglogProgram> for LLHDEGraph {
             Ok(_msgs) => Ok(Self(egraph)),
             Err(egraph_error) => Err(egraph_error),
         }
+    }
+}
+
+impl From<&World> for LLHDEGraph {
+    fn from(_world: &World) -> Self {
+        todo!()
     }
 }
 
@@ -46,11 +53,19 @@ mod tests {
 
     #[test]
     fn build_llhd_egraph() {
-        let egraph_msgs = LLHDEGraph::try_from(vec![]);
+        let program: EgglogProgram = Default::default();
+        let egraph_msgs = LLHDEGraph::try_from(program);
         assert!(
             egraph_msgs.is_ok(),
             "Error loading LLHD DFG Datatype. Error: {:?}",
             egraph_msgs.err().unwrap()
         );
+    }
+
+    #[test]
+    #[should_panic(expected = "not yet implemented")]
+    fn build_llhd_egraph_from_world() {
+        let world = World::default();
+        let _egraph = LLHDEGraph::from(&world);
     }
 }
