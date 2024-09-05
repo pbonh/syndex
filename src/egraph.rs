@@ -9,9 +9,9 @@ mod unit;
 type EgglogProgram = Vec<Command>;
 
 #[derive(Clone, Default)]
-pub struct LLHDEgraph(EGraph);
+pub struct LLHDEGraph(EGraph);
 
-impl TryFrom<EgglogProgram> for LLHDEgraph {
+impl TryFrom<EgglogProgram> for LLHDEGraph {
     type Error = Error;
 
     fn try_from(program: EgglogProgram) -> Result<Self, Self::Error> {
@@ -46,7 +46,7 @@ mod tests {
 
     #[test]
     fn build_llhd_egraph() {
-        let egraph_msgs = LLHDEgraph::try_from(vec![]);
+        let egraph_msgs = LLHDEGraph::try_from(vec![]);
         assert!(
             egraph_msgs.is_ok(),
             "Error loading LLHD DFG Datatype. Error: {:?}",

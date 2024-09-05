@@ -1,9 +1,18 @@
-use crate::egraph::LLHDEgraph;
+use crate::egraph::LLHDEGraph;
 
-pub fn synthesize<A, B, C, F1, F2>(m1: F1, m2: F2) -> impl Fn(A) -> (C, LLHDEgraph)
+pub type SynthesisMonad<T> = (T, LLHDEGraph);
+
+pub fn cmap<T>(chip: T) -> SynthesisMonad<T>
 where
-    F1: Fn(A) -> (B, LLHDEgraph) + 'static,
-    F2: Fn(B) -> (C, LLHDEgraph) + 'static,
+    T: Clone + Into<LLHDEGraph>,
+{
+    (chip.clone(), chip.into())
+}
+
+pub fn synthesize<A, B, C, F1, F2>(m1: F1, m2: F2) -> impl Fn(A) -> SynthesisMonad<C>
+where
+    F1: Fn(A) -> SynthesisMonad<B> + 'static,
+    F2: Fn(B) -> SynthesisMonad<C> + 'static,
 {
     move |x: A| {
         let p1 = m1(x);
@@ -18,8 +27,8 @@ mod tests {
 
     #[test]
     fn synthesize_slotmap_with_egraph() {
-        let m1 = |x: i32| (x + 1, LLHDEgraph::try_from(vec![]).unwrap());
-        let m2 = |x: i32| (x * 2, LLHDEgraph::try_from(vec![]).unwrap());
+        let m1 = |x: i32| (x + 1, LLHDEGraph::try_from(vec![]).unwrap());
+        let m2 = |x: i32| (x * 2, LLHDEGraph::try_from(vec![]).unwrap());
 
         let synthesized = synthesize(m1, m2);
         let _result = synthesized(5);
