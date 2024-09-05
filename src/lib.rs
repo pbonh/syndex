@@ -87,6 +87,7 @@ mod config;
 pub mod synthesis_state;
 pub use synthesis_state::builder::{DesignState, Flow, SynthesisState, TechnologyState};
 
+/// Monadic Type for LLHD Module Synthesis
 pub mod synthesis;
 
 /// Library Technology Representation
