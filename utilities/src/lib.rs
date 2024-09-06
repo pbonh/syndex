@@ -12,7 +12,7 @@ pub fn load_egraph(filename: &str) -> (EGraph, Vec<String>) {
     let egglog_program_str: String = fs::read_to_string(egglog_program_file_path).unwrap();
     let mut egraph = EGraph::default();
     let msgs = egraph
-        .parse_and_run_program(&egglog_program_str)
+        .parse_and_run_program(None, &egglog_program_str)
         .expect("Failure to run program on egraph.");
     (egraph, msgs)
 }
@@ -25,7 +25,7 @@ pub fn load_egraph_rewrite_rules(
     egglog_program_file_path.push("../resources/egglog");
     egglog_program_file_path.push(rewrite_filename);
     let egglog_program_str: String = fs::read_to_string(egglog_program_file_path).unwrap();
-    egraph.parse_and_run_program(&egglog_program_str)
+    egraph.parse_and_run_program(None, &egglog_program_str)
 }
 
 pub fn load_llhd_module(filename: &str) -> Module {

@@ -1,0 +1,9 @@
+; DeMorgan's Theorem
+(ruleset demorgan-theorem)
+(rewrite (Or
+  (And a b)
+  (And c d)
+)(And
+  (Or a b)
+  (Or c d)
+):ruleset demorgan-theorem)

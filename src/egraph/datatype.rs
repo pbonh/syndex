@@ -1,4 +1,4 @@
-use egglog::ast::{Symbol, Variant};
+use egglog::ast::{Symbol, Variant, DUMMY_SPAN};
 use itertools::Itertools;
 use llhd::ir::Opcode;
 
@@ -7,6 +7,7 @@ use super::inst::opcode::*;
 
 pub(in crate::egraph) fn variant(opcode: Opcode, symbol_strs: Vec<&str>) -> Variant {
     Variant {
+        span: DUMMY_SPAN.clone(),
         name: opcode_symbol(opcode),
         types: symbol_strs.into_iter().map(Symbol::new).collect_vec(),
         cost: None,
@@ -15,6 +16,7 @@ pub(in crate::egraph) fn variant(opcode: Opcode, symbol_strs: Vec<&str>) -> Vari
 
 pub(in crate::egraph) fn value_ref_variant() -> Variant {
     Variant {
+        span: DUMMY_SPAN.clone(),
         name: Symbol::new(LLHD_VALUE_REF_FIELD),
         types: vec![Symbol::new(EGGLOG_I64_SORT)],
         cost: None,
@@ -23,6 +25,7 @@ pub(in crate::egraph) fn value_ref_variant() -> Variant {
 
 fn reg_mode_variant() -> Variant {
     Variant {
+        span: DUMMY_SPAN.clone(),
         name: unit_root_variant_symbol(),
         types: vec![Symbol::new(LLHD_DFG_DATATYPE)],
         cost: None,
@@ -31,6 +34,7 @@ fn reg_mode_variant() -> Variant {
 
 pub(in crate::egraph) fn unit_root_variant() -> Variant {
     Variant {
+        span: DUMMY_SPAN.clone(),
         name: unit_root_variant_symbol(),
         types: vec![Symbol::new(LLHD_DFG_DATATYPE)],
         cost: None,

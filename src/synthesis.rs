@@ -10,15 +10,15 @@ where
     (chip, egraph)
 }
 
-pub fn synthesize<A, B, C, F1, F2>(m1: F1, m2: F2) -> impl Fn(A) -> SynthesisMonad<C>
+pub fn synthesize<A, B, C, F1, F2>(func1: F1, func2: F2) -> impl Fn(A) -> SynthesisMonad<C>
 where
     F1: Fn(A) -> SynthesisMonad<B> + 'static,
     F2: Fn(B) -> SynthesisMonad<C> + 'static,
 {
     move |x: A| {
-        let p1 = m1(x);
-        let p2 = m2(p1.0);
-        (p2.0, p1.1) // TODO: Do something to combine the egraph commands/runs
+        let app_func1 = func1(x);
+        let app_func2 = func2(app_func1.0);
+        (app_func2.0, app_func1.1 + app_func2.1) // TODO: Do something to combine the egraph commands/runs
     }
 }
 
@@ -29,7 +29,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn synthesize_slotmap_with_egraph() {
+    fn synthesize_dummy_data_with_egraph() {
         let m1 = |x: i32| (x + 1, LLHDEGraph::try_from(vec![]).unwrap());
         let m2 = |x: i32| (x * 2, LLHDEGraph::try_from(vec![]).unwrap());
 
@@ -53,30 +53,6 @@ mod tests {
         type Storage = VecStorage<Self>;
     }
 
-    struct SysA;
-
-    impl<'a> System<'a> for SysA {
-        // These are the resources required for execution.
-        // You can also define a struct and `#[derive(SystemData)]`,
-        // see the `full` example.
-        type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
-
-        fn run(&mut self, (mut pos, vel): Self::SystemData) {
-            // The `.join()` combines multiple component storages,
-            // so we get access to all entities which have
-            // both a position and a velocity.
-            for (pos, vel) in (&mut pos, &vel).join() {
-                pos.0 += vel.0;
-            }
-        }
-    }
-
-    impl Into<LLHDEGraph> for World {
-        fn into(self) -> LLHDEGraph {
-            todo!()
-        }
-    }
-
     #[test]
     #[should_panic(expected = "not yet implemented")]
     fn initialize_egraph_with_ecs() {
@@ -90,14 +66,11 @@ mod tests {
 
         let m1 = |mut chip_world: World| {
             chip_world.register::<Pos>();
-            chip_world
-                .create_entity()
-                .with(Pos(0.0))
-                .build();
+            chip_world.create_entity().with(Pos(0.0)).build();
             (chip_world, LLHDEGraph::try_from(vec![]).unwrap())
         };
         let m2 = |mut chip_world: World| {
-        chip_world.register::<Vel>();
+            chip_world.register::<Vel>();
             chip_world
                 .create_entity()
                 .with(Vel(4.0))

@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use egglog::ast::{Action, Expr, GenericExpr, Literal, Symbol};
+use egglog::ast::{Action, Expr, GenericExpr, Literal, Symbol, DUMMY_SPAN};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
 use llhd::{IntValue, TimeValue};
@@ -26,21 +26,25 @@ pub(crate) fn from_unit(unit: &Unit<'_>) -> Action {
         .expect("Empty Unit can't construct a valid Egglog Expr.")
         .1];
     let root_inst_expr = inst_expr(unit, root_inst_data);
-    let unit_expr = GenericExpr::call(unit_root_variant_symbol(), vec![root_inst_expr]);
-    Action::Let((), unit_symbol(unit), unit_expr)
+    let unit_expr = GenericExpr::Call(
+        DUMMY_SPAN.clone(),
+        unit_root_variant_symbol(),
+        vec![root_inst_expr],
+    );
+    Action::Let(DUMMY_SPAN.clone(), unit_symbol(unit), unit_expr)
 }
 
 fn process_expr(expr: &Expr, expr_fifo: &mut ExprFIFO) {
     match expr {
         GenericExpr::Lit(_span, literal) => {
-            expr_fifo.push_front(Expr::Lit((), literal.to_owned()));
+            expr_fifo.push_front(Expr::Lit(DUMMY_SPAN.clone(), literal.to_owned()));
         }
         GenericExpr::Var(_span, symbol) => {
-            expr_fifo.push_front(Expr::Var((), symbol.to_owned()));
+            expr_fifo.push_front(Expr::Var(DUMMY_SPAN.clone(), symbol.to_owned()));
         }
         GenericExpr::Call(_, symbol, dependencies) => {
             if opcode::get_symbol_opcode(symbol).is_some() {
-                expr_fifo.push_front(Expr::Call((), symbol.to_owned(), vec![]));
+                expr_fifo.push_front(Expr::Call(DUMMY_SPAN.clone(), symbol.to_owned(), vec![]));
             }
             for dep in dependencies {
                 process_expr(dep, expr_fifo);
@@ -250,99 +254,101 @@ mod tests {
         let test_unit_kind = test_module.unit(test_unit_id).kind();
         let test_unit_name = test_module.unit(test_unit_id).name().to_owned();
         let test_unit_sig = test_module.unit(test_unit_id).sig().to_owned();
-        let rewrite_unit = |module: &Module,
-                            unit_kind: UnitKind,
-                            unit_name: UnitName,
-                            unit_sig: Signature| {
-            let dfg_datatype = inst::dfg();
-            let mut egraph = EGraph::default();
-            let _egraph_msgs_datatypes = egraph.run_program(dfg_datatype);
-            let _egraph_msgs_rules =
-                utilities::load_egraph_rewrite_rules("llhd_div_extract.egg", &mut egraph);
-            assert_eq!(
-                0,
-                egraph.num_tuples(),
-                "There should be 0 facts initially in the egraph."
-            );
+        let rewrite_unit =
+            |module: &Module, unit_kind: UnitKind, unit_name: UnitName, unit_sig: Signature| {
+                let dfg_datatype = inst::dfg();
+                let mut egraph = EGraph::default();
+                let _egraph_msgs_datatypes = egraph.run_program(dfg_datatype);
+                let _egraph_msgs_rules =
+                    utilities::load_egraph_rewrite_rules("llhd_div_extract.egg", &mut egraph);
+                assert_eq!(
+                    0,
+                    egraph.num_tuples(),
+                    "There should be 0 facts initially in the egraph."
+                );
 
-            let test_unit = module.unit(test_unit_id);
-            let egglog_expr = from_unit(&test_unit);
-            let egraph_run_facts = egraph.run_program(vec![GenericCommand::Action(egglog_expr)]);
-            assert!(egraph_run_facts.is_ok(), "EGraph failed to add facts.");
-            assert!(
-                egraph
+                let test_unit = module.unit(test_unit_id);
+                let egglog_expr = from_unit(&test_unit);
+                let egraph_run_facts =
+                    egraph.run_program(vec![GenericCommand::Action(egglog_expr)]);
+                assert!(egraph_run_facts.is_ok(), "EGraph failed to add facts.");
+                assert!(
+                    egraph
+                        .get_overall_run_report()
+                        .num_matches_per_rule
+                        .values()
+                        .next()
+                        .is_none(),
+                    "There should be no matches yet, as the rule schedule hasn't run yet."
+                );
+
+                assert_eq!(
+                    11,
+                    egraph.num_tuples(),
+                    "There should be 11 facts remaining in the egraph."
+                );
+
+                let div_extract_ruleset_symbol = Symbol::new("div-ext");
+                let div_extract_schedule = GenericRunConfig::<Symbol, Symbol> {
+                    ruleset: div_extract_ruleset_symbol,
+                    until: None,
+                };
+                let schedule_cmd = GenericCommand::RunSchedule(GenericSchedule::Run(
+                    DUMMY_SPAN.clone(),
+                    div_extract_schedule,
+                ));
+                let egraph_run_schedule = egraph.run_program(vec![schedule_cmd]);
+                assert!(
+                    egraph_run_schedule.is_ok(),
+                    "EGraph failed to run schedule."
+                );
+                assert_eq!(
+                    13,
+                    egraph.num_tuples(),
+                    "There should be 13 facts remaining in the egraph(new 'And', new 'Or' nodes)."
+                );
+
+                let egraph_run_rules_matches = egraph
                     .get_overall_run_report()
                     .num_matches_per_rule
                     .values()
                     .next()
-                    .is_none(),
-                "There should be no matches yet, as the rule schedule hasn't run yet."
-            );
+                    .unwrap();
+                assert_eq!(
+                    1, *egraph_run_rules_matches,
+                    "There should be 1 match for divisor extraction rewrite rule."
+                );
 
-            assert_eq!(
-                11,
-                egraph.num_tuples(),
-                "There should be 11 facts remaining in the egraph."
-            );
+                let test_entity_symbol = Symbol::new("test_entity");
+                let extract_cmd = GenericCommand::QueryExtract {
+                    span: DUMMY_SPAN.clone(),
+                    variants: 0,
+                    expr: GenericExpr::Var(DUMMY_SPAN.clone(), test_entity_symbol),
+                };
+                let egraph_extract_expr = egraph.run_program(vec![extract_cmd]);
+                assert!(
+                    egraph_extract_expr.is_ok(),
+                    "EGraph failed to extract expression."
+                );
 
-            let div_extract_ruleset_symbol = Symbol::new("div-ext");
-            let div_extract_schedule = GenericRunConfig::<Symbol, Symbol, ()> {
-                ruleset: div_extract_ruleset_symbol,
-                until: None,
+                let mut extracted_termdag = TermDag::default();
+                let (unit_sort, test_unit_symbol_value) = egraph
+                    .eval_expr(&GenericExpr::Var(DUMMY_SPAN.clone(), test_entity_symbol))
+                    .unwrap();
+                let (_unit_cost, unit_term) =
+                    egraph.extract(test_unit_symbol_value, &mut extracted_termdag, &unit_sort);
+                let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
+                assert!(
+                    matches!(extracted_expr, GenericExpr::Call { .. }),
+                    "Top level expression should be a call."
+                );
+                assert_eq!(
+                    extracted_expr.to_string(),
+                    "(LLHDUnit (Drv (ValueRef 3) (And (Or (ValueRef 0) (ValueRef 2)) (ValueRef \
+                     1)) (ConstTime \"0s 1e\")))"
+                );
+                to_unit(extracted_expr, unit_kind, unit_name, unit_sig)
             };
-            let schedule_cmd =
-                GenericCommand::RunSchedule(GenericSchedule::Run(div_extract_schedule).saturate());
-            let egraph_run_schedule = egraph.run_program(vec![schedule_cmd]);
-            assert!(
-                egraph_run_schedule.is_ok(),
-                "EGraph failed to run schedule."
-            );
-            assert_eq!(
-                13,
-                egraph.num_tuples(),
-                "There should be 13 facts remaining in the egraph(new 'And', new 'Or' nodes)."
-            );
-
-            let egraph_run_rules_matches = egraph
-                .get_overall_run_report()
-                .num_matches_per_rule
-                .values()
-                .next()
-                .unwrap();
-            assert_eq!(
-                1, *egraph_run_rules_matches,
-                "There should be 1 match for divisor extraction rewrite rule."
-            );
-
-            let test_entity_symbol = Symbol::new("test_entity");
-            let extract_cmd = GenericCommand::QueryExtract {
-                variants: 0,
-                expr: GenericExpr::Var((), test_entity_symbol),
-            };
-            let egraph_extract_expr = egraph.run_program(vec![extract_cmd]);
-            assert!(
-                egraph_extract_expr.is_ok(),
-                "EGraph failed to extract expression."
-            );
-
-            let mut extracted_termdag = TermDag::default();
-            let (unit_sort, test_unit_symbol_value) = egraph
-                .eval_expr(&GenericExpr::Var((), test_entity_symbol))
-                .unwrap();
-            let (_unit_cost, unit_term) =
-                egraph.extract(test_unit_symbol_value, &mut extracted_termdag, &unit_sort);
-            let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
-            assert!(
-                matches!(extracted_expr, GenericExpr::Call { .. }),
-                "Top level expression should be a call."
-            );
-            assert_eq!(
-                extracted_expr.to_string(),
-                "(LLHDUnit (Drv (ValueRef 3) (And (Or (ValueRef 0) (ValueRef 2)) (ValueRef 1)) \
-                 (ConstTime \"0s 1e\")))"
-            );
-            to_unit(extracted_expr, unit_kind, unit_name, unit_sig)
-        };
         test_module[test_unit_id] =
             rewrite_unit(&test_module, test_unit_kind, test_unit_name, test_unit_sig);
         let new_unit_data = test_module.unit(test_unit_id);
