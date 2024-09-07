@@ -1,24 +1,27 @@
-use crate::egraph::LLHDEGraph;
+use crate::egraph::LLHDEgglogProgram;
 
-pub type SynthesisMonad<T> = (T, LLHDEGraph);
+pub type SynthesisMonad<T> = (T, LLHDEgglogProgram);
 
-pub fn cmap<T>(chip: T) -> SynthesisMonad<T>
+pub fn cmap<ChipT>(chip: ChipT) -> SynthesisMonad<ChipT>
 where
-    LLHDEGraph: for<'world> From<&'world T>,
+    LLHDEgglogProgram: for<'world> From<&'world ChipT>,
 {
-    let egraph = LLHDEGraph::from(&chip);
+    let egraph = LLHDEgglogProgram::from(&chip);
     (chip, egraph)
 }
 
-pub fn synthesize<A, B, C, F1, F2>(func1: F1, func2: F2) -> impl Fn(A) -> SynthesisMonad<C>
+pub fn synthesize<SynthAT, SynthBT, SynthCT, SynthF1, SynthF2>(
+    func1: SynthF1,
+    func2: SynthF2,
+) -> impl Fn(SynthAT) -> SynthesisMonad<SynthCT>
 where
-    F1: Fn(A) -> SynthesisMonad<B> + 'static,
-    F2: Fn(B) -> SynthesisMonad<C> + 'static,
+    SynthF1: Fn(SynthAT) -> SynthesisMonad<SynthBT> + 'static,
+    SynthF2: Fn(SynthBT) -> SynthesisMonad<SynthCT> + 'static,
 {
-    move |x: A| {
-        let app_func1 = func1(x);
-        let app_func2 = func2(app_func1.0);
-        (app_func2.0, app_func1.1 + app_func2.1) // TODO: Do something to combine the egraph commands/runs
+    move |chip: SynthAT| {
+        let synth_step1 = func1(chip);
+        let synth_step2 = func2(synth_step1.0);
+        (synth_step2.0, synth_step1.1 + synth_step2.1)
     }
 }
 
@@ -30,8 +33,8 @@ mod tests {
 
     #[test]
     fn synthesize_dummy_data_with_egraph() {
-        let m1 = |x: i32| (x + 1, LLHDEGraph::try_from(vec![]).unwrap());
-        let m2 = |x: i32| (x * 2, LLHDEGraph::try_from(vec![]).unwrap());
+        let m1 = |x: i32| (x + 1, LLHDEgglogProgram::default());
+        let m2 = |x: i32| (x * 2, LLHDEgglogProgram::default());
 
         let synthesized = synthesize(m1, m2);
         let _result = synthesized(5);
@@ -53,6 +56,12 @@ mod tests {
         type Storage = VecStorage<Self>;
     }
 
+    impl From<&World> for LLHDEgglogProgram {
+        fn from(_value: &World) -> Self {
+            todo!()
+        }
+    }
+
     #[test]
     #[should_panic(expected = "not yet implemented")]
     fn initialize_egraph_with_ecs() {
@@ -67,7 +76,7 @@ mod tests {
         let m1 = |mut chip_world: World| {
             chip_world.register::<Pos>();
             chip_world.create_entity().with(Pos(0.0)).build();
-            (chip_world, LLHDEGraph::try_from(vec![]).unwrap())
+            (chip_world, LLHDEgglogProgram::default())
         };
         let m2 = |mut chip_world: World| {
             chip_world.register::<Vel>();
@@ -76,7 +85,7 @@ mod tests {
                 .with(Vel(4.0))
                 .with(Pos(1.6))
                 .build();
-            (chip_world, LLHDEGraph::try_from(vec![]).unwrap())
+            (chip_world, LLHDEgglogProgram::default())
         };
         let synthesizer = synthesize(m1, m2);
         let _synthesized = synthesizer(world);

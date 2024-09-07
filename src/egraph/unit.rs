@@ -281,7 +281,7 @@ mod tests {
         let test_unit_sig = test_module.unit(test_unit_id).sig().to_owned();
         let rewrite_unit =
             |module: &Module, unit_kind: UnitKind, unit_name: UnitName, unit_sig: Signature| {
-                let llhd_dfg_sort = EgglogSorts::llhd_dfg();
+                let llhd_dfg_sort = LLHDEgglogSorts::llhd_dfg();
                 let mut egraph = EGraph::default();
                 let _egraph_msgs_datatypes = egraph.run_program(llhd_dfg_sort.into());
                 let _egraph_msgs_rules =

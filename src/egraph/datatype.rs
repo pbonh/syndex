@@ -7,15 +7,21 @@ use super::inst::opcode::*;
 use super::{inst, EgglogProgram};
 
 #[derive(Debug, Clone)]
-pub struct EgglogSorts(pub(in crate::egraph) EgglogProgram);
+pub struct LLHDEgglogSorts(pub(in crate::egraph) EgglogProgram);
 
-impl EgglogSorts {
+impl LLHDEgglogSorts {
     pub fn llhd_dfg() -> Self {
         Self(inst::dfg())
     }
 }
 
-impl Into<EgglogProgram> for EgglogSorts {
+impl Default for LLHDEgglogSorts {
+    fn default() -> Self {
+        Self::llhd_dfg()
+    }
+}
+
+impl Into<EgglogProgram> for LLHDEgglogSorts {
     fn into(self) -> EgglogProgram {
         self.0
     }
@@ -68,8 +74,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn valid_egglog_datatypes() {
-        let llhd_dfg_sort = EgglogSorts::llhd_dfg();
+    fn default_llhd_egglog_datatypes() {
+        let llhd_dfg_sort = LLHDEgglogSorts::default();
+        let mut egraph = EGraph::default();
+        let egraph_msgs = egraph.run_program(llhd_dfg_sort.into());
+        assert!(
+            egraph_msgs.is_ok(),
+            "Error loading LLHD DFG Datatype. Error: {:?}",
+            egraph_msgs.err().unwrap()
+        );
+    }
+
+    #[test]
+    fn valid_dfg_llhd_egglog_datatypes() {
+        let llhd_dfg_sort = LLHDEgglogSorts::llhd_dfg();
         let mut egraph = EGraph::default();
         let egraph_msgs = egraph.run_program(llhd_dfg_sort.into());
         assert!(

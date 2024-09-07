@@ -4,7 +4,7 @@ use egglog::Error;
 
 use crate::egraph::{EgglogProgram, LLHDEGraph};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct LLHDEgglogRules(pub(in crate::egraph) EgglogProgram);
 
 impl FromStr for LLHDEgglogRules {

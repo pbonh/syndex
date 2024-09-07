@@ -1,6 +1,6 @@
 use std::ops::{Add, Deref, DerefMut};
 
-use datatype::EgglogSorts;
+use datatype::LLHDEgglogSorts;
 use egglog::ast::Command;
 use egglog::{EGraph, Error};
 use rules::LLHDEgglogRules;
@@ -16,11 +16,12 @@ mod unit;
 
 type EgglogProgram = Vec<Command>;
 
-#[derive(Debug, Clone, TypedBuilder)]
+#[derive(Debug, Clone, Default, TypedBuilder)]
 pub struct LLHDEgglogProgram {
-    #[builder(default=EgglogSorts::llhd_dfg())]
-    sorts: EgglogSorts,
+    #[builder(default=LLHDEgglogSorts::llhd_dfg())]
+    sorts: LLHDEgglogSorts,
 
+    #[builder(default)]
     rules: LLHDEgglogRules,
 
     #[builder(default)]
@@ -28,7 +29,7 @@ pub struct LLHDEgglogProgram {
 }
 
 impl LLHDEgglogProgram {
-    const fn sorts(&self) -> &EgglogSorts {
+    const fn sorts(&self) -> &LLHDEgglogSorts {
         &self.sorts
     }
 
