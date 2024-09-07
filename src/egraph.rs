@@ -1,29 +1,79 @@
 use std::ops::{Add, Deref, DerefMut};
 
+use datatype::EgglogSorts;
 use egglog::ast::Command;
 use egglog::{EGraph, Error};
+use rules::LLHDEgglogRules;
 use specs::World;
+use typed_builder::TypedBuilder;
+use unit::LLHDEgglogFacts;
 
 mod datatype;
 mod egglog_names;
 mod inst;
+mod rules;
 mod unit;
 
 type EgglogProgram = Vec<Command>;
 
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, TypedBuilder)]
+pub struct LLHDEgglogProgram {
+    #[builder(default=EgglogSorts::llhd_dfg())]
+    sorts: EgglogSorts,
+
+    rules: LLHDEgglogRules,
+
+    #[builder(default)]
+    facts: LLHDEgglogFacts,
+}
+
+impl LLHDEgglogProgram {
+    const fn sorts(&self) -> &EgglogSorts {
+        &self.sorts
+    }
+
+    const fn rules(&self) -> &LLHDEgglogRules {
+        &self.rules
+    }
+
+    const fn facts(&self) -> &LLHDEgglogFacts {
+        &self.facts
+    }
+}
+
+impl Add for LLHDEgglogProgram {
+    type Output = Self;
+
+    fn add(mut self, mut rhs: Self) -> Self::Output {
+        self.rules.0.append(&mut rhs.rules.0);
+        self.facts.0.append(&mut rhs.facts.0);
+        self
+    }
+}
+
+#[derive(Clone)]
 pub struct LLHDEGraph(EGraph);
 
 impl TryFrom<EgglogProgram> for LLHDEGraph {
     type Error = Error;
 
     fn try_from(program: EgglogProgram) -> Result<Self, Self::Error> {
-        let mut egraph = EGraph::default();
-        let _llhd_inst_msgs = egraph.run_program(inst::dfg())?;
+        let mut egraph = Self::default();
         match egraph.run_program(program) {
-            Ok(_msgs) => Ok(Self(egraph)),
+            Ok(_msgs) => Ok(egraph),
             Err(egraph_error) => Err(egraph_error),
         }
+    }
+}
+
+impl Default for LLHDEGraph {
+    fn default() -> Self {
+        let mut egraph = EGraph::default();
+        let llhd_inst_msgs = egraph.run_program(inst::dfg());
+        if let Err(egraph_msg) = llhd_inst_msgs {
+            panic!("Failure to load LLHD Prelude. Err: {:?}", egraph_msg);
+        }
+        Self(egraph)
     }
 }
 
@@ -76,20 +126,50 @@ impl From<&World> for LLHDEGraph {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
 
     extern crate utilities;
 
     #[test]
-    fn valid_egglog_datatypes() {
-        let dfg_datatype = inst::dfg();
-        let mut egraph = EGraph::default();
-        let egraph_msgs = egraph.run_program(dfg_datatype);
-        assert!(
-            egraph_msgs.is_ok(),
-            "Error loading LLHD DFG Datatype. Error: {:?}",
-            egraph_msgs.err().unwrap()
+    fn build_llhd_egglog_program() {
+        let _llhd_egglog_program = LLHDEgglogProgram::builder()
+            .rules(
+                LLHDEgglogRules::from_str(&utilities::get_egglog_rules("llhd_div_extract.egg"))
+                    .unwrap(),
+            )
+            .build();
+    }
+
+    #[test]
+    fn add_llhd_egglog_programs() {
+        let llhd_egglog_program_div_extract = LLHDEgglogProgram::builder()
+            .rules(
+                LLHDEgglogRules::from_str(&utilities::get_egglog_rules("llhd_div_extract.egg"))
+                    .unwrap(),
+            )
+            .build();
+        let llhd_egglog_program_demorgans_theorem = LLHDEgglogProgram::builder()
+            .rules(
+                LLHDEgglogRules::from_str(&utilities::get_egglog_rules(
+                    "llhd_demorgans_theorem.egg",
+                ))
+                .unwrap(),
+            )
+            .build();
+        let combined_program =
+            llhd_egglog_program_div_extract + llhd_egglog_program_demorgans_theorem;
+        assert_eq!(
+            4,
+            combined_program.rules().0.len(),
+            "There should be 4 rules in combined program."
         );
+    }
+
+    #[test]
+    fn default_llhd_egraph() {
+        let _egraph = LLHDEGraph::default();
     }
 
     #[test]
@@ -104,6 +184,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn add_llhd_egraph_null() {
         let program1: EgglogProgram = Default::default();
         let egraph1_msgs = LLHDEGraph::try_from(program1);
@@ -126,6 +207,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn add_llhd_egraph() {
         let program1: EgglogProgram = Default::default();
         let program2: EgglogProgram = Default::default();

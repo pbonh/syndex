@@ -17,6 +17,13 @@ pub fn load_egraph(filename: &str) -> (EGraph, Vec<String>) {
     (egraph, msgs)
 }
 
+pub fn get_egglog_rules(filename: &str) -> String {
+    let mut egglog_program_file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    egglog_program_file_path.push("../resources/egglog");
+    egglog_program_file_path.push(filename);
+    fs::read_to_string(egglog_program_file_path).unwrap()
+}
+
 pub fn load_egraph_rewrite_rules(
     rewrite_filename: &str,
     egraph: &mut EGraph,

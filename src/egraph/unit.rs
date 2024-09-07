@@ -1,13 +1,39 @@
 use std::collections::VecDeque;
 
-use egglog::ast::{Action, Expr, GenericExpr, Literal, Symbol, DUMMY_SPAN};
+use egglog::ast::{Action, Expr, GenericCommand, GenericExpr, Literal, Symbol, DUMMY_SPAN};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
 use llhd::{IntValue, TimeValue};
+use rayon::iter::ParallelIterator;
 
+use super::EgglogProgram;
 use crate::egraph::datatype::*;
 use crate::egraph::inst::*;
 use crate::llhd::LLHDUtils;
+
+#[derive(Debug, Clone, Default)]
+pub struct LLHDEgglogFacts(pub(in crate::egraph) EgglogProgram);
+
+impl LLHDEgglogFacts {
+    pub fn from_module(module: &Module) -> Self {
+        Self(
+            module
+                .par_units()
+                .map(|unit| GenericCommand::Action(from_unit(&unit)))
+                .collect(),
+        )
+    }
+
+    pub fn from_unit(unit: &Unit) -> Self {
+        Self(vec![GenericCommand::Action(from_unit(unit))])
+    }
+}
+
+impl Into<EgglogProgram> for LLHDEgglogFacts {
+    fn into(self) -> EgglogProgram {
+        self.0
+    }
+}
 
 type ExprFIFO = VecDeque<Expr>;
 type ValueStack = VecDeque<Value>;
@@ -156,7 +182,6 @@ mod tests {
     use llhd::table::TableKey;
 
     use super::*;
-    use crate::egraph::inst;
 
     #[test]
     fn llhd_egglog_dfg_expression_tree1() {
@@ -256,9 +281,9 @@ mod tests {
         let test_unit_sig = test_module.unit(test_unit_id).sig().to_owned();
         let rewrite_unit =
             |module: &Module, unit_kind: UnitKind, unit_name: UnitName, unit_sig: Signature| {
-                let dfg_datatype = inst::dfg();
+                let llhd_dfg_sort = EgglogSorts::llhd_dfg();
                 let mut egraph = EGraph::default();
-                let _egraph_msgs_datatypes = egraph.run_program(dfg_datatype);
+                let _egraph_msgs_datatypes = egraph.run_program(llhd_dfg_sort.into());
                 let _egraph_msgs_rules =
                     utilities::load_egraph_rewrite_rules("llhd_div_extract.egg", &mut egraph);
                 assert_eq!(
@@ -267,10 +292,8 @@ mod tests {
                     "There should be 0 facts initially in the egraph."
                 );
 
-                let test_unit = module.unit(test_unit_id);
-                let egglog_expr = from_unit(&test_unit);
-                let egraph_run_facts =
-                    egraph.run_program(vec![GenericCommand::Action(egglog_expr)]);
+                let module_facts = LLHDEgglogFacts::from_module(module);
+                let egraph_run_facts = egraph.run_program(module_facts.into());
                 assert!(egraph_run_facts.is_ok(), "EGraph failed to add facts.");
                 assert!(
                     egraph
