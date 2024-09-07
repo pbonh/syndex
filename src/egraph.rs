@@ -4,7 +4,6 @@ use datatype::LLHDEgglogSorts;
 use egglog::ast::Command;
 use egglog::{EGraph, Error};
 use rules::LLHDEgglogRules;
-use specs::World;
 use typed_builder::TypedBuilder;
 use unit::LLHDEgglogFacts;
 
@@ -55,13 +54,19 @@ impl Add for LLHDEgglogProgram {
 #[derive(Clone)]
 pub struct LLHDEGraph(EGraph);
 
-impl TryFrom<EgglogProgram> for LLHDEGraph {
+impl TryFrom<LLHDEgglogProgram> for LLHDEGraph {
     type Error = Error;
 
-    fn try_from(program: EgglogProgram) -> Result<Self, Self::Error> {
-        let mut egraph = Self::default();
-        match egraph.run_program(program) {
-            Ok(_msgs) => Ok(egraph),
+    fn try_from(program: LLHDEgglogProgram) -> Result<Self, Self::Error> {
+        let mut egraph = EGraph::default();
+        match egraph.run_program(program.sorts().to_owned().0) {
+            Ok(_sorts_msgs) => match egraph.run_program(program.rules().to_owned().0) {
+                Ok(_rules_msgs) => match egraph.run_program(program.facts().to_owned().0) {
+                    Ok(_facts_msgs) => Ok(Self(egraph)),
+                    Err(egraph_error) => Err(egraph_error),
+                },
+                Err(egraph_error) => Err(egraph_error),
+            },
             Err(egraph_error) => Err(egraph_error),
         }
     }
@@ -119,12 +124,6 @@ where
     }
 }
 
-impl From<&World> for LLHDEGraph {
-    fn from(_world: &World) -> Self {
-        todo!()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
@@ -175,79 +174,12 @@ mod tests {
 
     #[test]
     fn build_llhd_egraph() {
-        let program: EgglogProgram = Default::default();
+        let program: LLHDEgglogProgram = Default::default();
         let egraph_msgs = LLHDEGraph::try_from(program);
         assert!(
             egraph_msgs.is_ok(),
             "Error loading LLHD DFG Datatype. Error: {:?}",
             egraph_msgs.err().unwrap()
         );
-    }
-
-    #[test]
-    #[should_panic]
-    fn add_llhd_egraph_null() {
-        let program1: EgglogProgram = Default::default();
-        let egraph1_msgs = LLHDEGraph::try_from(program1);
-        assert!(
-            egraph1_msgs.is_ok(),
-            "Error loading LLHD DFG Datatype. Error: {:?}",
-            egraph1_msgs.err().unwrap()
-        );
-        let mut egraph1 = egraph1_msgs.unwrap();
-
-        let egraph1_msgs_rules =
-            utilities::load_egraph_rewrite_rules("llhd_div_extract.egg", &mut egraph1);
-        assert!(egraph1_msgs_rules.is_ok());
-        let egraph1_ruleset_symbols = (*egraph1).rulesets_symbols();
-        assert_eq!(2, egraph1_ruleset_symbols.len());
-
-        let combined_egraph = egraph1 + LLHDEGraph::default();
-        let combined_egraph_ruleset_symbols = (*combined_egraph).rulesets_symbols();
-        assert_eq!(2, combined_egraph_ruleset_symbols.len());
-    }
-
-    #[test]
-    #[should_panic]
-    fn add_llhd_egraph() {
-        let program1: EgglogProgram = Default::default();
-        let program2: EgglogProgram = Default::default();
-        let egraph1_msgs = LLHDEGraph::try_from(program1);
-        assert!(
-            egraph1_msgs.is_ok(),
-            "Error loading LLHD DFG Datatype. Error: {:?}",
-            egraph1_msgs.err().unwrap()
-        );
-        let egraph2_msgs = LLHDEGraph::try_from(program2);
-        assert!(
-            egraph2_msgs.is_ok(),
-            "Error loading LLHD DFG Datatype. Error: {:?}",
-            egraph2_msgs.err().unwrap()
-        );
-
-        let mut egraph1 = egraph1_msgs.unwrap();
-        let mut egraph2 = egraph2_msgs.unwrap();
-
-        let egraph1_msgs_rules =
-            utilities::load_egraph_rewrite_rules("llhd_div_extract.egg", &mut egraph1);
-        assert!(egraph1_msgs_rules.is_ok());
-        let egraph1_ruleset_symbols = (*egraph1).rulesets_symbols();
-        assert_eq!(2, egraph1_ruleset_symbols.len());
-        let egraph2_msgs_rules =
-            utilities::load_egraph_rewrite_rules("llhd_demorgans_theorem.egg", &mut egraph2);
-        assert!(egraph2_msgs_rules.is_ok());
-        let egraph2_ruleset_symbols = (*egraph2).rulesets_symbols();
-        assert_eq!(2, egraph2_ruleset_symbols.len());
-
-        let combined_egraph = egraph1 + egraph2;
-        let combined_egraph_ruleset_symbols = (*combined_egraph).rulesets_symbols();
-        assert_eq!(4, combined_egraph_ruleset_symbols.len());
-    }
-
-    #[test]
-    #[should_panic(expected = "not yet implemented")]
-    fn build_llhd_egraph_from_world() {
-        let world = World::default();
-        let _egraph = LLHDEGraph::from(&world);
     }
 }
