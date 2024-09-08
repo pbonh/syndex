@@ -5,7 +5,7 @@ use egglog::ast::Command;
 use egglog::{EGraph, Error};
 use rules::LLHDEgglogRules;
 use typed_builder::TypedBuilder;
-use unit::LLHDEgglogFacts;
+pub use unit::LLHDEgglogFacts;
 
 mod datatype;
 mod egglog_names;
@@ -45,9 +45,16 @@ impl Add for LLHDEgglogProgram {
     type Output = Self;
 
     fn add(mut self, mut rhs: Self) -> Self::Output {
+        self.sorts.0.append(&mut rhs.sorts.0);
         self.rules.0.append(&mut rhs.rules.0);
         self.facts.0.append(&mut rhs.facts.0);
         self
+    }
+}
+
+impl From<LLHDEgglogFacts> for LLHDEgglogProgram {
+    fn from(_facts: LLHDEgglogFacts) -> Self {
+        todo!()
     }
 }
 
@@ -80,14 +87,6 @@ impl Default for LLHDEGraph {
             panic!("Failure to load LLHD Prelude. Err: {:?}", egraph_msg);
         }
         Self(egraph)
-    }
-}
-
-impl Add for LLHDEGraph {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        rhs
     }
 }
 

@@ -1,12 +1,13 @@
-use crate::egraph::LLHDEgglogProgram;
+use crate::egraph::{LLHDEgglogFacts, LLHDEgglogProgram};
 
 pub type SynthesisMonad<T> = (T, LLHDEgglogProgram);
 
-pub fn cmap<ChipT>(chip: ChipT) -> SynthesisMonad<ChipT>
+pub fn cmap<SynthT>(chip: SynthT) -> SynthesisMonad<SynthT>
 where
-    LLHDEgglogProgram: for<'world> From<&'world ChipT>,
+    LLHDEgglogFacts: for<'world> From<&'world SynthT>,
 {
-    let egraph = LLHDEgglogProgram::from(&chip);
+    let llhd_facts = LLHDEgglogFacts::from(&chip);
+    let egraph = LLHDEgglogProgram::try_from(llhd_facts).expect("");
     (chip, egraph)
 }
 
@@ -56,7 +57,7 @@ mod tests {
         type Storage = VecStorage<Self>;
     }
 
-    impl From<&World> for LLHDEgglogProgram {
+    impl From<&World> for LLHDEgglogFacts {
         fn from(_value: &World) -> Self {
             todo!()
         }
