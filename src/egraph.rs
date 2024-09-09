@@ -45,7 +45,7 @@ impl Add for LLHDEgglogProgram {
     type Output = Self;
 
     fn add(mut self, mut rhs: Self) -> Self::Output {
-        self.sorts.0.append(&mut rhs.sorts.0);
+        self.sorts.0 = rhs.sorts.0;
         self.rules.0.append(&mut rhs.rules.0);
         self.facts.0.append(&mut rhs.facts.0);
         self
@@ -180,6 +180,10 @@ mod tests {
             combined_program.rules().0.len(),
             "There should be 4 rules in combined program."
         );
+        let egraph = LLHDEGraph::try_from(combined_program);
+        if let Err(err_msg) = egraph {
+            panic!("Error building EGraph. Err: {:?}", err_msg);
+        }
     }
 
     #[test]
