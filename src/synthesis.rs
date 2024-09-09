@@ -7,7 +7,7 @@ where
     LLHDEgglogFacts: for<'world> From<&'world SynthT>,
 {
     let llhd_facts = LLHDEgglogFacts::from(&chip);
-    let egraph = LLHDEgglogProgram::try_from(llhd_facts).expect("");
+    let egraph = LLHDEgglogProgram::from(llhd_facts);
     (chip, egraph)
 }
 

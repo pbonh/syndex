@@ -53,8 +53,8 @@ impl Add for LLHDEgglogProgram {
 }
 
 impl From<LLHDEgglogFacts> for LLHDEgglogProgram {
-    fn from(_facts: LLHDEgglogFacts) -> Self {
-        todo!()
+    fn from(facts: LLHDEgglogFacts) -> Self {
+        Self::builder().facts(facts).build()
     }
 }
 
@@ -196,6 +196,14 @@ mod tests {
             "Error loading LLHD DFG Datatype. Error: {:?}",
             egraph_msgs.err().unwrap()
         );
+    }
+
+    #[test]
+    fn egglog_program_from_facts() {
+        let test_module = utilities::load_llhd_module("2and_1or_common.llhd");
+        let test_module_facts = LLHDEgglogFacts::from_module(&test_module);
+        let llhd_egglog_program = LLHDEgglogProgram::from(test_module_facts);
+        let _egraph = LLHDEGraph::try_from(llhd_egglog_program).unwrap();
     }
 
     #[test]
