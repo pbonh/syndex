@@ -28,15 +28,15 @@ pub struct LLHDEgglogProgram {
 }
 
 impl LLHDEgglogProgram {
-    const fn sorts(&self) -> &LLHDEgglogSorts {
+    pub const fn sorts(&self) -> &LLHDEgglogSorts {
         &self.sorts
     }
 
-    const fn rules(&self) -> &LLHDEgglogRules {
+    pub const fn rules(&self) -> &LLHDEgglogRules {
         &self.rules
     }
 
-    const fn facts(&self) -> &LLHDEgglogFacts {
+    pub const fn facts(&self) -> &LLHDEgglogFacts {
         &self.facts
     }
 }
