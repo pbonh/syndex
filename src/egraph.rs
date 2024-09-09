@@ -133,12 +133,18 @@ mod tests {
 
     #[test]
     fn build_llhd_egglog_program() {
-        let _llhd_egglog_program = LLHDEgglogProgram::builder()
+        let llhd_egglog_program = LLHDEgglogProgram::builder()
             .rules(
                 LLHDEgglogRules::from_str(&utilities::get_egglog_rules("llhd_div_extract.egg"))
                     .unwrap(),
             )
             .build();
+        let egraph_msgs = LLHDEGraph::try_from(llhd_egglog_program);
+        assert!(
+            egraph_msgs.is_ok(),
+            "Error loading LLHD DFG Datatype. Error: {:?}",
+            egraph_msgs.err().unwrap()
+        );
     }
 
     #[test]
@@ -149,6 +155,11 @@ mod tests {
                     .unwrap(),
             )
             .build();
+        assert_eq!(
+            2,
+            llhd_egglog_program_div_extract.rules().0.len(),
+            "There should be 2 rules in div_extract program."
+        );
         let llhd_egglog_program_demorgans_theorem = LLHDEgglogProgram::builder()
             .rules(
                 LLHDEgglogRules::from_str(&utilities::get_egglog_rules(
@@ -157,6 +168,11 @@ mod tests {
                 .unwrap(),
             )
             .build();
+        assert_eq!(
+            2,
+            llhd_egglog_program_demorgans_theorem.rules().0.len(),
+            "There should be 2 rules in demorgans_theorem program."
+        );
         let combined_program =
             llhd_egglog_program_div_extract + llhd_egglog_program_demorgans_theorem;
         assert_eq!(
@@ -180,5 +196,18 @@ mod tests {
             "Error loading LLHD DFG Datatype. Error: {:?}",
             egraph_msgs.err().unwrap()
         );
+    }
+
+    #[test]
+    fn egglog_program_from_llhd_unit() {
+        let test_module = utilities::load_llhd_module("2and_1or_common.llhd");
+        let llhd_egglog_program = LLHDEgglogProgram::builder()
+            .rules(
+                LLHDEgglogRules::from_str(&utilities::get_egglog_rules("llhd_div_extract.egg"))
+                    .unwrap(),
+            )
+            .facts(LLHDEgglogFacts::from_module(&test_module))
+            .build();
+        let _egraph = LLHDEGraph::try_from(llhd_egglog_program).unwrap();
     }
 }
