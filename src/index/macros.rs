@@ -1,31 +1,24 @@
-#[macro_export]
-macro_rules! create_index {
-    // Pattern for string literal followed by component types
-    ( $module:expr, $( $x:ty ),* ) => {
-        {
-            let mut index = Syndex::new();
-            let component_entity = index.component::<UnitComponent>();
-            index.component_types.push(component_entity);
+// Macro definition
+macro_rules! create_map_struct {
+    // Match a struct definition with a list of secondary map types
+    ($struct_name:ident, $key_type:ty, $main_value_type:ty, $( $sec_map_name:ident : $sec_value_type:ty ),*) => {
+        struct $struct_name {
+            main_map: HashMap<$key_type, $main_value_type>,
             $(
-                let component_entity = index.component::<$x>();
-                index.component_types.push(component_entity);
+                $sec_map_name: HashMap<$key_type, $sec_value_type>,
             )*
-            index.load($module);
-            index
         }
-    };
 
-    // Pattern for just component types (fallback)
-    ( $( $x:ty ),* ) => {
-        {
-            let mut index = Syndex::new();
-            let component_entity = index.component::<UnitComponent>();
-            index.component_types.push(component_entity);
-            $(
-                let component_entity = index.component::<$x>();
-                index.component_types.push(component_entity);
-            )*
-            index
+        impl $struct_name {
+            // Constructor to initialize the struct
+            fn new() -> Self {
+                Self {
+                    main_map: HashMap::new(),
+                    $(
+                        $sec_map_name: HashMap::new(),
+                    )*
+                }
+            }
         }
     };
 }

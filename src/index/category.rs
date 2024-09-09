@@ -1,7 +1,9 @@
 use derive_getters::Getters;
 use typed_builder::TypedBuilder;
 
-use crate::index::{DesignGateIndex, DesignUnitIndex, DesignValueDefIndex, DesignValueRefIndex};
+use crate::index::unit::{
+    DesignGateIndex, DesignUnitIndex, DesignValueDefIndex, DesignValueRefIndex,
+};
 
 pub type DesignUnitSet = Vec<DesignUnitIndex>;
 pub type DesignGateSet = Vec<DesignGateIndex>;
