@@ -40,8 +40,11 @@ type ValueStack = VecDeque<Value>;
 type IntValueStack = VecDeque<IntValue>;
 type TimeValueStack = VecDeque<TimeValue>;
 
+const UNIT_LET_STMT_PREFIX: &str = "unit_";
+
 pub(crate) fn unit_symbol(unit: &Unit<'_>) -> Symbol {
-    let unit_name = unit.name().to_string().replace(&['@', '%', ','][..], "");
+    let mut unit_name = unit.name().to_string().replace(&['@', '%', ','][..], "");
+    unit_name.insert_str(0, UNIT_LET_STMT_PREFIX);
     Symbol::new(unit_name)
 }
 
@@ -176,12 +179,35 @@ pub(crate) fn to_unit(
 
 #[cfg(test)]
 mod tests {
-    use egglog::ast::{GenericCommand, GenericExpr, GenericRunConfig, GenericSchedule, Symbol};
+    use egglog::ast::{
+        GenericAction, GenericCommand, GenericExpr, GenericRunConfig, GenericSchedule, Symbol,
+    };
     use egglog::{EGraph, TermDag};
     use llhd::ir::InstData;
     use llhd::table::TableKey;
 
     use super::*;
+
+    #[test]
+    fn build_egglog_program_from_unit() {
+        let unit_data = utilities::build_entity(UnitName::anonymous(0));
+        let unit = Unit::new(UnitId::new(0), &unit_data);
+        let egglog_facts = LLHDEgglogFacts::from_unit(&unit);
+        assert_eq!(
+            1,
+            egglog_facts.0.len(),
+            "There should be 1 fact in program."
+        );
+        if let GenericCommand::Action(let_action) = &egglog_facts.0[0] {
+            if let GenericAction::Let(_dummy, let_stmt_symbol, _let_stmt) = let_action {
+                assert_eq!(
+                    "unit_0",
+                    let_stmt_symbol.to_string(),
+                    "Let Stmt should match UnitName"
+                );
+            };
+        };
+    }
 
     #[test]
     fn llhd_egglog_dfg_expression_tree1() {
@@ -216,7 +242,7 @@ mod tests {
 
         let egglog_expr = from_unit(&unit);
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
-            (let 0 (LLHDUnit (Add
+            (let unit_0 (LLHDUnit (Add
                 (Add
                     (ConstInt \"i1 0\")
                     (ConstInt \"i1 1\"))
@@ -259,7 +285,7 @@ mod tests {
 
         let egglog_expr = from_unit(&unit);
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
-            (let test_entity (LLHDUnit (Drv
+            (let unit_test_entity (LLHDUnit (Drv
                 (ValueRef 4) (Or
                     (And (ValueRef 0) (ValueRef 1))
                     (And (ValueRef 2) (ValueRef 3)))
@@ -342,7 +368,7 @@ mod tests {
                     "There should be 1 match for divisor extraction rewrite rule."
                 );
 
-                let test_entity_symbol = Symbol::new("test_entity");
+                let test_entity_symbol = Symbol::new("unit_test_entity");
                 let extract_cmd = GenericCommand::QueryExtract {
                     span: DUMMY_SPAN.clone(),
                     variants: 0,
