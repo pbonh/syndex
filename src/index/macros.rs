@@ -26,6 +26,9 @@ macro_rules! create_map_struct {
 macro_rules! define_syn_map {
     // Match a struct definition with a list of secondary map types
     ($struct_name:ident, $key_type:ident, $main_value_type:ty, $( $sec_map_name:ident : $sec_value_type:ty ),* $(,)?) => {
+
+        use slotmap::{new_key_type, SecondaryMap, SlotMap};
+
         new_key_type! {
             struct $key_type;
         }

@@ -8,7 +8,6 @@ mod tests {
     use std::collections::HashMap;
 
     use euclid::default::Box2D;
-    use slotmap::{new_key_type, SecondaryMap, SlotMap};
 
     use crate::llhd::LLHDIndex;
 
