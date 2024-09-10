@@ -40,7 +40,7 @@ mod tests {
         LLHDSlotMapWBoundingBox,
         LLHDKey,
         LLHDIndex,
-        bb: Box2D<usize>
+        bb: Box2D<usize>,
     );
 
     #[test]
