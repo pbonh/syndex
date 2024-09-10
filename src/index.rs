@@ -43,7 +43,11 @@ mod tests {
     );
 
     #[test]
-    fn create_llhd_slotmap() {
-        let _empty_llhd_slotmap = LLHDSlotMapWBoundingBox::default();
+    fn default_llhd_slotmap_example() {
+        let empty_llhd_slotmap = LLHDSlotMapWBoundingBox::default();
+        let default_llhd_map = empty_llhd_slotmap.llhd_map();
+        assert!(default_llhd_map.is_empty());
+        let default_bb_map = empty_llhd_slotmap.bb();
+        assert!(default_bb_map.is_empty());
     }
 }

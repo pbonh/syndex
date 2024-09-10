@@ -27,15 +27,17 @@ macro_rules! define_syn_map {
     // Match a struct definition with a list of secondary map types
     ($struct_name:ident, $key_type:ident, $main_value_type:ty, $( $sec_map_name:ident : $sec_value_type:ty ),* $(,)?) => {
 
+        use derive_getters::{Dissolve, Getters};
         use slotmap::{new_key_type, SecondaryMap, SlotMap};
+        use typed_builder::TypedBuilder;
 
         new_key_type! {
             struct $key_type;
         }
 
-        #[derive(Debug, Clone, Default)]
+        #[derive(Debug, Clone, Default, TypedBuilder, Getters, Dissolve)]
         pub struct $struct_name {
-            main_map: SlotMap<$key_type, $main_value_type>,
+            llhd_map: SlotMap<$key_type, $main_value_type>,
             $(
                 $sec_map_name: SecondaryMap<$key_type, $sec_value_type>,
             )*
@@ -45,7 +47,7 @@ macro_rules! define_syn_map {
             // Constructor to initialize the struct
             pub fn new() -> Self {
                 Self {
-                    main_map: SlotMap::<$key_type, $main_value_type>::default(),
+                    llhd_map: SlotMap::<$key_type, $main_value_type>::default(),
                     $(
                         $sec_map_name: SecondaryMap::<$key_type, $sec_value_type>::default(),
                     )*
