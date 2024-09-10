@@ -3190,6 +3190,7 @@ dependencies = [
  "pretty_assertions",
  "rayon",
  "serde",
+ "slotmap",
  "specs",
  "test-log",
  "typed-builder",

@@ -2,7 +2,7 @@ use itertools::Itertools;
 use llhd::ir::prelude::*;
 use llhd::ir::InstData;
 
-use crate::llhd::{LLHDInst, LLHDUtils, LLHDValue};
+use crate::llhd::{LLHDInst, LLHDUtils, LLHDValueRef};
 
 impl LLHDUtils {
     pub(crate) fn iterate_unit_insts<'unit>(
@@ -32,7 +32,7 @@ impl LLHDUtils {
 
     pub(crate) fn iterate_unit_value_defs<'unit>(
         unit: &'unit Unit,
-    ) -> impl Iterator<Item = LLHDValue> + 'unit {
+    ) -> impl Iterator<Item = LLHDValueRef> + 'unit {
         unit.all_insts()
             .filter(|inst| unit.get_inst_result(*inst).is_some())
             .map(|inst| {

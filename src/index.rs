@@ -3,23 +3,26 @@ pub mod category;
 pub mod macros;
 pub mod unit;
 
-use std::collections::HashMap;
-
-// Usage of the macro
-create_map_struct!(
-    OneMapManySubmaps,
-    String,           // Key type (K)
-    i32,              // Main map value type (V)
-    secondary_map1: f32,   // Secondary map 1 type (SecV1)
-    secondary_map2: bool   // Secondary map 2 type (SecV2)
-);
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::collections::HashMap;
+
+    use euclid::default::Box2D;
+    use slotmap::{new_key_type, SecondaryMap, SlotMap};
+
+    use crate::llhd::LLHDIndex;
+
+    // Usage of the macro
+    create_map_struct!(
+        OneMapManySubmaps,
+        String,           // Key type (K)
+        i32,              // Main map value type (V)
+        secondary_map1: f32,   // Secondary map 1 type (SecV1)
+        secondary_map2: bool   // Secondary map 2 type (SecV2)
+    );
 
     #[test]
-    fn create_llhd_slotmap() {
+    fn create_example_hashmap() {
         // Create an instance of the generated struct
         let mut my_maps = OneMapManySubmaps::new();
 
@@ -31,5 +34,17 @@ mod tests {
         println!("Main map: {:?}", my_maps.main_map);
         println!("Secondary map 1: {:?}", my_maps.secondary_map1);
         println!("Secondary map 2: {:?}", my_maps.secondary_map2);
+    }
+
+    define_syn_map!(
+        LLHDSlotMapWBoundingBox,
+        LLHDKey,
+        LLHDIndex,
+        bb: Box2D<usize>
+    );
+
+    #[test]
+    fn create_llhd_slotmap() {
+        let _empty_llhd_slotmap = LLHDSlotMapWBoundingBox::default();
     }
 }

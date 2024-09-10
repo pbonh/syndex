@@ -1,6 +1,7 @@
 //! Project-level documentation.
 
 #![allow(dead_code)]
+#![allow(unused_macros)]
 // clippy WARN level lints
 #![warn(
     clippy::cargo,

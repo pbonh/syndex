@@ -25,10 +25,13 @@ pub mod libreda_module;
 use llhd::ir::{Inst, UnitId, Value};
 
 /// `Net/Value` Identifier within LLHD `Unit`
-pub type LLHDUnitArg = (UnitId, Value);
+pub type LLHDDef = (UnitId, Value);
 
 /// `Inst` Identifier within LLHD `Unit`
 pub type LLHDInst = (UnitId, Inst);
 
 /// `Value` Identifier within LLHD `Unit`
-pub type LLHDValue = (UnitId, Inst, Value);
+pub type LLHDValueRef = (UnitId, Inst, Value);
+
+/// Generic LLHD Value Identifier
+pub type LLHDIndex = (UnitId, Value, Option<Inst>, Option<Value>);
