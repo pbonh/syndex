@@ -35,12 +35,13 @@ mod tests {
         println!("Secondary map 2: {:?}", my_maps.secondary_map2);
     }
 
-    define_syn_map!(
-        LLHDSlotMapWBoundingBox,
-        LLHDKey,
-        LLHDIndex,
-        bb: Box2D<usize>,
-    );
+    define_syn_map! {
+        LLHDSlotMapWBoundingBox {
+            LLHDKey,
+            LLHDIndex,
+            bb: Box2D<usize>,
+        }
+    }
 
     #[test]
     fn default_llhd_slotmap_example() {
