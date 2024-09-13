@@ -1,0 +1,108 @@
+(datatype LLHDValue (Value u64))
+(sort LLHDVecValue (Vec u64))
+(datatype LLHDBlock (Block u64))
+(sort LLHDVecBlock (Vec LLHDBlock))
+(datatype LLHDExtUnit (ExtUnit u64))
+(datatype LLHDRegMode
+    (Low)
+    (High)
+    (Rise)
+    (Fall)
+    (Both))
+(sort LLHDVecRegMode (Vec LLHDRegMode))
+(datatype LLHDDFG
+    (ValueRef u64)
+    (ConstInt String)
+    (ConstTime String)
+    (Alias LLHDDFG)
+    (ArrayUniform u64 LLHDDFG)
+    (Array LLHDVecValue)
+    (Struct LLHDVecValue)
+    (Not LLHDDFG)
+    (Neg LLHDDFG)
+    (Add LLHDDFG LLHDDFG)
+    (Sub LLHDDFG LLHDDFG)
+    (And LLHDDFG LLHDDFG)
+    (Or LLHDDFG LLHDDFG)
+    (Xor LLHDDFG LLHDDFG)
+    (Smul LLHDDFG LLHDDFG)
+    (Sdiv LLHDDFG LLHDDFG)
+    (Smod LLHDDFG LLHDDFG)
+    (Srem LLHDDFG LLHDDFG)
+    (Umul LLHDDFG LLHDDFG)
+    (Udiv LLHDDFG LLHDDFG)
+    (Umod LLHDDFG LLHDDFG)
+    (Urem LLHDDFG LLHDDFG)
+    (Eq LLHDDFG LLHDDFG)
+    (Neq LLHDDFG LLHDDFG)
+    (Slt LLHDDFG LLHDDFG)
+    (Sgt LLHDDFG LLHDDFG)
+    (Sle LLHDDFG LLHDDFG)
+    (Sge LLHDDFG LLHDDFG)
+    (Ult LLHDDFG LLHDDFG)
+    (Ugt LLHDDFG LLHDDFG)
+    (Ule LLHDDFG LLHDDFG)
+    (Uge LLHDDFG LLHDDFG)
+    (Shl LLHDDFG LLHDDFG LLHDDFG)
+    (Shr LLHDDFG LLHDDFG LLHDDFG)
+    (Mux LLHDDFG LLHDDFG)
+    (Reg LLHDVecValue LLHDVecRegMode)
+    (InsField LLHDDFG LLHDDFG u64 u64)
+    (InsSlice LLHDDFG LLHDDFG u64 u64)
+    (ExtField LLHDDFG LLHDDFG u64 u64)
+    (ExtSlice LLHDDFG LLHDDFG u64 u64)
+    (Con LLHDDFG LLHDDFG)
+    (Del LLHDDFG LLHDDFG LLHDDFG)
+    (Call LLHDExtUnit u64 LLHDVecValue)
+    (Inst LLHDExtUnit u64 LLHDVecValue)
+    (Sig LLHDDFG)
+    (Prb LLHDDFG)
+    (Drv LLHDDFG LLHDDFG LLHDDFG)
+    (DrvCond LLHDDFG LLHDDFG LLHDDFG LLHDDFG)
+    (Var LLHDDFG)
+    (Ld LLHDDFG)
+    (St LLHDDFG LLHDDFG)
+    (Halt)
+    (Ret)
+    (RetValue LLHDDFG)
+    (Phi LLHDVecValue LLHDVecBlock)
+    (Br LLHDBlock)
+    (BrCond LLHDDFG LLHDBlock LLHDBlock)
+    (Wait LLHDBlock LLHDVecValue)
+    (WaitTime LLHDBlock LLHDVecValue)
+    (LLHDUnit LLHDDFG)
+)
+
+; Divisor Extraction
+(ruleset div-ext)
+(rewrite (Or
+  (And a c)
+  (And b c)
+)(And
+  (Or a b)
+  c
+):ruleset div-ext)
+
+; Entity Under Test
+; ```llhd
+; entity @test_entity (i1 %in1, i1 %in2, i1 %in3, i1 %in4) -> (i1$ %out1) {
+;     %null = const time 0s 1e
+;     %and1 = and i1 %in1, %in2
+;     %and2 = and i1 %in3, %in4
+;     %or1 = or i1 %and1, %and2
+;     drv i1$ %out1, %or1, %null
+; }
+; ```
+;
+; Create Global Database Entries
+(let unit_0 (LLHDUnit (Or
+    (And
+        (ValueRef _1)
+        (ValueRef _3))
+    (And
+        (ValueRef _2)
+        (ValueRef _3))
+)))
+
+; Run Divisor Extraction Rules & Rewrites
+(run-schedule (saturate div-ext))

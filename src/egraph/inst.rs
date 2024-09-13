@@ -1,5 +1,5 @@
 use egglog::ast::{Command, Expr, GenericExpr, Literal, Symbol, Variant, DUMMY_SPAN};
-use egglog::sort::{I64Sort, Sort};
+use egglog::sort::{Sort, U64Sort};
 use lazy_static::lazy_static;
 use llhd::ir::prelude::*;
 use llhd::ir::{InstData, ValueData};
@@ -22,7 +22,7 @@ lazy_static! {
         variant(Opcode::Alias, vec![LLHD_DFG_DATATYPE]),
         variant(
             Opcode::ArrayUniform,
-            vec![EGGLOG_I64_SORT, LLHD_DFG_DATATYPE]
+            vec![EGGLOG_U64_SORT, LLHD_DFG_DATATYPE]
         ),
         variant(Opcode::Array, vec![LLHD_VEC_VALUE_DATATYPE]),
         variant(Opcode::Struct, vec![LLHD_VEC_VALUE_DATATYPE]),
@@ -69,8 +69,8 @@ lazy_static! {
             vec![
                 LLHD_DFG_DATATYPE,
                 LLHD_DFG_DATATYPE,
-                EGGLOG_I64_SORT,
-                EGGLOG_I64_SORT
+                EGGLOG_U64_SORT,
+                EGGLOG_U64_SORT
             ]
         ),
         variant(
@@ -78,8 +78,8 @@ lazy_static! {
             vec![
                 LLHD_DFG_DATATYPE,
                 LLHD_DFG_DATATYPE,
-                EGGLOG_I64_SORT,
-                EGGLOG_I64_SORT
+                EGGLOG_U64_SORT,
+                EGGLOG_U64_SORT
             ]
         ),
         variant(
@@ -87,8 +87,8 @@ lazy_static! {
             vec![
                 LLHD_DFG_DATATYPE,
                 LLHD_DFG_DATATYPE,
-                EGGLOG_I64_SORT,
-                EGGLOG_I64_SORT
+                EGGLOG_U64_SORT,
+                EGGLOG_U64_SORT
             ]
         ),
         variant(
@@ -96,8 +96,8 @@ lazy_static! {
             vec![
                 LLHD_DFG_DATATYPE,
                 LLHD_DFG_DATATYPE,
-                EGGLOG_I64_SORT,
-                EGGLOG_I64_SORT
+                EGGLOG_U64_SORT,
+                EGGLOG_U64_SORT
             ]
         ),
         variant(Opcode::Con, vec![LLHD_DFG_DATATYPE, LLHD_DFG_DATATYPE]),
@@ -109,7 +109,7 @@ lazy_static! {
             Opcode::Call,
             vec![
                 LLHD_EXT_UNIT_DATATYPE,
-                EGGLOG_I64_SORT,
+                EGGLOG_U64_SORT,
                 LLHD_VEC_VALUE_DATATYPE
             ]
         ),
@@ -117,7 +117,7 @@ lazy_static! {
             Opcode::Inst,
             vec![
                 LLHD_EXT_UNIT_DATATYPE,
-                EGGLOG_I64_SORT,
+                EGGLOG_U64_SORT,
                 LLHD_VEC_VALUE_DATATYPE
             ]
         ),
@@ -165,11 +165,11 @@ lazy_static! {
 }
 
 pub(in crate::egraph) fn value() -> Command {
-    let i64_sort = I64Sort::new(EGGLOG_I64_SORT.into());
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
     let value_variant = Variant {
         span: DUMMY_SPAN.clone(),
         name: Symbol::new(LLHD_VALUE_FIELD),
-        types: vec![i64_sort.name()],
+        types: vec![u64_sort.name()],
         cost: None,
     };
     let symbol = Symbol::new(LLHD_VALUE_DATATYPE);
@@ -181,11 +181,11 @@ pub(in crate::egraph) fn value() -> Command {
 }
 
 pub(in crate::egraph) fn int_value() -> Command {
-    let i64_sort = I64Sort::new(EGGLOG_I64_SORT.into());
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
     let int_value_variant = Variant {
         span: DUMMY_SPAN.clone(),
         name: Symbol::new(LLHD_INT_VALUE_FIELD),
-        types: vec![i64_sort.name()],
+        types: vec![u64_sort.name()],
         cost: None,
     };
     let symbol = Symbol::new(LLHD_INT_VALUE_DATATYPE);
@@ -197,11 +197,11 @@ pub(in crate::egraph) fn int_value() -> Command {
 }
 
 pub(in crate::egraph) fn time_value() -> Command {
-    let i64_sort = I64Sort::new(EGGLOG_I64_SORT.into());
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
     let time_value_variant = Variant {
         span: DUMMY_SPAN.clone(),
         name: Symbol::new(LLHD_TIME_VALUE_FIELD),
-        types: vec![i64_sort.name()],
+        types: vec![u64_sort.name()],
         cost: None,
     };
     let symbol = Symbol::new(LLHD_TIME_VALUE_DATATYPE);
@@ -255,19 +255,19 @@ pub(in crate::egraph) fn reg_mode() -> Command {
 pub(in crate::egraph) fn vec_value_sort() -> Command {
     let vec_sort_symbol = Symbol::new(LLHD_VEC_VALUE_DATATYPE);
     let symbol_vec = Symbol::new(EGGLOG_VEC_SORT);
-    let i64_sort = I64Sort::new(EGGLOG_I64_SORT.into());
-    let i64_expr = Expr::Var(DUMMY_SPAN.clone(), i64_sort.name());
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
+    let u64_expr = Expr::Var(DUMMY_SPAN.clone(), u64_sort.name());
     Command::Sort(
         DUMMY_SPAN.clone(),
         vec_sort_symbol,
-        Some((symbol_vec, vec![i64_expr])),
+        Some((symbol_vec, vec![u64_expr])),
     )
 }
 
 pub(in crate::egraph) fn vec_regmode_sort() -> Command {
     let vec_sort_symbol = Symbol::new(LLHD_VEC_REGMODE_DATATYPE);
     let symbol_vec = Symbol::new(EGGLOG_VEC_SORT);
-    let regmode_datatype = I64Sort::new(LLHD_REGMODE_DATATYPE.into());
+    let regmode_datatype = U64Sort::new(LLHD_REGMODE_DATATYPE.into());
     let regmode_expr = Expr::Var(DUMMY_SPAN.clone(), regmode_datatype.name());
     Command::Sort(
         DUMMY_SPAN.clone(),
@@ -277,11 +277,11 @@ pub(in crate::egraph) fn vec_regmode_sort() -> Command {
 }
 
 pub(in crate::egraph) fn block() -> Command {
-    let i64_sort = I64Sort::new(EGGLOG_I64_SORT.into());
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
     let block_variant = Variant {
         span: DUMMY_SPAN.clone(),
         name: Symbol::new(LLHD_BLOCK_FIELD),
-        types: vec![i64_sort.name()],
+        types: vec![u64_sort.name()],
         cost: None,
     };
     let symbol = Symbol::new(LLHD_BLOCK_DATATYPE);
@@ -295,7 +295,7 @@ pub(in crate::egraph) fn block() -> Command {
 pub(in crate::egraph) fn vec_block() -> Command {
     let vec_sort_symbol = Symbol::new(LLHD_VEC_BLOCK_DATATYPE);
     let symbol_vec = Symbol::new(EGGLOG_VEC_SORT);
-    let vec_block_datatype = I64Sort::new(LLHD_BLOCK_DATATYPE.into());
+    let vec_block_datatype = U64Sort::new(LLHD_BLOCK_DATATYPE.into());
     let vec_block_expr = Expr::Var(DUMMY_SPAN.clone(), vec_block_datatype.name());
     Command::Sort(
         DUMMY_SPAN.clone(),
@@ -305,11 +305,11 @@ pub(in crate::egraph) fn vec_block() -> Command {
 }
 
 pub(in crate::egraph) fn ext_unit() -> Command {
-    let i64_sort = I64Sort::new(EGGLOG_I64_SORT.into());
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
     let ext_unit_variant = Variant {
         span: DUMMY_SPAN.clone(),
         name: Symbol::new(LLHD_EXT_UNIT_FIELD),
-        types: vec![i64_sort.name()],
+        types: vec![u64_sort.name()],
         cost: None,
     };
     let symbol = Symbol::new(LLHD_EXT_UNIT_DATATYPE);
@@ -347,10 +347,10 @@ pub(in crate::egraph) fn cfg() -> EgglogProgram {
     todo!()
 }
 
-fn value_def_expr(value: impl TableKey) -> Expr {
-    let converted_unsigned_num =
-        i64::try_from(value.index()).expect("Out-of-bound value for u32 -> i64 conversion.");
-    let converted_literal = Literal::Int(converted_unsigned_num);
+fn value_def_expr(table_key: impl TableKey) -> Expr {
+    let converted_u64_num =
+        u64::try_from(table_key.index()).expect("Out-of-bound value for usize -> u64 conversion.");
+    let converted_literal = Literal::UInt(converted_u64_num);
     let literal_value = GenericExpr::Lit(DUMMY_SPAN.clone(), converted_literal);
     let llhd_value_datatype_symbol = Symbol::new(LLHD_VALUE_REF_FIELD);
     GenericExpr::Call(
@@ -371,7 +371,7 @@ fn value_data_expr(unit: &Unit<'_>, value_data: &ValueData) -> Expr {
 pub(in crate::egraph) fn expr_value_data(literal: &Literal) -> Value {
     match literal {
         Literal::Int(value) => {
-            Value::new(usize::try_from(*value).expect("Failure to convert from i64 to usize."))
+            Value::new(usize::try_from(*value).expect("Failure to convert from u64 to usize."))
         }
         _ => panic!("Non-Int Literal"),
     }
@@ -386,7 +386,7 @@ pub(super) fn expr_int_value(literal: &Literal) -> IntValue {
     match literal {
         Literal::Int(value) => IntValue::from_isize(
             64,
-            isize::try_from(*value).expect("Failure to convert from i64 to isize."),
+            isize::try_from(*value).expect("Failure to convert from u64 to isize."),
         ),
         _ => panic!("Non-Int Literal"),
     }
@@ -448,26 +448,26 @@ mod tests {
     #[test]
     fn llhd_egglog_value_datatypes() {
         let value_datatype = value();
-        let expected_str = "(datatype LLHDValue (Value i64))".to_owned();
+        let expected_str = "(datatype LLHDValue (Value u64))".to_owned();
         assert_eq!(
             expected_str,
             value_datatype.to_string(),
-            "Datatype should be named 'LLHDValue' and should have 1 field named (Value i64)."
+            "Datatype should be named 'LLHDValue' and should have 1 field named (Value u64)."
         );
         let int_value_datatype = int_value();
-        let int_expected_str = "(datatype LLHDIntValue (IntValue i64))".to_owned();
+        let int_expected_str = "(datatype LLHDIntValue (IntValue u64))".to_owned();
         assert_eq!(
             int_expected_str,
             int_value_datatype.to_string(),
-            "Datatype should be named 'LLHDIntValue' and should have 1 field named (IntValue i64)."
+            "Datatype should be named 'LLHDIntValue' and should have 1 field named (IntValue u64)."
         );
         let time_value_datatype = time_value();
-        let time_expected_str = "(datatype LLHDTimeValue (TimeValue i64))".to_owned();
+        let time_expected_str = "(datatype LLHDTimeValue (TimeValue u64))".to_owned();
         assert_eq!(
             time_expected_str,
             time_value_datatype.to_string(),
             "Datatype should be named 'LLHDTimeValue' and should have 1 field named (TimeValue \
-             i64)."
+             u64)."
         );
         let reg_mode_datatype = reg_mode();
         let reg_mode_expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
@@ -488,11 +488,11 @@ mod tests {
     #[test]
     fn llhd_egglog_vec_sort() {
         let vec_sort = vec_value_sort();
-        let expected_str = "(sort LLHDVecValue (Vec i64))".to_owned();
+        let expected_str = "(sort LLHDVecValue (Vec u64))".to_owned();
         assert_eq!(
             expected_str,
             vec_sort.to_string(),
-            "Sort should be named 'LLHDVecValue' and should have 1 field named (Vec i64)."
+            "Sort should be named 'LLHDVecValue' and should have 1 field named (Vec u64)."
         );
         let vec_regmode_sort = vec_regmode_sort();
         let vec_regmode_expected_str = "(sort LLHDVecRegMode (Vec LLHDRegMode))".to_owned();
@@ -507,11 +507,11 @@ mod tests {
     #[test]
     fn llhd_egglog_block_datatypes() {
         let block_datatype = block();
-        let expected_str = "(datatype LLHDBlock (Block i64))".to_owned();
+        let expected_str = "(datatype LLHDBlock (Block u64))".to_owned();
         assert_eq!(
             expected_str,
             block_datatype.to_string(),
-            "Datatype should be named 'LLHDBlock' and should have 1 field named (Block i64)."
+            "Datatype should be named 'LLHDBlock' and should have 1 field named (Block u64)."
         );
     }
 
@@ -530,11 +530,11 @@ mod tests {
     #[test]
     fn llhd_egglog_ext_unit_datatypes() {
         let ext_unit_datatype = ext_unit();
-        let expected_str = "(datatype LLHDExtUnit (ExtUnit i64))".to_owned();
+        let expected_str = "(datatype LLHDExtUnit (ExtUnit u64))".to_owned();
         assert_eq!(
             expected_str,
             ext_unit_datatype.to_string(),
-            "Datatype should be named 'LLHDExtUnit' and should have 1 field named (ExtUnit i64)."
+            "Datatype should be named 'LLHDExtUnit' and should have 1 field named (ExtUnit u64)."
         );
     }
 
@@ -542,11 +542,11 @@ mod tests {
     fn llhd_egglog_dfg_datatypes() {
         let dfg_datatype = dfg();
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
-            (datatype LLHDValue (Value i64))
-            (sort LLHDVecValue (Vec i64))
-            (datatype LLHDBlock (Block i64))
+            (datatype LLHDValue (Value u64))
+            (sort LLHDVecValue (Vec u64))
+            (datatype LLHDBlock (Block u64))
             (sort LLHDVecBlock (Vec LLHDBlock))
-            (datatype LLHDExtUnit (ExtUnit i64))
+            (datatype LLHDExtUnit (ExtUnit u64))
             (datatype LLHDRegMode
                 (Low)
                 (High)
@@ -555,11 +555,11 @@ mod tests {
                 (Both))
             (sort LLHDVecRegMode (Vec LLHDRegMode))
             (datatype LLHDDFG
-                (ValueRef i64)
+                (ValueRef u64)
                 (ConstInt String)
                 (ConstTime String)
                 (Alias LLHDDFG)
-                (ArrayUniform i64 LLHDDFG)
+                (ArrayUniform u64 LLHDDFG)
                 (Array LLHDVecValue)
                 (Struct LLHDVecValue)
                 (Not LLHDDFG)
@@ -591,14 +591,14 @@ mod tests {
                 (Shr LLHDDFG LLHDDFG LLHDDFG)
                 (Mux LLHDDFG LLHDDFG)
                 (Reg LLHDVecValue LLHDVecRegMode)
-                (InsField LLHDDFG LLHDDFG i64 i64)
-                (InsSlice LLHDDFG LLHDDFG i64 i64)
-                (ExtField LLHDDFG LLHDDFG i64 i64)
-                (ExtSlice LLHDDFG LLHDDFG i64 i64)
+                (InsField LLHDDFG LLHDDFG u64 u64)
+                (InsSlice LLHDDFG LLHDDFG u64 u64)
+                (ExtField LLHDDFG LLHDDFG u64 u64)
+                (ExtSlice LLHDDFG LLHDDFG u64 u64)
                 (Con LLHDDFG LLHDDFG)
                 (Del LLHDDFG LLHDDFG LLHDDFG)
-                (Call LLHDExtUnit i64 LLHDVecValue)
-                (Inst LLHDExtUnit i64 LLHDVecValue)
+                (Call LLHDExtUnit u64 LLHDVecValue)
+                (Inst LLHDExtUnit u64 LLHDVecValue)
                 (Sig LLHDDFG)
                 (Prb LLHDDFG)
                 (Drv LLHDDFG LLHDDFG LLHDDFG)
@@ -628,7 +628,7 @@ mod tests {
     fn llhd_value_egglog_expr() {
         let value1 = Value::new(1);
         let value1_expr = value_def_expr(value1);
-        let expected_str = "(ValueRef 1)";
+        let expected_str = "(ValueRef _1)";
         assert_eq!(
             expected_str,
             value1_expr.to_string(),
@@ -650,7 +650,7 @@ mod tests {
                 (Add
                     (ConstInt \"i1 0\")
                     (ConstInt \"i1 1\"))
-                (Prb (ValueRef 2)))
+                (Prb (ValueRef _2)))
         "});
         assert_eq!(
             expected_str,

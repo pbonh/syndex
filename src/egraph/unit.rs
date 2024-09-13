@@ -246,7 +246,7 @@ mod tests {
                 (Add
                     (ConstInt \"i1 0\")
                     (ConstInt \"i1 1\"))
-                (Prb (ValueRef 2)))))
+                (Prb (ValueRef _2)))))
         "});
         assert_eq!(
             expected_str,
@@ -286,9 +286,9 @@ mod tests {
         let egglog_expr = from_unit(&unit);
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
             (let unit_test_entity (LLHDUnit (Drv
-                (ValueRef 4) (Or
-                    (And (ValueRef 0) (ValueRef 1))
-                    (And (ValueRef 2) (ValueRef 3)))
+                (ValueRef _4) (Or
+                    (And (ValueRef _0) (ValueRef _1))
+                    (And (ValueRef _2) (ValueRef _3)))
                 (ConstTime \"0s 1e\"))))
         "});
         assert_eq!(

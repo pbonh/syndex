@@ -1,4 +1,5 @@
 pub(super) const EGGLOG_I64_SORT: &str = "i64";
+pub(super) const EGGLOG_U64_SORT: &str = "u64";
 pub(super) const EGGLOG_STRING_SORT: &str = "String";
 pub(super) const EGGLOG_VEC_SORT: &str = "Vec";
 pub(super) const LLHD_UNIT_FIELD: &str = "LLHDUnit";

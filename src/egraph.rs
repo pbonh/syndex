@@ -222,4 +222,9 @@ mod tests {
             .build();
         let _egraph = LLHDEGraph::try_from(llhd_egglog_program).unwrap();
     }
+
+    #[test]
+    fn egglog_program_from_llhd_unit_with_unsigned_id_sort() {
+        let _egraph = utilities::load_egraph("llhd_dfg_example2.egg");
+    }
 }

@@ -40,7 +40,7 @@ pub(in crate::egraph) fn value_ref_variant() -> Variant {
     Variant {
         span: DUMMY_SPAN.clone(),
         name: Symbol::new(LLHD_VALUE_REF_FIELD),
-        types: vec![Symbol::new(EGGLOG_I64_SORT)],
+        types: vec![Symbol::new(EGGLOG_U64_SORT)],
         cost: None,
     }
 }
