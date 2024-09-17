@@ -1,4 +1,5 @@
-use crate::egraph::{LLHDEGraph, LLHDEgglogFacts, LLHDEgglogProgram};
+use crate::egraph::llhd::{LLHDEGraph, LLHDEgglogProgram};
+use crate::egraph::LLHDEgglogFacts;
 
 pub type SynthesisMonad<T> = (T, LLHDEgglogProgram);
 
