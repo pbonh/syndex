@@ -4,10 +4,10 @@ use llhd::ir::Opcode;
 
 use super::egglog_names::*;
 use super::inst::opcode::*;
-use super::{inst, EgglogProgram};
+use super::{inst, EgglogCommandList};
 
 #[derive(Debug, Clone)]
-pub struct LLHDEgglogSorts(pub(in crate::egraph) EgglogProgram);
+pub struct LLHDEgglogSorts(pub(in crate::egraph) EgglogCommandList);
 
 impl LLHDEgglogSorts {
     pub fn llhd_dfg() -> Self {
@@ -21,8 +21,8 @@ impl Default for LLHDEgglogSorts {
     }
 }
 
-impl Into<EgglogProgram> for LLHDEgglogSorts {
-    fn into(self) -> EgglogProgram {
+impl Into<EgglogCommandList> for LLHDEgglogSorts {
+    fn into(self) -> EgglogCommandList {
         self.0
     }
 }

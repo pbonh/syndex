@@ -13,7 +13,7 @@ mod inst;
 mod rules;
 mod unit;
 
-type EgglogProgram = Vec<Command>;
+type EgglogCommandList = Vec<Command>;
 
 #[derive(Debug, Clone, Default, TypedBuilder)]
 pub struct LLHDEgglogProgram {

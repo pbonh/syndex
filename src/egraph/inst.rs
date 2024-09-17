@@ -12,7 +12,7 @@ use crate::egraph::egglog_names::*;
 pub(in crate::egraph) mod opcode;
 use opcode::*;
 
-use super::EgglogProgram;
+use super::EgglogCommandList;
 
 lazy_static! {
     static ref LLHD_DFG_VARIANTS: Vec<Variant> = vec![
@@ -329,7 +329,7 @@ pub(in crate::egraph) fn dfg_insts() -> Command {
     }
 }
 
-pub(in crate::egraph) fn dfg() -> EgglogProgram {
+pub(in crate::egraph) fn dfg() -> EgglogCommandList {
     vec![
         value(),
         vec_value_sort(),
@@ -342,7 +342,7 @@ pub(in crate::egraph) fn dfg() -> EgglogProgram {
     ]
 }
 
-pub(in crate::egraph) fn cfg() -> EgglogProgram {
+pub(in crate::egraph) fn cfg() -> EgglogCommandList {
     let _symbol = Symbol::new(LLHD_CFG_DATATYPE);
     todo!()
 }

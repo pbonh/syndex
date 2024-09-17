@@ -2,10 +2,10 @@ use std::str::FromStr;
 
 use egglog::Error;
 
-use crate::egraph::{EgglogProgram, LLHDEGraph};
+use crate::egraph::{EgglogCommandList, LLHDEGraph};
 
 #[derive(Debug, Clone, Default)]
-pub struct LLHDEgglogRules(pub(in crate::egraph) EgglogProgram);
+pub struct LLHDEgglogRules(pub(in crate::egraph) EgglogCommandList);
 
 impl FromStr for LLHDEgglogRules {
     type Err = Error;
@@ -19,8 +19,8 @@ impl FromStr for LLHDEgglogRules {
     }
 }
 
-impl Into<EgglogProgram> for LLHDEgglogRules {
-    fn into(self) -> EgglogProgram {
+impl Into<EgglogCommandList> for LLHDEgglogRules {
+    fn into(self) -> EgglogCommandList {
         self.0
     }
 }
@@ -42,7 +42,7 @@ mod tests {
         assert!(egraph_with_rules_msgs.is_ok());
         assert_eq!(
             2,
-            <LLHDEgglogRules as Into<EgglogProgram>>::into(rule_cmds).len(),
+            <LLHDEgglogRules as Into<EgglogCommandList>>::into(rule_cmds).len(),
             "There should be 1 rule present in rewrite(2 since there is always null ruleset)."
         );
     }
