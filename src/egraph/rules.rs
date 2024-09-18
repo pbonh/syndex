@@ -122,11 +122,7 @@ mod tests {
             "Second command should be a rule."
         );
         if let GenericCommand::AddRuleset(rule_symbol) = egglog_rules[0] {
-            assert_eq!(
-                "div-ext",
-                rule_symbol.as_str(),
-                "Rule name does not match."
-            );
+            assert_eq!("div-ext", rule_symbol.as_str(), "Rule name does not match.");
         }
     }
 

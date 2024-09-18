@@ -1,7 +1,8 @@
 mod datatype;
 mod egglog_names;
 mod inst;
-mod rules;
+pub mod rules;
+pub mod sorts;
 mod unit;
 pub use unit::LLHDEgglogFacts;
 pub mod llhd;
