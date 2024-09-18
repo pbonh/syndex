@@ -43,6 +43,7 @@ lazy_static = "1.5.0"
 specs = "0.20.0"
 slotmap = "1.0.7"
 bon = "2.3.0"
+frunk = "0.4.3"
 
 [dev-dependencies]
 criterion = "0.4"
