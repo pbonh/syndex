@@ -1,5 +1,6 @@
 mod datatype;
 mod egglog_names;
+pub mod facts;
 mod inst;
 pub mod rules;
 pub mod sorts;

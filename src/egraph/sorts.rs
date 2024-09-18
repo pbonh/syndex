@@ -59,7 +59,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn create_egglog_sorts_from_str() {
+    fn create_egglog_sorts_from_cmd() {
         let sort1 = GenericCommand::Sort(DUMMY_SPAN.clone(), Symbol::new("sort1"), None);
         let datatype1 = GenericCommand::Datatype {
             span: DUMMY_SPAN.clone(),
