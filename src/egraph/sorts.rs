@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use egglog::ast::Command;
+use egglog::EGraph;
 use itertools::Itertools;
 
 use crate::egraph::EgglogCommandList;
@@ -9,7 +10,7 @@ use crate::egraph::EgglogCommandList;
 pub struct EgglogSorts(EgglogCommandList);
 
 impl EgglogSorts {
-    pub fn add_sorts<CommandList>(mut self, sort_list: CommandList) -> Self
+    pub fn add_sorts<CommandList>(self, sort_list: CommandList) -> Self
     where
         CommandList: IntoIterator<Item = Command>,
     {
@@ -22,8 +23,16 @@ impl EgglogSorts {
                     || matches!(*command, Command::Function(..))
             })
             .collect_vec();
-        self.0.append(&mut sorts);
-        self
+        let mut updated_sorts = Self(self.0);
+        updated_sorts.0.append(&mut sorts);
+        updated_sorts
+    }
+
+    pub fn add_sort_str(self, sort_str: &str) -> Self {
+        match EGraph::default().parse_program(None, sort_str) {
+            Ok(sort_commands) => Self::add_sorts(self, sort_commands),
+            Err(error) => panic!("Failure to build sorts from string: {:?}", error),
+        }
     }
 }
 
@@ -48,6 +57,15 @@ where
 impl Into<EgglogCommandList> for EgglogSorts {
     fn into(self) -> EgglogCommandList {
         self.0
+    }
+}
+
+impl IntoIterator for EgglogSorts {
+    type Item = Command;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -91,6 +109,17 @@ mod tests {
             4,
             egglog_sorts.len(),
             "There should be 4 commands present, one for each declaration."
+        );
+    }
+
+    #[test]
+    fn create_egglog_sorts_from_str() {
+        let sort_str = utilities::get_egglog_commands("llhd_dfg_example1.egg");
+        let sort = EgglogSorts::default().add_sort_str(&sort_str);
+        assert_eq!(
+            4,
+            sort.len(),
+            "There should be 4 sorts/datatypes/declarations present in program."
         );
     }
 }

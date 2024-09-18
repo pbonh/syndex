@@ -1,0 +1,10 @@
+; Bounding-Box
+(datatype Point
+    (P i64 i64)
+)
+(datatype BBox
+    (Box Point Point)
+)
+(sort LLHDBBox
+    (Map LLHDDFG BBox)
+)

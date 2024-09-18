@@ -1,7 +1,7 @@
 use std::ops::Deref;
 use std::str::FromStr;
 
-use egglog::ast::{GenericCommand, GenericRule, Symbol};
+use egglog::ast::{Command, GenericRule, Symbol};
 use egglog::{EGraph, Error};
 use itertools::Itertools;
 
@@ -14,24 +14,27 @@ pub struct EgglogRules(EgglogCommandList);
 type EgglogRule<Call, Var> = (Symbol, Symbol, GenericRule<Call, Var>);
 
 impl EgglogRules {
-    pub fn add_rulesets<SymbolList>(mut self, ruleset_names: SymbolList) -> Self
+    pub fn add_rules<SymbolList>(self, ruleset_names: SymbolList) -> Self
     where
-        SymbolList: IntoIterator<Item = Symbol>,
+        SymbolList: IntoIterator<Item = Command>,
     {
         let mut rulesets = ruleset_names
             .into_iter()
-            .map(GenericCommand::AddRuleset)
+            .filter(|command| {
+                matches!(*command, Command::AddRuleset(..))
+                    || matches!(*command, Command::Rule { .. })
+                    || matches!(*command, Command::Rewrite { .. })
+                    || matches!(*command, Command::BiRewrite { .. })
+            })
             .collect_vec();
-        self.0.append(&mut rulesets);
-        self
+        let mut updated_rulesets = Self(self.0);
+        updated_rulesets.0.append(&mut rulesets);
+        updated_rulesets
     }
 
-    pub fn add_rules(mut self, rule_str: &str) -> Self {
+    pub fn add_rule_str(self, rule_str: &str) -> Self {
         match EGraph::default().parse_program(None, rule_str) {
-            Ok(mut rule_commands) => {
-                self.0.append(&mut rule_commands);
-                self
-            }
+            Ok(rule_commands) => Self::add_rules(self, rule_commands),
             Err(error) => panic!("Failure to build rules from string: {:?}", error),
         }
     }
@@ -61,6 +64,15 @@ impl Into<EgglogCommandList> for EgglogRules {
     }
 }
 
+impl IntoIterator for EgglogRules {
+    type Item = Command;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct LLHDEgglogRules(pub(in crate::egraph) EgglogCommandList);
 
@@ -84,12 +96,15 @@ impl Into<EgglogCommandList> for LLHDEgglogRules {
 
 #[cfg(test)]
 mod tests {
+    use egglog::ast::GenericCommand;
+
     use super::*;
 
     #[test]
     fn create_egglog_rules_from_ruleset() {
         let ruleset_symbol = Symbol::new("rule1");
-        let egglog_rules = EgglogRules::default().add_rulesets(vec![ruleset_symbol]);
+        let rule1 = GenericCommand::AddRuleset(ruleset_symbol);
+        let egglog_rules = EgglogRules::default().add_rules(vec![rule1]);
         assert_eq!(
             1,
             egglog_rules.len(),
@@ -105,9 +120,9 @@ mod tests {
     }
 
     #[test]
-    fn create_egglog_rules_from_rules() {
-        let egglog_rule_str = utilities::get_egglog_rules("llhd_div_extract.egg");
-        let egglog_rules = EgglogRules::default().add_rules(&egglog_rule_str);
+    fn create_egglog_rules_from_str() {
+        let egglog_rule_str = utilities::get_egglog_commands("llhd_div_extract.egg");
+        let egglog_rules = EgglogRules::default().add_rule_str(&egglog_rule_str);
         assert_eq!(
             2,
             egglog_rules.len(),
@@ -130,7 +145,7 @@ mod tests {
     fn create_llhd_rules_from_str() {
         let mut llhd_egraph = LLHDEGraph::default();
         let rule_cmds_result =
-            LLHDEgglogRules::from_str(&utilities::get_egglog_rules("llhd_div_extract.egg"));
+            LLHDEgglogRules::from_str(&utilities::get_egglog_commands("llhd_div_extract.egg"));
         if let Err(err_msg) = rule_cmds_result {
             panic!("Failure to parse LLHD Egglog rules. Err: {:?}", err_msg);
         }

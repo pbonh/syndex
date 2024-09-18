@@ -128,7 +128,7 @@ mod tests {
     fn build_llhd_egglog_program() {
         let llhd_egglog_program = LLHDEgglogProgram::builder()
             .rules(
-                LLHDEgglogRules::from_str(&utilities::get_egglog_rules("llhd_div_extract.egg"))
+                LLHDEgglogRules::from_str(&utilities::get_egglog_commands("llhd_div_extract.egg"))
                     .unwrap(),
             )
             .build();
@@ -144,7 +144,7 @@ mod tests {
     fn add_llhd_egglog_programs() {
         let llhd_egglog_program_div_extract = LLHDEgglogProgram::builder()
             .rules(
-                LLHDEgglogRules::from_str(&utilities::get_egglog_rules("llhd_div_extract.egg"))
+                LLHDEgglogRules::from_str(&utilities::get_egglog_commands("llhd_div_extract.egg"))
                     .unwrap(),
             )
             .build();
@@ -155,7 +155,7 @@ mod tests {
         );
         let llhd_egglog_program_demorgans_theorem = LLHDEgglogProgram::builder()
             .rules(
-                LLHDEgglogRules::from_str(&utilities::get_egglog_rules(
+                LLHDEgglogRules::from_str(&utilities::get_egglog_commands(
                     "llhd_demorgans_theorem.egg",
                 ))
                 .unwrap(),
@@ -208,7 +208,7 @@ mod tests {
         let test_module = utilities::load_llhd_module("2and_1or_common.llhd");
         let llhd_egglog_program = LLHDEgglogProgram::builder()
             .rules(
-                LLHDEgglogRules::from_str(&utilities::get_egglog_rules("llhd_div_extract.egg"))
+                LLHDEgglogRules::from_str(&utilities::get_egglog_commands("llhd_div_extract.egg"))
                     .unwrap(),
             )
             .facts(LLHDEgglogFacts::from_module(&test_module))

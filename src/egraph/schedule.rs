@@ -7,10 +7,10 @@ use itertools::Itertools;
 use crate::egraph::EgglogCommandList;
 
 #[derive(Debug, Clone, Default)]
-pub struct EgglogSchedule(EgglogCommandList);
+pub struct EgglogSchedules(EgglogCommandList);
 
-impl EgglogSchedule {
-    pub fn add_schedule<CommandList>(mut self, schedule_list: CommandList) -> Self
+impl EgglogSchedules {
+    pub fn add_schedule<CommandList>(self, schedule_list: CommandList) -> Self
     where
         CommandList: IntoIterator<Item = Command>,
     {
@@ -18,22 +18,20 @@ impl EgglogSchedule {
             .into_iter()
             .filter(|command| matches!(*command, Command::RunSchedule(..)))
             .collect_vec();
-        self.0.append(&mut schedules);
-        self
+        let mut updated_schedules = Self(self.0);
+        updated_schedules.0.append(&mut schedules);
+        updated_schedules
     }
 
-    pub fn add_schedule_str(mut self, rule_str: &str) -> Self {
-        match EGraph::default().parse_program(None, rule_str) {
-            Ok(mut rule_commands) => {
-                self.0.append(&mut rule_commands);
-                self
-            }
+    pub fn add_schedule_str(self, schedule_str: &str) -> Self {
+        match EGraph::default().parse_program(None, schedule_str) {
+            Ok(schedule_commands) => Self::add_schedule(self, schedule_commands),
             Err(error) => panic!("Failure to build schedule from string: {:?}", error),
         }
     }
 }
 
-impl Deref for EgglogSchedule {
+impl Deref for EgglogSchedules {
     type Target = EgglogCommandList;
 
     fn deref(&self) -> &Self::Target {
@@ -41,7 +39,7 @@ impl Deref for EgglogSchedule {
     }
 }
 
-impl<EgglogCommandList> AsRef<EgglogCommandList> for EgglogSchedule
+impl<EgglogCommandList> AsRef<EgglogCommandList> for EgglogSchedules
 where
     EgglogCommandList: ?Sized,
     <Self as Deref>::Target: AsRef<EgglogCommandList>,
@@ -51,9 +49,18 @@ where
     }
 }
 
-impl Into<EgglogCommandList> for EgglogSchedule {
+impl Into<EgglogCommandList> for EgglogSchedules {
     fn into(self) -> EgglogCommandList {
         self.0
+    }
+}
+
+impl IntoIterator for EgglogSchedules {
+    type Item = Command;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -72,7 +79,7 @@ mod tests {
                 until: None,
             },
         ));
-        let egglog_sorts = EgglogSchedule::default().add_schedule(vec![schedule1]);
+        let egglog_sorts = EgglogSchedules::default().add_schedule(vec![schedule1]);
         assert_eq!(
             1,
             egglog_sorts.len(),

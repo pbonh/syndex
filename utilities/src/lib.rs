@@ -17,7 +17,7 @@ pub fn load_egraph(filename: &str) -> (EGraph, Vec<String>) {
     (egraph, msgs)
 }
 
-pub fn get_egglog_rules(filename: &str) -> String {
+pub fn get_egglog_commands(filename: &str) -> String {
     let mut egglog_program_file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     egglog_program_file_path.push("../resources/egglog");
     egglog_program_file_path.push(filename);

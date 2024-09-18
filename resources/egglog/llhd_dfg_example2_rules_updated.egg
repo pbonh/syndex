@@ -1,0 +1,10 @@
+; Initialize Bounding Box
+(ruleset div-ext-bb)
+(rule (
+  (And a b)
+)((let and_bbox (
+  map-insert (map-empty)
+    (And a b) 
+    (Box (P 0 0) (P 0 0))
+  ))
+):ruleset div-ext-bb)

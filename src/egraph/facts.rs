@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use egglog::ast::Command;
+use egglog::EGraph;
 use itertools::Itertools;
 
 use crate::egraph::EgglogCommandList;
@@ -9,16 +10,24 @@ use crate::egraph::EgglogCommandList;
 pub struct EgglogFacts(EgglogCommandList);
 
 impl EgglogFacts {
-    pub fn add_facts<CommandList>(mut self, sort_list: CommandList) -> Self
+    pub fn add_facts<CommandList>(self, fact_list: CommandList) -> Self
     where
         CommandList: IntoIterator<Item = Command>,
     {
-        let mut sorts = sort_list
+        let mut facts = fact_list
             .into_iter()
             .filter(|command| matches!(*command, Command::Action(..)))
             .collect_vec();
-        self.0.append(&mut sorts);
-        self
+        let mut updated_facts = Self(self.0);
+        updated_facts.0.append(&mut facts);
+        updated_facts
+    }
+
+    pub fn add_facts_str(self, fact_str: &str) -> Self {
+        match EGraph::default().parse_program(None, fact_str) {
+            Ok(fact_commands) => Self::add_facts(self, fact_commands),
+            Err(error) => panic!("Failure to build facts from string: {:?}", error),
+        }
     }
 }
 
@@ -43,6 +52,15 @@ where
 impl Into<EgglogCommandList> for EgglogFacts {
     fn into(self) -> EgglogCommandList {
         self.0
+    }
+}
+
+impl IntoIterator for EgglogFacts {
+    type Item = Command;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 

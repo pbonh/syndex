@@ -1,0 +1,9 @@
+; Divisor Extraction
+(ruleset div-ext)
+(rewrite (Or
+  (And a c)
+  (And b c)
+)(And
+  (Or a b)
+  c
+):ruleset div-ext)
