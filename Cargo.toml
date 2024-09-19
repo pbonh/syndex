@@ -39,6 +39,7 @@ layout21 = "3.0.0-pre.2"
 peginator = "0.7.0"
 peginator_macro = "0.7.0"
 egglog = { git = "https://github.com/pbonh/egglog.git" }
+egglog_syntax = { path = "egglog_syntax" }
 lazy_static = "1.5.0"
 specs = "0.20.0"
 slotmap = "1.0.7"
