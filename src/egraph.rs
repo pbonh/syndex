@@ -120,11 +120,12 @@ impl Into<EgglogCommandList> for EgglogProgram {
             .into_iter()
             .flatten()
             .chain(
-                self.facts
-                    .into_iter()
-                    .flatten()
-                    .chain(self.rules.into_iter().flatten())
-                    .chain(self.schedules.into_iter().flatten()),
+                self.facts.into_iter().flatten().chain(
+                    self.rules
+                        .into_iter()
+                        .flatten()
+                        .chain(self.schedules.into_iter().flatten()),
+                ),
             )
             .collect_vec()
     }
@@ -188,6 +189,66 @@ mod tests {
         assert_eq!(2, updated_egglog_program.schedules.len());
         let updated_egglog_program_cmds: EgglogCommandList = updated_egglog_program.into();
         assert_eq!(18, updated_egglog_program_cmds.len());
+        assert!(matches!(
+            updated_egglog_program_cmds[0],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(updated_egglog_program_cmds[1], Command::Sort(..)));
+        assert!(matches!(
+            updated_egglog_program_cmds[2],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(updated_egglog_program_cmds[3], Command::Sort(..)));
+        assert!(matches!(
+            updated_egglog_program_cmds[4],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[5],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(updated_egglog_program_cmds[6], Command::Sort(..)));
+        assert!(matches!(
+            updated_egglog_program_cmds[7],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[8],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[9],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(updated_egglog_program_cmds[10], Command::Sort(..)));
+        assert!(matches!(
+            updated_egglog_program_cmds[11],
+            Command::Action { .. }
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[12],
+            Command::AddRuleset(..)
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[13],
+            Command::Rewrite(..)
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[14],
+            Command::AddRuleset(..)
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[15],
+            Command::Rule { .. }
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[16],
+            Command::RunSchedule(..)
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[17],
+            Command::RunSchedule(..)
+        ));
         if let Err(err_msg) = EGraph::default().run_program(updated_egglog_program_cmds) {
             panic!("Failure to run program: {:?}", err_msg);
         }
