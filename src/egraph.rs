@@ -324,10 +324,8 @@ mod tests {
 
         let _llhd_dfg_egglog_expr = egglog_expr_str!(
             r#"
-            (datatype LLHDValue (Value u64))
-            (sort LLHDVecValue (Vec u64))
-            (datatype LLHDBlock (Block u64))
-            (sort LLHDVecBlock (Vec LLHDBlock))
+            (datatype LLHDValue (Value u64)) (sort LLHDVecValue (Vec u64))
+            (datatype LLHDBlock (Block u64)) (sort LLHDVecBlock (Vec LLHDBlock))
             (datatype LLHDExtUnit (ExtUnit u64))
             (datatype LLHDRegMode
                 (Low)
