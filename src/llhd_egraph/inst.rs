@@ -6,13 +6,13 @@ use llhd::ir::{InstData, ValueData};
 use llhd::table::TableKey;
 use llhd::{IntValue, TimeValue};
 
-use crate::egraph::datatype::*;
 use crate::egraph::egglog_names::*;
+use crate::egraph::EgglogCommandList;
+use crate::llhd_egraph::datatype::*;
+use crate::llhd_egraph::egglog_names::*;
 
-pub(in crate::egraph) mod opcode;
+pub(in crate::llhd_egraph) mod opcode;
 use opcode::*;
-
-use super::EgglogCommandList;
 
 lazy_static! {
     static ref LLHD_DFG_VARIANTS: Vec<Variant> = vec![
@@ -164,7 +164,7 @@ lazy_static! {
     static ref LLHD_DFG_VARIANTS_COUNT: usize = LLHD_DFG_VARIANTS.len();
 }
 
-pub(in crate::egraph) fn value() -> Command {
+pub(in crate::llhd_egraph) fn value() -> Command {
     let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
     let value_variant = Variant {
         span: DUMMY_SPAN.clone(),
@@ -180,7 +180,7 @@ pub(in crate::egraph) fn value() -> Command {
     }
 }
 
-pub(in crate::egraph) fn int_value() -> Command {
+pub(in crate::llhd_egraph) fn int_value() -> Command {
     let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
     let int_value_variant = Variant {
         span: DUMMY_SPAN.clone(),
@@ -196,7 +196,7 @@ pub(in crate::egraph) fn int_value() -> Command {
     }
 }
 
-pub(in crate::egraph) fn time_value() -> Command {
+pub(in crate::llhd_egraph) fn time_value() -> Command {
     let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
     let time_value_variant = Variant {
         span: DUMMY_SPAN.clone(),
@@ -212,7 +212,7 @@ pub(in crate::egraph) fn time_value() -> Command {
     }
 }
 
-pub(in crate::egraph) fn reg_mode() -> Command {
+pub(in crate::llhd_egraph) fn reg_mode() -> Command {
     let symbol = Symbol::new(LLHD_REGMODE_DATATYPE);
     Command::Datatype {
         span: DUMMY_SPAN.clone(),
@@ -252,7 +252,7 @@ pub(in crate::egraph) fn reg_mode() -> Command {
     }
 }
 
-pub(in crate::egraph) fn vec_value_sort() -> Command {
+pub(in crate::llhd_egraph) fn vec_value_sort() -> Command {
     let vec_sort_symbol = Symbol::new(LLHD_VEC_VALUE_DATATYPE);
     let symbol_vec = Symbol::new(EGGLOG_VEC_SORT);
     let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
@@ -264,7 +264,7 @@ pub(in crate::egraph) fn vec_value_sort() -> Command {
     )
 }
 
-pub(in crate::egraph) fn vec_regmode_sort() -> Command {
+pub(in crate::llhd_egraph) fn vec_regmode_sort() -> Command {
     let vec_sort_symbol = Symbol::new(LLHD_VEC_REGMODE_DATATYPE);
     let symbol_vec = Symbol::new(EGGLOG_VEC_SORT);
     let regmode_datatype = U64Sort::new(LLHD_REGMODE_DATATYPE.into());
@@ -276,7 +276,7 @@ pub(in crate::egraph) fn vec_regmode_sort() -> Command {
     )
 }
 
-pub(in crate::egraph) fn block() -> Command {
+pub(in crate::llhd_egraph) fn block() -> Command {
     let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
     let block_variant = Variant {
         span: DUMMY_SPAN.clone(),
@@ -292,7 +292,7 @@ pub(in crate::egraph) fn block() -> Command {
     }
 }
 
-pub(in crate::egraph) fn vec_block() -> Command {
+pub(in crate::llhd_egraph) fn vec_block() -> Command {
     let vec_sort_symbol = Symbol::new(LLHD_VEC_BLOCK_DATATYPE);
     let symbol_vec = Symbol::new(EGGLOG_VEC_SORT);
     let vec_block_datatype = U64Sort::new(LLHD_BLOCK_DATATYPE.into());
@@ -304,7 +304,7 @@ pub(in crate::egraph) fn vec_block() -> Command {
     )
 }
 
-pub(in crate::egraph) fn ext_unit() -> Command {
+pub(in crate::llhd_egraph) fn ext_unit() -> Command {
     let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
     let ext_unit_variant = Variant {
         span: DUMMY_SPAN.clone(),
@@ -320,7 +320,7 @@ pub(in crate::egraph) fn ext_unit() -> Command {
     }
 }
 
-pub(in crate::egraph) fn dfg_insts() -> Command {
+pub(in crate::llhd_egraph) fn dfg_insts() -> Command {
     let dfg_symbol = Symbol::new(LLHD_DFG_DATATYPE);
     Command::Datatype {
         span: DUMMY_SPAN.clone(),
@@ -329,7 +329,7 @@ pub(in crate::egraph) fn dfg_insts() -> Command {
     }
 }
 
-pub(in crate::egraph) fn dfg() -> EgglogCommandList {
+pub(in crate::llhd_egraph) fn dfg() -> EgglogCommandList {
     vec![
         value(),
         vec_value_sort(),
@@ -342,7 +342,7 @@ pub(in crate::egraph) fn dfg() -> EgglogCommandList {
     ]
 }
 
-pub(in crate::egraph) fn cfg() -> EgglogCommandList {
+pub(in crate::llhd_egraph) fn cfg() -> EgglogCommandList {
     let _symbol = Symbol::new(LLHD_CFG_DATATYPE);
     todo!()
 }
@@ -368,7 +368,7 @@ fn value_data_expr(unit: &Unit<'_>, value_data: &ValueData) -> Expr {
     }
 }
 
-pub(in crate::egraph) fn expr_value_data(literal: &Literal) -> Value {
+pub(in crate::llhd_egraph) fn expr_value_data(literal: &Literal) -> Value {
     match literal {
         Literal::Int(value) => {
             Value::new(usize::try_from(*value).expect("Failure to convert from u64 to usize."))
@@ -397,11 +397,11 @@ fn time_value_expr(time_value: TimeValue) -> Expr {
     GenericExpr::Lit(DUMMY_SPAN.clone(), converted_literal)
 }
 
-pub(in crate::egraph) fn expr_time_value(_literal: &Literal) -> TimeValue {
+pub(in crate::llhd_egraph) fn expr_time_value(_literal: &Literal) -> TimeValue {
     TimeValue::zero()
 }
 
-pub(in crate::egraph) fn inst_expr(unit: &Unit<'_>, inst_data: &InstData) -> Expr {
+pub(in crate::llhd_egraph) fn inst_expr(unit: &Unit<'_>, inst_data: &InstData) -> Expr {
     let inst_symbol = opcode_symbol(inst_data.opcode());
     let mut children: Vec<Expr> = vec![];
     match inst_data {

@@ -3,11 +3,13 @@ use itertools::Itertools;
 use llhd::ir::Opcode;
 
 use super::egglog_names::*;
+use super::inst;
 use super::inst::opcode::*;
-use super::{inst, EgglogCommandList};
+use crate::egraph::egglog_names::EGGLOG_U64_SORT;
+use crate::egraph::EgglogCommandList;
 
 #[derive(Debug, Clone)]
-pub struct LLHDEgglogSorts(pub(in crate::egraph) EgglogCommandList);
+pub struct LLHDEgglogSorts(pub(in crate::llhd_egraph) EgglogCommandList);
 
 impl LLHDEgglogSorts {
     pub fn llhd_dfg() -> Self {
@@ -27,7 +29,7 @@ impl Into<EgglogCommandList> for LLHDEgglogSorts {
     }
 }
 
-pub(in crate::egraph) fn variant(opcode: Opcode, symbol_strs: Vec<&str>) -> Variant {
+pub(in crate::llhd_egraph) fn variant(opcode: Opcode, symbol_strs: Vec<&str>) -> Variant {
     Variant {
         span: DUMMY_SPAN.clone(),
         name: opcode_symbol(opcode),
@@ -36,7 +38,7 @@ pub(in crate::egraph) fn variant(opcode: Opcode, symbol_strs: Vec<&str>) -> Vari
     }
 }
 
-pub(in crate::egraph) fn value_ref_variant() -> Variant {
+pub(in crate::llhd_egraph) fn value_ref_variant() -> Variant {
     Variant {
         span: DUMMY_SPAN.clone(),
         name: Symbol::new(LLHD_VALUE_REF_FIELD),
@@ -54,7 +56,7 @@ fn reg_mode_variant() -> Variant {
     }
 }
 
-pub(in crate::egraph) fn unit_root_variant() -> Variant {
+pub(in crate::llhd_egraph) fn unit_root_variant() -> Variant {
     Variant {
         span: DUMMY_SPAN.clone(),
         name: unit_root_variant_symbol(),
@@ -63,7 +65,7 @@ pub(in crate::egraph) fn unit_root_variant() -> Variant {
     }
 }
 
-pub(in crate::egraph) fn unit_root_variant_symbol() -> Symbol {
+pub(in crate::llhd_egraph) fn unit_root_variant_symbol() -> Symbol {
     Symbol::new(LLHD_UNIT_FIELD)
 }
 

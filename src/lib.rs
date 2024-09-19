@@ -160,7 +160,10 @@ pub(crate) mod llhd;
 ///   c
 /// ):ruleset div-ext)
 /// ```
-pub(crate) mod egraph;
+pub mod egraph;
+
+/// Types & Utilities for Building EGraphs from LLHD Modules
+pub mod llhd_egraph;
 
 /// Types & Utilities for Managing FLECS Worlds
 pub(crate) mod world;

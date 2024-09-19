@@ -1,26 +1,20 @@
-mod datatype;
-mod egglog_names;
+pub(crate) mod egglog_names;
 pub mod facts;
-mod inst;
 #[macro_use]
 pub mod macros;
 pub mod rules;
 pub mod schedule;
 pub mod sorts;
-mod unit;
-use facts::EgglogFacts;
-use rules::EgglogRules;
-use schedule::EgglogSchedules;
-use sorts::EgglogSorts;
-pub use unit::LLHDEgglogFacts;
-pub mod llhd;
-
 use egglog::ast::Command;
+use facts::EgglogFacts;
 use frunk::monoid::Monoid;
 use frunk::semigroup::Semigroup;
 use itertools::Itertools;
+use rules::EgglogRules;
+use schedule::EgglogSchedules;
+use sorts::EgglogSorts;
 
-type EgglogCommandList = Vec<Command>;
+pub(crate) type EgglogCommandList = Vec<Command>;
 type EgglogSortList = Vec<EgglogSorts>;
 type EgglogFactList = Vec<EgglogFacts>;
 type EgglogRuleList = Vec<EgglogRules>;

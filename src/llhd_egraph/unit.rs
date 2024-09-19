@@ -6,13 +6,13 @@ use llhd::ir::prelude::*;
 use llhd::{IntValue, TimeValue};
 use rayon::iter::ParallelIterator;
 
-use super::EgglogCommandList;
-use crate::egraph::datatype::*;
-use crate::egraph::inst::*;
+use crate::egraph::EgglogCommandList;
 use crate::llhd::LLHDUtils;
+use crate::llhd_egraph::datatype::*;
+use crate::llhd_egraph::inst::*;
 
 #[derive(Debug, Clone, Default)]
-pub struct LLHDEgglogFacts(pub(in crate::egraph) EgglogCommandList);
+pub struct LLHDEgglogFacts(pub(in crate::llhd_egraph) EgglogCommandList);
 
 impl LLHDEgglogFacts {
     pub fn from_module(module: &Module) -> Self {

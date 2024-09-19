@@ -7,7 +7,7 @@ use llhd::ir::Opcode;
 type LLHDOpcodeSymbolLookup = HashMap<Symbol, Opcode>;
 
 lazy_static! {
-    pub(in crate::egraph) static ref OPCODESYMBOLMAP: LLHDOpcodeSymbolLookup = {
+    pub(in crate::llhd_egraph) static ref OPCODESYMBOLMAP: LLHDOpcodeSymbolLookup = {
         let mut opcode_symbol_map = HashMap::new();
         opcode_symbol_map.insert(opcode_symbol(Opcode::ConstInt), Opcode::ConstInt);
         opcode_symbol_map.insert(opcode_symbol(Opcode::ConstTime), Opcode::ConstTime);
@@ -69,7 +69,7 @@ lazy_static! {
         opcode_symbol_map.insert(opcode_symbol(Opcode::WaitTime), Opcode::WaitTime);
         opcode_symbol_map
     };
-    pub(in crate::egraph) static ref OPCODESYMBOLMAP_COUNT: usize = OPCODESYMBOLMAP.len();
+    pub(in crate::llhd_egraph) static ref OPCODESYMBOLMAP_COUNT: usize = OPCODESYMBOLMAP.len();
 }
 
 fn uppercase_first_letter(s: &mut str) {
@@ -78,7 +78,7 @@ fn uppercase_first_letter(s: &mut str) {
     }
 }
 
-pub(in crate::egraph) fn opcode_symbol(opcode: Opcode) -> Symbol {
+pub(in crate::llhd_egraph) fn opcode_symbol(opcode: Opcode) -> Symbol {
     let mut opcode_str = opcode.to_string();
     match opcode {
         Opcode::ConstTime => opcode_str.push_str("Time"),
@@ -106,18 +106,18 @@ pub(in crate::egraph) fn opcode_symbol(opcode: Opcode) -> Symbol {
     Symbol::new(opcode_str)
 }
 
-pub(in crate::egraph) fn get_symbol_opcode(symbol: &Symbol) -> Option<Opcode> {
+pub(in crate::llhd_egraph) fn get_symbol_opcode(symbol: &Symbol) -> Option<Opcode> {
     OPCODESYMBOLMAP.get(symbol).copied()
 }
 
-pub(in crate::egraph) fn symbol_opcode(symbol: Symbol) -> Opcode {
+pub(in crate::llhd_egraph) fn symbol_opcode(symbol: Symbol) -> Opcode {
     OPCODESYMBOLMAP[&symbol]
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::egraph::inst::*;
+    use crate::llhd_egraph::inst::*;
 
     #[test]
     fn all_opcodes_available_in_egglog() {
