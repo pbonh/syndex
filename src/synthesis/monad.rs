@@ -76,9 +76,11 @@ mod tests {
         let composed_fn = compose(f, g);
         let compose_result = composed_fn(5);
         println!("{:?}", compose_result); // Output the final monad
+
         let monad_a = StringMonad::ret(10);
         let bind_result = monad_a.bind(|x| StringMonad::ret(x * 2));
         println!("{:?}", bind_result);
+
         assert_eq!(
             compose_result, bind_result,
             "Compose and bind should produce the same result."
@@ -98,5 +100,10 @@ mod tests {
         let composed_fn = compose_chain!(f, g, h);
         let compose_result = composed_fn(5);
         println!("Compose chain result: {:?}", compose_result);
+
+        assert_eq!(
+            compose_result.result, bind_result.result,
+            "Compose and bind should produce the same result."
+        );
     }
 }
