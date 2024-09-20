@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct StringMonad<T> {
     value: Vec<String>,
@@ -21,7 +23,7 @@ impl<T> StringMonad<T> {
 
     fn bind<U, F>(self, f: F) -> StringMonad<U>
     where
-        F: FnOnce(T) -> StringMonad<U> + 'static,
+        F: Fn(T) -> StringMonad<U> + 'static,
     {
         let mut new_monad = f(self.result);
         new_monad.value = [self.value, new_monad.value].concat();
@@ -39,12 +41,23 @@ impl<T> StringMonad<T> {
     }
 }
 
-fn compose<A, B, C, F, G>(f: F, g: G) -> impl FnOnce(A) -> StringMonad<C>
+fn compose<A, B, C, F, G>(f: F, g: G) -> impl Fn(A) -> StringMonad<C>
 where
-    F: FnOnce(A) -> StringMonad<B> + 'static,
-    G: FnOnce(B) -> StringMonad<C> + 'static,
+    F: Fn(A) -> StringMonad<B> + 'static,
+    G: Fn(B) -> StringMonad<C> + 'static,
 {
-    move |x: A| f(x).bind(g)
+    move |val: A| {
+        let app1 = f(val);
+        let app2 = g(app1.result);
+        StringMonad {
+            value: app1
+                .value
+                .into_iter()
+                .chain(app2.value.into_iter())
+                .collect_vec(),
+            result: app2.result,
+        }
+    }
 }
 
 macro_rules! bind_chain {
