@@ -24,7 +24,7 @@ pub struct EgglogProgram {
     schedules: EgglogScheduleList,
 }
 
-struct EgglogProgramBuilder<State> {
+pub struct EgglogProgramBuilder<State> {
     sorts: Option<EgglogSortList>,
     facts: Option<EgglogFactList>,
     rules: Option<EgglogRuleList>,
@@ -38,11 +38,11 @@ trait InitFacts {}
 trait InitRules {}
 trait InitSchedules {}
 
-struct InitState;
-struct SortsState;
-struct FactsState;
-struct RulesState;
-struct SchedulesState;
+pub struct InitState;
+pub struct SortsState;
+pub struct FactsState;
+pub struct RulesState;
+pub struct SchedulesState;
 
 impl InitProgram for InitState {}
 impl InitSorts for SortsState {}
@@ -51,8 +51,8 @@ impl InitRules for RulesState {}
 impl InitSchedules for SchedulesState {}
 
 impl EgglogProgramBuilder<InitState> {
-    fn new() -> Self {
-        EgglogProgramBuilder {
+    pub const fn new() -> Self {
+        Self {
             sorts: None,
             facts: None,
             rules: None,
@@ -61,7 +61,7 @@ impl EgglogProgramBuilder<InitState> {
         }
     }
 
-    fn sorts(self, sorts: EgglogSorts) -> EgglogProgramBuilder<SortsState> {
+    pub fn sorts(self, sorts: EgglogSorts) -> EgglogProgramBuilder<SortsState> {
         EgglogProgramBuilder {
             sorts: Some(vec![sorts]),
             facts: self.facts,
@@ -73,7 +73,7 @@ impl EgglogProgramBuilder<InitState> {
 }
 
 impl EgglogProgramBuilder<SortsState> {
-    fn facts(self, facts: EgglogFacts) -> EgglogProgramBuilder<FactsState> {
+    pub fn facts(self, facts: EgglogFacts) -> EgglogProgramBuilder<FactsState> {
         EgglogProgramBuilder {
             sorts: self.sorts,
             facts: Some(vec![facts]),
@@ -85,7 +85,7 @@ impl EgglogProgramBuilder<SortsState> {
 }
 
 impl EgglogProgramBuilder<FactsState> {
-    fn rules(self, rules: EgglogRules) -> EgglogProgramBuilder<RulesState> {
+    pub fn rules(self, rules: EgglogRules) -> EgglogProgramBuilder<RulesState> {
         EgglogProgramBuilder {
             sorts: self.sorts,
             facts: self.facts,
@@ -97,7 +97,7 @@ impl EgglogProgramBuilder<FactsState> {
 }
 
 impl EgglogProgramBuilder<RulesState> {
-    fn schedules(self, schedules: EgglogSchedules) -> EgglogProgramBuilder<SchedulesState> {
+    pub fn schedules(self, schedules: EgglogSchedules) -> EgglogProgramBuilder<SchedulesState> {
         EgglogProgramBuilder {
             sorts: self.sorts,
             facts: self.facts,
@@ -109,7 +109,7 @@ impl EgglogProgramBuilder<RulesState> {
 }
 
 impl EgglogProgramBuilder<SchedulesState> {
-    fn program(self) -> EgglogProgram {
+    pub fn program(self) -> EgglogProgram {
         EgglogProgram {
             sorts: self.sorts.expect("Sorts Guaranteed at compile-time."),
             facts: self.facts.expect("Facts Guaranteed at compile-time."),

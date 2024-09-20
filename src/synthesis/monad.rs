@@ -72,25 +72,72 @@ macro_rules! compose_chain {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use llhd::ir::prelude::*;
 
     use super::*;
+    use crate::egraph::facts::EgglogFacts;
+    use crate::egraph::rules::EgglogRules;
+    use crate::egraph::schedule::EgglogSchedules;
+    use crate::egraph::sorts::EgglogSorts;
+    use crate::egraph::*;
+    use crate::llhd_egraph::datatype::LLHDEgglogSorts;
+    use crate::llhd_egraph::llhd::LLHDEgglogProgram;
+    use crate::llhd_egraph::rules::LLHDEgglogRules;
+    use crate::llhd_egraph::LLHDEgglogFacts;
 
     impl From<&Module> for EgglogProgram {
-        fn from(_module: &Module) -> Self {
-            todo!()
-        }
-    }
-
-    impl From<Module> for EgglogProgram {
-        fn from(_module: Module) -> Self {
-            todo!()
+        fn from(module: &Module) -> Self {
+            let llhd_facts = LLHDEgglogFacts::from_module(module);
+            let llhd_egglog_program = LLHDEgglogProgram::builder()
+                .facts(llhd_facts)
+                .rules(
+                    LLHDEgglogRules::from_str(&utilities::get_egglog_commands(
+                        "llhd_div_extract.egg",
+                    ))
+                    .unwrap(),
+                )
+                .build();
+            EgglogProgramBuilder::<InitState>::new()
+                .sorts(EgglogSorts::default().add_sorts(<LLHDEgglogSorts as Into<
+                    EgglogCommandList,
+                >>::into(
+                    llhd_egglog_program.sorts().clone()
+                )))
+                .facts(EgglogFacts::default().add_facts(<LLHDEgglogFacts as Into<
+                    EgglogCommandList,
+                >>::into(
+                    llhd_egglog_program.facts().clone()
+                )))
+                .rules(EgglogRules::default().add_rules(<LLHDEgglogRules as Into<
+                    EgglogCommandList,
+                >>::into(
+                    llhd_egglog_program.rules().clone()
+                )))
+                .schedules(EgglogSchedules::default())
+                .program()
         }
     }
 
     #[test]
-    #[should_panic(expected = "not yet implemented")]
     fn monad_composition() {
+        let f = |module: Module| SynthesisContext::load(module);
+        let g = |mut module: Module| {
+            let new_unit = utilities::build_entity_alpha(UnitName::anonymous(0));
+            let _new_unit_id = module.add_unit(new_unit);
+            SynthesisContext::load(module)
+        };
+        let composed_fn = compose(f, g);
+        let _compose_result = composed_fn(utilities::load_llhd_module("2and_1or.llhd"));
+
+        let monad_a = SynthesisContext::load(utilities::load_llhd_module("2and_1or.llhd"));
+        let _bind_result =
+            monad_a.bind(|_x| SynthesisContext::load(utilities::load_llhd_module("2and_1or.llhd")));
+    }
+
+    #[test]
+    fn monad_lift() {
         let f = |module: Module| SynthesisContext::load(module);
         let g = |mut module: Module| {
             let new_unit = utilities::build_entity_alpha(UnitName::anonymous(0));
