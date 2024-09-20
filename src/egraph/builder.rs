@@ -1,4 +1,5 @@
 use std::marker::PhantomData;
+use std::ops::Add;
 
 use frunk::monoid::Monoid;
 use frunk::semigroup::Semigroup;
@@ -145,6 +146,18 @@ impl Monoid for EgglogProgram {
     }
 }
 
+impl Add for EgglogProgram {
+    type Output = Self;
+
+    fn add(mut self, mut rhs: Self) -> Self::Output {
+        self.sorts.append(&mut rhs.sorts);
+        self.facts.append(&mut rhs.facts);
+        self.rules.append(&mut rhs.rules);
+        self.schedules.append(&mut rhs.schedules);
+        self
+    }
+}
+
 impl Into<EgglogCommandList> for EgglogProgram {
     fn into(self) -> EgglogCommandList {
         self.sorts
@@ -221,6 +234,109 @@ mod tests {
             .schedules(schedule2)
             .program();
         let updated_egglog_program = egglog_program.combine(&egglog_program_update);
+        assert_eq!(2, updated_egglog_program.sorts.len());
+        assert_eq!(2, updated_egglog_program.facts.len());
+        assert_eq!(2, updated_egglog_program.rules.len());
+        assert_eq!(2, updated_egglog_program.schedules.len());
+        let updated_egglog_program_cmds: EgglogCommandList = updated_egglog_program.into();
+        assert_eq!(18, updated_egglog_program_cmds.len());
+        assert!(matches!(
+            updated_egglog_program_cmds[0],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(updated_egglog_program_cmds[1], Command::Sort(..)));
+        assert!(matches!(
+            updated_egglog_program_cmds[2],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(updated_egglog_program_cmds[3], Command::Sort(..)));
+        assert!(matches!(
+            updated_egglog_program_cmds[4],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[5],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(updated_egglog_program_cmds[6], Command::Sort(..)));
+        assert!(matches!(
+            updated_egglog_program_cmds[7],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[8],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[9],
+            Command::Datatype { .. }
+        ));
+        assert!(matches!(updated_egglog_program_cmds[10], Command::Sort(..)));
+        assert!(matches!(
+            updated_egglog_program_cmds[11],
+            Command::Action { .. }
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[12],
+            Command::AddRuleset(..)
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[13],
+            Command::Rewrite(..)
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[14],
+            Command::AddRuleset(..)
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[15],
+            Command::Rule { .. }
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[16],
+            Command::RunSchedule(..)
+        ));
+        assert!(matches!(
+            updated_egglog_program_cmds[17],
+            Command::RunSchedule(..)
+        ));
+        if let Err(err_msg) = EGraph::default().run_program(updated_egglog_program_cmds) {
+            panic!("Failure to run program: {:?}", err_msg);
+        }
+    }
+
+    #[test]
+    fn add_egglog_programs() {
+        let sort_str = utilities::get_egglog_commands("llhd_dfg_example2_sorts.egg");
+        let input_sorts = EgglogSorts::default().add_sort_str(&sort_str);
+        let facts_str = utilities::get_egglog_commands("llhd_dfg_example2_facts.egg");
+        let input_facts = EgglogFacts::default().add_facts_str(&facts_str);
+
+        let rules_str = utilities::get_egglog_commands("llhd_dfg_example2_rules.egg");
+        let rules1 = EgglogRules::default().add_rule_str(&rules_str);
+        let schedule1_str = utilities::get_egglog_commands("llhd_dfg_example2_schedule.egg");
+        let schedule1 = EgglogSchedules::default().add_schedule_str(&schedule1_str);
+        let egglog_program = EgglogProgramBuilder::<InitState>::new()
+            .sorts(input_sorts)
+            .facts(input_facts)
+            .rules(rules1)
+            .schedules(schedule1)
+            .program();
+
+        let sort2_str = utilities::get_egglog_commands("llhd_dfg_example2_sorts_updated.egg");
+        let sorts2 = EgglogSorts::default().add_sort_str(&sort2_str);
+        let rules2_str = utilities::get_egglog_commands("llhd_dfg_example2_rules_updated.egg");
+        let rules2 = EgglogRules::default().add_rule_str(&rules2_str);
+        let schedule2_str =
+            utilities::get_egglog_commands("llhd_dfg_example2_schedule_updated.egg");
+        let schedule2 = EgglogSchedules::default().add_schedule_str(&schedule2_str);
+        let egglog_program_update = EgglogProgramBuilder::<InitState>::new()
+            .sorts(sorts2)
+            .facts(EgglogFacts::default())
+            .rules(rules2)
+            .schedules(schedule2)
+            .program();
+        let updated_egglog_program = egglog_program + egglog_program_update;
         assert_eq!(2, updated_egglog_program.sorts.len());
         assert_eq!(2, updated_egglog_program.facts.len());
         assert_eq!(2, updated_egglog_program.rules.len());
