@@ -1,139 +1,102 @@
-use crate::llhd_egraph::llhd::{LLHDEGraph, LLHDEgglogProgram};
-use crate::llhd_egraph::LLHDEgglogFacts;
-
-pub type SynthesisMonad<T> = (T, LLHDEgglogProgram);
-
-pub fn cmap<SynthT>(chip: SynthT) -> SynthesisMonad<SynthT>
-where
-    LLHDEgglogFacts: for<'world> From<&'world SynthT>,
-{
-    let llhd_facts = LLHDEgglogFacts::from(&chip);
-    let egraph = LLHDEgglogProgram::from(llhd_facts);
-    (chip, egraph)
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct StringMonad<T> {
+    value: Vec<String>,
+    result: T,
 }
 
-pub fn synthesis_compose<SynthAT, SynthBT, SynthCT, SynthF1, SynthF2>(
-    func1: SynthF1,
-    func2: SynthF2,
-) -> impl Fn(SynthAT) -> SynthesisMonad<SynthCT>
-where
-    SynthF1: Fn(SynthAT) -> SynthesisMonad<SynthBT> + 'static,
-    SynthF2: Fn(SynthBT) -> SynthesisMonad<SynthCT> + 'static,
-{
-    move |chip: SynthAT| {
-        let synth_step1 = func1(chip);
-        let synth_step2 = func2(synth_step1.0);
-        (synth_step2.0, synth_step1.1 + synth_step2.1)
+impl<T> StringMonad<T> {
+    fn ret(result: T) -> Self
+    where
+        T: std::fmt::Display,
+    {
+        Self {
+            value: vec![format!("f called with: {}", result)],
+            result,
+        }
+    }
+
+    fn lift(self) -> T {
+        self.result
+    }
+
+    fn bind<U, F>(self, f: F) -> StringMonad<U>
+    where
+        F: FnOnce(T) -> StringMonad<U> + 'static,
+    {
+        let mut new_monad = f(self.result);
+        new_monad.value = [self.value, new_monad.value].concat();
+        new_monad
+    }
+
+    fn empty() -> Self
+    where
+        T: Default,
+    {
+        Self {
+            value: vec![],
+            result: T::default(),
+        }
     }
 }
 
-pub fn clift<SynthT>(chipm: SynthesisMonad<SynthT>) -> SynthT
+fn compose<A, B, C, F, G>(f: F, g: G) -> impl FnOnce(A) -> StringMonad<C>
 where
-    SynthT: From<LLHDEGraph>,
+    F: FnOnce(A) -> StringMonad<B> + 'static,
+    G: FnOnce(B) -> StringMonad<C> + 'static,
 {
-    let (_chip, egglog_program) = chipm;
-    let egraph = LLHDEGraph::try_from(egglog_program)
-        .expect("Failure to convert egglog program into EGraph.");
-    SynthT::from(egraph)
+    move |x: A| f(x).bind(g)
+}
+
+macro_rules! bind_chain {
+    ($monad:expr, $func:expr) => {
+        $monad.bind($func)
+    };
+    ($monad:expr, $func:expr, $($rest:expr),+) => {
+        bind_chain!($monad.bind($func), $($rest),+)
+    };
+}
+
+macro_rules! compose_chain {
+    ($first:expr) => {
+        $first
+    };
+    ($first:expr, $($rest:expr),+) => {
+        compose($first, compose_chain!($($rest),+))
+    };
 }
 
 #[cfg(test)]
 mod tests {
-    use specs::prelude::*;
-
     use super::*;
 
     #[test]
-    fn synthesize_dummy_data_with_egraph() {
-        let m1 = |x: i32| (x + 1, LLHDEgglogProgram::default());
-        let m2 = |x: i32| (x * 2, LLHDEgglogProgram::default());
-
-        let synthesized = synthesis_compose(m1, m2);
-        let _result = synthesized(5);
-
-        // println!("{:?}", result); // Output: (12, 30)
-    }
-
-    #[derive(Debug)]
-    struct Vel(f32);
-
-    impl Component for Vel {
-        type Storage = VecStorage<Self>;
-    }
-
-    #[derive(Debug)]
-    struct Pos(f32);
-
-    impl Component for Pos {
-        type Storage = VecStorage<Self>;
-    }
-
-    impl From<&World> for LLHDEgglogFacts {
-        fn from(_value: &World) -> Self {
-            todo!()
-        }
+    fn monad_composition() {
+        let f = |x: i32| StringMonad::ret(x * 2);
+        let g = |x: i32| StringMonad::ret(x + 10);
+        let composed_fn = compose(f, g);
+        let compose_result = composed_fn(5);
+        println!("{:?}", compose_result); // Output the final monad
+        let monad_a = StringMonad::ret(10);
+        let bind_result = monad_a.bind(|x| StringMonad::ret(x * 2));
+        println!("{:?}", bind_result);
+        assert_eq!(
+            compose_result, bind_result,
+            "Compose and bind should produce the same result."
+        );
     }
 
     #[test]
-    #[should_panic(expected = "not yet implemented")]
-    fn initialize_egraph_with_ecs() {
-        let world = World::new();
-        let _synthesis_monad = cmap(world);
-    }
+    fn monad_composition_macro() {
+        let f = |x: i32| StringMonad::ret(x * 2);
+        let g = |x: i32| StringMonad::ret(x + 10);
+        let h = |x: i32| StringMonad::ret(x - 1);
 
-    #[test]
-    fn synthesize_ecs_with_egraph() {
-        let world = World::new();
+        let monad = StringMonad::ret(5);
+        let bind_result = bind_chain!(monad, f, g, h);
+        println!("Bind chain result: {:?}", bind_result);
 
-        let m1 = |mut chip_world: World| {
-            chip_world.register::<Pos>();
-            chip_world.create_entity().with(Pos(0.0)).build();
-            (chip_world, LLHDEgglogProgram::default())
-        };
-        let m2 = |mut chip_world: World| {
-            chip_world.register::<Vel>();
-            chip_world
-                .create_entity()
-                .with(Vel(4.0))
-                .with(Pos(1.6))
-                .build();
-            (chip_world, LLHDEgglogProgram::default())
-        };
-        let synthesizer12 = synthesis_compose(m1, m2);
-        let synthesizer121 = synthesis_compose(m1, synthesizer12);
-        let _synthesized121 = synthesizer121(world);
-    }
-
-    fn add_position(mut chip_world: World) -> SynthesisMonad<World> {
-        chip_world.register::<Pos>();
-        chip_world.create_entity().with(Pos(0.0)).build();
-        (chip_world, LLHDEgglogProgram::default())
-    }
-
-    fn add_velocity(mut chip_world: World) -> SynthesisMonad<World> {
-        chip_world.register::<Vel>();
-        chip_world
-            .create_entity()
-            .with(Vel(4.0))
-            .with(Pos(1.6))
-            .build();
-        (chip_world, LLHDEgglogProgram::default())
-    }
-
-    #[test]
-    fn synthesize_macro_ecs_with_egraph() {
-        let synthesize121 = synthesize!(add_position, add_velocity, add_position);
-
-        let world = World::new();
-        let _synthesized121 = synthesize121(world);
-    }
-
-    #[test]
-    #[should_panic]
-    fn synthesize_macro_ecs_with_egraph_fail() {
-        let synthesize121 = synthesize!(add_velocity, add_position, add_velocity);
-
-        let world = World::new();
-        let _synthesized121 = synthesize121(world);
+        let composed_fn = compose_chain!(f, g, h);
+        let compose_result = composed_fn(5);
+        println!("Compose chain result: {:?}", compose_result);
     }
 }
