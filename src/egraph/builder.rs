@@ -158,17 +158,19 @@ impl Add for EgglogProgram {
     }
 }
 
-impl Into<EgglogCommandList> for EgglogProgram {
-    fn into(self) -> EgglogCommandList {
-        self.sorts
+impl From<EgglogProgram> for EgglogCommandList {
+    fn from(program: EgglogProgram) -> Self {
+        program
+            .sorts
             .into_iter()
             .flatten()
             .chain(
-                self.facts.into_iter().flatten().chain(
-                    self.rules
+                program.facts.into_iter().flatten().chain(
+                    program
+                        .rules
                         .into_iter()
                         .flatten()
-                        .chain(self.schedules.into_iter().flatten()),
+                        .chain(program.schedules.into_iter().flatten()),
                 ),
             )
             .collect_vec()
