@@ -190,7 +190,7 @@ mod tests {
 
     #[test]
     fn build_egglog_program_from_unit() {
-        let unit_data = utilities::build_entity(UnitName::anonymous(0));
+        let unit_data = utilities::build_entity_alpha(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
         let egglog_facts = LLHDEgglogFacts::from_unit(&unit);
         assert_eq!(
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn llhd_egglog_dfg_expression_tree1() {
-        let unit_data = utilities::build_entity(UnitName::anonymous(0));
+        let unit_data = utilities::build_entity_alpha(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
         let insts = LLHDUtils::iterate_unit_insts(&unit).collect_vec();
         let _value_refs = LLHDUtils::iterate_unit_value_defs(&unit).collect_vec();

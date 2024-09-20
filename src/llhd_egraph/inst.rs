@@ -638,7 +638,7 @@ mod tests {
 
     #[test]
     fn llhd_inst_egglog_expr() {
-        let unit_data = utilities::build_entity(UnitName::anonymous(0));
+        let unit_data = utilities::build_entity_alpha(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
         let insts = LLHDUtils::iterate_unit_insts(&unit).collect_vec();
         let add2_inst = insts[4];

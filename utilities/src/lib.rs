@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use egglog::{EGraph, Error};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
+use llhd::TimeValue;
 
 pub fn load_egraph(filename: &str) -> (EGraph, Vec<String>) {
     let mut egglog_program_file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -35,6 +36,12 @@ pub fn load_egraph_rewrite_rules(
     egraph.parse_and_run_program(None, &egglog_program_str)
 }
 
+pub fn trim_expr_whitespace(expr_str: &str) -> String {
+    let newline_stripped_expr = expr_str.replace('\n', "");
+    let words = newline_stripped_expr.split_whitespace().collect_vec();
+    words.join(" ")
+}
+
 pub fn load_llhd_module(filename: &str) -> Module {
     let mut llhd_module_file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     llhd_module_file_path.push("../resources/llhd");
@@ -44,13 +51,7 @@ pub fn load_llhd_module(filename: &str) -> Module {
         .expect(&format!("Error loading module: {}", filename))
 }
 
-pub fn trim_expr_whitespace(expr_str: &str) -> String {
-    let newline_stripped_expr = expr_str.replace('\n', "");
-    let words = newline_stripped_expr.split_whitespace().collect_vec();
-    words.join(" ")
-}
-
-pub fn build_entity(name: UnitName) -> UnitData {
+pub fn build_entity_alpha(name: UnitName) -> UnitData {
     let mut sig = Signature::new();
     let _clk = sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
     let _rst = sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
@@ -65,6 +66,29 @@ pub fn build_entity(name: UnitName) -> UnitData {
         let inp = builder.unit().arg_value(inp);
         let inp = builder.ins().prb(inp);
         builder.ins().add(v3, inp);
+    }
+    Unit::new_anonymous(&ent).verify();
+    ent
+}
+
+pub fn build_entity_2and_1or_common(name: UnitName) -> UnitData {
+    let mut sig = Signature::new();
+    let in1 = sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
+    let in2 = sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
+    let in3 = sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
+    let out1 = sig.add_output(llhd::signal_ty(llhd::int_ty(1)));
+    let mut ent = UnitData::new(UnitKind::Entity, name, sig);
+    {
+        let mut builder = UnitBuilder::new_anonymous(&mut ent);
+        let in1_val = builder.unit().arg_value(in1);
+        let in2_val = builder.unit().arg_value(in2);
+        let in3_val = builder.unit().arg_value(in3);
+        let out1_val = builder.unit().arg_value(out1);
+        let null_time = builder.ins().const_time(TimeValue::zero());
+        let and1 = builder.ins().and(in1_val, in2_val);
+        let and2 = builder.ins().and(in3_val, in2_val);
+        let or1 = builder.ins().or(and1, and2);
+        builder.ins().drv(out1_val, or1, null_time);
     }
     Unit::new_anonymous(&ent).verify();
     ent

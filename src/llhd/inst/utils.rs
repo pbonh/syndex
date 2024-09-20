@@ -52,7 +52,7 @@ mod tests {
 
     #[test]
     fn create_insts_and_value_defs() {
-        let unit_data = utilities::build_entity(UnitName::anonymous(0));
+        let unit_data = utilities::build_entity_alpha(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
         let insts = LLHDUtils::iterate_unit_insts(&unit).collect_vec();
         let value_defs = LLHDUtils::iterate_unit_value_defs(&unit).collect_vec();
@@ -77,7 +77,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn get_last_llhd_unit_inst() {
-        let unit_data = utilities::build_entity(UnitName::anonymous(0));
+        let unit_data = utilities::build_entity_alpha(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);
         let add2_inst = LLHDUtils::last_unit_inst(&unit);
         let add2_inst_data = &unit[add2_inst.1];
