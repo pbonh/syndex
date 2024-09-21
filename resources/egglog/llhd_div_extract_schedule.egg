@@ -1,0 +1,9 @@
+(ruleset div-ext)
+(rewrite (Or
+  (And a c)
+  (And b c)
+)(And
+  (Or a b)
+  c
+):ruleset div-ext)
+(run-schedule (saturate div-ext))

@@ -23,9 +23,9 @@ impl Default for LLHDEgglogSorts {
     }
 }
 
-impl Into<EgglogCommandList> for LLHDEgglogSorts {
-    fn into(self) -> EgglogCommandList {
-        self.0
+impl From<LLHDEgglogSorts> for EgglogCommandList {
+    fn from(llhd_sorts: LLHDEgglogSorts) -> Self {
+        llhd_sorts.0
     }
 }
 

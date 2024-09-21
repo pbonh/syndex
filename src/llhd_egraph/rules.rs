@@ -20,9 +20,9 @@ impl FromStr for LLHDEgglogRules {
     }
 }
 
-impl Into<EgglogCommandList> for LLHDEgglogRules {
-    fn into(self) -> EgglogCommandList {
-        self.0
+impl From<LLHDEgglogRules> for EgglogCommandList {
+    fn from(rules: LLHDEgglogRules) -> Self {
+        rules.0
     }
 }
 
@@ -44,7 +44,7 @@ mod tests {
         assert_eq!(
             2,
             <LLHDEgglogRules as Into<EgglogCommandList>>::into(rule_cmds).len(),
-            "There should be 1 rule present in rewrite(2 since there is always null ruleset)."
+            "There should be 2 rules present in rewrite(1 ruleset, and 1 rule)."
         );
     }
 }

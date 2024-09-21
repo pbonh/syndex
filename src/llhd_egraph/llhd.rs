@@ -6,6 +6,7 @@ use typed_builder::TypedBuilder;
 use super::datatype::LLHDEgglogSorts;
 use super::inst;
 use super::rules::LLHDEgglogRules;
+use super::schedules::LLHDEgglogSchedules;
 use super::unit::LLHDEgglogFacts;
 
 #[derive(Debug, Clone, Default, TypedBuilder)]
@@ -14,10 +15,13 @@ pub struct LLHDEgglogProgram {
     sorts: LLHDEgglogSorts,
 
     #[builder(default)]
+    facts: LLHDEgglogFacts,
+
+    #[builder(default)]
     rules: LLHDEgglogRules,
 
     #[builder(default)]
-    facts: LLHDEgglogFacts,
+    schedules: LLHDEgglogSchedules,
 }
 
 impl LLHDEgglogProgram {
@@ -25,12 +29,16 @@ impl LLHDEgglogProgram {
         &self.sorts
     }
 
+    pub const fn facts(&self) -> &LLHDEgglogFacts {
+        &self.facts
+    }
+
     pub const fn rules(&self) -> &LLHDEgglogRules {
         &self.rules
     }
 
-    pub const fn facts(&self) -> &LLHDEgglogFacts {
-        &self.facts
+    pub const fn schedules(&self) -> &LLHDEgglogSchedules {
+        &self.schedules
     }
 }
 
@@ -39,8 +47,9 @@ impl Add for LLHDEgglogProgram {
 
     fn add(mut self, mut rhs: Self) -> Self::Output {
         self.sorts.0 = rhs.sorts.0;
-        self.rules.0.append(&mut rhs.rules.0);
         self.facts.0.append(&mut rhs.facts.0);
+        self.rules.0.append(&mut rhs.rules.0);
+        self.schedules.0.append(&mut rhs.schedules.0);
         self
     }
 }

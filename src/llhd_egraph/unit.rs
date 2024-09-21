@@ -29,9 +29,9 @@ impl LLHDEgglogFacts {
     }
 }
 
-impl Into<EgglogCommandList> for LLHDEgglogFacts {
-    fn into(self) -> EgglogCommandList {
-        self.0
+impl From<LLHDEgglogFacts> for EgglogCommandList {
+    fn from(llhd_facts: LLHDEgglogFacts) -> Self {
+        llhd_facts.0
     }
 }
 
