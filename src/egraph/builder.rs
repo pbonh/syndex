@@ -11,20 +11,21 @@ use super::schedule::EgglogSchedules;
 use super::sorts::EgglogSorts;
 use super::EgglogCommandList;
 
+type EgglogSortList = Vec<EgglogSorts>;
 type EgglogFactList = Vec<EgglogFacts>;
 type EgglogRuleList = Vec<EgglogRules>;
 type EgglogScheduleList = Vec<EgglogSchedules>;
 
 #[derive(Debug, Clone, Default)]
 pub struct EgglogProgram {
-    sorts: EgglogSorts,
+    sorts: EgglogSortList,
     facts: EgglogFactList,
     rules: EgglogRuleList,
     schedules: EgglogScheduleList,
 }
 
 pub struct EgglogProgramBuilder<State> {
-    sorts: Option<EgglogSorts>,
+    sorts: Option<EgglogSortList>,
     facts: Option<EgglogFactList>,
     rules: Option<EgglogRuleList>,
     schedules: Option<EgglogScheduleList>,
@@ -62,7 +63,7 @@ impl EgglogProgramBuilder<InitState> {
 
     pub fn sorts(self, sorts: EgglogSorts) -> EgglogProgramBuilder<SortsState> {
         EgglogProgramBuilder {
-            sorts: Some(sorts),
+            sorts: Some(vec![sorts]),
             facts: self.facts,
             rules: self.rules,
             schedules: None,
@@ -122,6 +123,8 @@ impl EgglogProgramBuilder<SchedulesState> {
 
 impl Semigroup for EgglogProgram {
     fn combine(&self, program_update: &Self) -> Self {
+        let mut combined_sorts = self.sorts.clone();
+        combined_sorts.append(&mut program_update.sorts.clone());
         let mut combined_facts = self.facts.clone();
         combined_facts.append(&mut program_update.facts.clone());
         let mut combined_rules = self.rules.clone();
@@ -129,7 +132,7 @@ impl Semigroup for EgglogProgram {
         let mut combined_schedules = self.schedules.clone();
         combined_schedules.append(&mut program_update.schedules.clone());
         Self {
-            sorts: program_update.sorts.clone(),
+            sorts: combined_sorts,
             facts: combined_facts,
             rules: combined_rules,
             schedules: combined_schedules,
@@ -147,7 +150,7 @@ impl Add for EgglogProgram {
     type Output = Self;
 
     fn add(mut self, mut rhs: Self) -> Self::Output {
-        self.sorts = rhs.sorts;
+        self.sorts.append(&mut rhs.sorts);
         self.facts.append(&mut rhs.facts);
         self.rules.append(&mut rhs.rules);
         self.schedules.append(&mut rhs.schedules);
@@ -160,6 +163,7 @@ impl From<EgglogProgram> for EgglogCommandList {
         program
             .sorts
             .into_iter()
+            .flatten()
             .chain(
                 program.facts.into_iter().flatten().chain(
                     program
@@ -212,16 +216,14 @@ mod tests {
         let schedule1_str = utilities::get_egglog_commands("llhd_dfg_example2_schedule.egg");
         let schedule1 = EgglogSchedules::default().add_schedule_str(&schedule1_str);
         let egglog_program = EgglogProgramBuilder::<InitState>::new()
-            .sorts(input_sorts.clone())
+            .sorts(input_sorts)
             .facts(input_facts)
             .rules(rules1)
             .schedules(schedule1)
             .program();
 
         let sort2_str = utilities::get_egglog_commands("llhd_dfg_example2_sorts_updated.egg");
-        let sorts2 = EgglogSorts::default()
-            .add_sorts(input_sorts)
-            .add_sort_str(&sort2_str);
+        let sorts2 = EgglogSorts::default().add_sort_str(&sort2_str);
         let rules2_str = utilities::get_egglog_commands("llhd_dfg_example2_rules_updated.egg");
         let rules2 = EgglogRules::default().add_rule_str(&rules2_str);
         let schedule2_str =
@@ -234,7 +236,7 @@ mod tests {
             .schedules(schedule2)
             .program();
         let updated_egglog_program = egglog_program.combine(&egglog_program_update);
-        assert_eq!(11, updated_egglog_program.sorts.len());
+        assert_eq!(2, updated_egglog_program.sorts.len());
         assert_eq!(2, updated_egglog_program.facts.len());
         assert_eq!(2, updated_egglog_program.rules.len());
         assert_eq!(2, updated_egglog_program.schedules.len());
@@ -317,16 +319,14 @@ mod tests {
         let schedule1_str = utilities::get_egglog_commands("llhd_dfg_example2_schedule.egg");
         let schedule1 = EgglogSchedules::default().add_schedule_str(&schedule1_str);
         let egglog_program = EgglogProgramBuilder::<InitState>::new()
-            .sorts(input_sorts.clone())
+            .sorts(input_sorts)
             .facts(input_facts)
             .rules(rules1)
             .schedules(schedule1)
             .program();
 
         let sort2_str = utilities::get_egglog_commands("llhd_dfg_example2_sorts_updated.egg");
-        let sorts2 = EgglogSorts::default()
-            .add_sorts(input_sorts)
-            .add_sort_str(&sort2_str);
+        let sorts2 = EgglogSorts::default().add_sort_str(&sort2_str);
         let rules2_str = utilities::get_egglog_commands("llhd_dfg_example2_rules_updated.egg");
         let rules2 = EgglogRules::default().add_rule_str(&rules2_str);
         let schedule2_str =
@@ -339,7 +339,7 @@ mod tests {
             .schedules(schedule2)
             .program();
         let updated_egglog_program = egglog_program + egglog_program_update;
-        assert_eq!(11, updated_egglog_program.sorts.len());
+        assert_eq!(2, updated_egglog_program.sorts.len());
         assert_eq!(2, updated_egglog_program.facts.len());
         assert_eq!(2, updated_egglog_program.rules.len());
         assert_eq!(2, updated_egglog_program.schedules.len());
