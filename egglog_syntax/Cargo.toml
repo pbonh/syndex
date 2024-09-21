@@ -11,4 +11,4 @@ proc-macro2 = "1.0"
 quote = "1.0"
 sexp = "1.1.4"
 syn = { version = "1.0", features = ["full"] }
-
+egglog = { git = "https://github.com/pbonh/egglog.git" }

@@ -1218,6 +1218,7 @@ dependencies = [
 name = "egglog_syntax"
 version = "0.1.0"
 dependencies = [
+ "egglog",
  "proc-macro2",
  "quote",
  "sexp",

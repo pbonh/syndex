@@ -6,6 +6,11 @@ use itertools::Itertools;
 use llhd::ir::prelude::*;
 use llhd::TimeValue;
 
+pub fn parse_egglog_program(program: &str) -> Result<Vec<String>, Error> {
+    let mut egraph = EGraph::default();
+    egraph.parse_and_run_program(None, program)
+}
+
 pub fn load_egraph(filename: &str) -> (EGraph, Vec<String>) {
     let mut egglog_program_file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     egglog_program_file_path.push("../resources/egglog");

@@ -229,4 +229,31 @@ mod tests {
     fn egglog_program_from_llhd_unit_with_unsigned_id_sort() {
         let _egraph = utilities::load_egraph("llhd_dfg_example2.egg");
     }
+
+    // #[test]
+    // const fn llhd_unit_sort_valid_egglog_program() {
+    //     static LLHD_UNIT_SORT_EGGLOG_RESOURCES_STR: &str = include_str!(concat!(
+    //         env!("CARGO_MANIFEST_DIR"),
+    //         "/resources/egglog/llhd_dfg_sort.egg"
+    //     ));
+    //
+    //     use egglog_syntax::egglog_expr_str;
+    //     extern crate proc_macro;
+    //
+    //     let llhd_unit_sort_egglog_resources_stream: proc_macro::TokenStream =
+    //         LLHD_UNIT_SORT_EGGLOG_RESOURCES_STR.parse().unwrap();
+    //     let _llhd_dfg_egglog_expr = egglog_expr_str!(llhd_unit_sort_egglog_resources_stream);
+    // }
+
+    #[test]
+    #[should_panic]
+    fn llhd_unit_sort_valid_egglog_program() {
+        static LLHD_UNIT_SORT_EGGLOG_RESOURCES_STR: &str = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/resources/egglog/llhd_dfg_sort.egg"
+        ));
+        if let Err(err_msg) = utilities::parse_egglog_program(LLHD_UNIT_SORT_EGGLOG_RESOURCES_STR) {
+            panic!("Failure to parse LLHD Unit DFT Sort. ERROR: {:?}", err_msg);
+        }
+    }
 }

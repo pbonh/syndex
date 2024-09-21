@@ -78,9 +78,9 @@ mod tests {
 
     #[test]
     const fn egglog_syntax_macros() {
-        use egglog_syntax::egglog_expr_str;
+        use egglog_syntax::s_expression_str;
 
-        let _llhd_dfg_egglog_expr = egglog_expr_str!(
+        let _llhd_dfg_egglog_expr = s_expression_str!(
             r#"
             (datatype LLHDValue (Value u64)) (sort LLHDVecValue (Vec u64))
             (datatype LLHDBlock (Block u64)) (sort LLHDVecBlock (Vec LLHDBlock))
