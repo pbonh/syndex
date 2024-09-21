@@ -54,9 +54,9 @@ where
     }
 }
 
-impl Into<EgglogCommandList> for EgglogSorts {
-    fn into(self) -> EgglogCommandList {
-        self.0
+impl From<EgglogSorts> for EgglogCommandList {
+    fn from(sorts: EgglogSorts) -> Self {
+        sorts.0
     }
 }
 
