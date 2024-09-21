@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use egglog::ast::{Action, Expr, GenericCommand, GenericExpr, Literal, Symbol, DUMMY_SPAN};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
+use llhd::table::TableKey;
 use llhd::{IntValue, TimeValue};
 use rayon::iter::ParallelIterator;
 
@@ -43,7 +44,8 @@ type TimeValueStack = VecDeque<TimeValue>;
 const UNIT_LET_STMT_PREFIX: &str = "unit_";
 
 pub(crate) fn unit_symbol(unit: &Unit<'_>) -> Symbol {
-    let mut unit_name = unit.name().to_string().replace(&['@', '%', ','][..], "");
+    // let mut unit_name = unit.name().to_string().replace(&['@', '%', ','][..], "");
+    let mut unit_name = unit.id().index().to_string();
     unit_name.insert_str(0, UNIT_LET_STMT_PREFIX);
     Symbol::new(unit_name)
 }
@@ -285,7 +287,7 @@ mod tests {
 
         let egglog_expr = from_unit(&unit);
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
-            (let unit_test_entity (LLHDUnit (Drv
+            (let unit_0 (LLHDUnit (Drv
                 (ValueRef _4) (Or
                     (And (ValueRef _0) (ValueRef _1))
                     (And (ValueRef _2) (ValueRef _3)))
@@ -368,7 +370,7 @@ mod tests {
                     "There should be 1 match for divisor extraction rewrite rule."
                 );
 
-                let test_entity_symbol = Symbol::new("unit_test_entity");
+                let test_entity_symbol = Symbol::new("unit_0");
                 let extract_cmd = GenericCommand::QueryExtract {
                     span: DUMMY_SPAN.clone(),
                     variants: 0,

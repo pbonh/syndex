@@ -74,6 +74,9 @@ macro_rules! compose_chain {
 mod tests {
     use std::str::FromStr;
 
+    use egglog::ast::*;
+    use egglog::{EGraph, TermDag};
+    use itertools::Itertools;
     use llhd::ir::prelude::*;
 
     use super::*;
@@ -85,6 +88,7 @@ mod tests {
     use crate::llhd_egraph::datatype::LLHDEgglogSorts;
     use crate::llhd_egraph::llhd::LLHDEgglogProgram;
     use crate::llhd_egraph::rules::LLHDEgglogRules;
+    use crate::llhd_egraph::unit::to_unit;
     use crate::llhd_egraph::LLHDEgglogFacts;
 
     impl From<LLHDEgglogSorts> for EgglogSorts {
@@ -116,19 +120,57 @@ mod tests {
             let llhd_facts = LLHDEgglogFacts::from_module(module);
             let llhd_egglog_program = LLHDEgglogProgram::builder()
                 .facts(llhd_facts)
-                .rules(
-                    LLHDEgglogRules::from_str(&utilities::get_egglog_commands(
-                        "llhd_div_extract.egg",
-                    ))
-                    .unwrap(),
-                )
+                .rules(LLHDEgglogRules::default())
                 .build();
             EgglogProgramBuilder::<InitState>::new()
                 .sorts(llhd_egglog_program.sorts().clone().into())
                 .facts(llhd_egglog_program.facts().clone().into())
-                .rules(llhd_egglog_program.rules().clone().into())
+                .rules(EgglogRules::default())
                 .schedules(EgglogSchedules::default())
                 .program()
+        }
+    }
+
+    impl From<EgglogProgram> for Module {
+        fn from(program: EgglogProgram) -> Self {
+            let mut module = Self::new();
+            let mut egraph = EGraph::default();
+            if let Err(err_msg) = egraph.run_program(program.into()) {
+                panic!("Failure to run EgglogProgram. Err: {:?}", err_msg);
+            }
+            for idx in 0..2 {
+                let unit_symbol = Symbol::new("unit_".to_owned() + idx.to_string().as_str());
+                let extract_cmd = GenericCommand::QueryExtract {
+                    span: DUMMY_SPAN.clone(),
+                    variants: 0,
+                    expr: GenericExpr::Var(DUMMY_SPAN.clone(), unit_symbol),
+                };
+                if let Err(egraph_extract_err) = egraph.run_program(vec![extract_cmd]) {
+                    println!("Cannot extract expression: {:?}", egraph_extract_err);
+                    continue;
+                }
+                let mut extracted_termdag = TermDag::default();
+                let (unit_sort, unit_symbol_value) = egraph
+                    .eval_expr(&GenericExpr::Var(DUMMY_SPAN.clone(), unit_symbol))
+                    .unwrap();
+                let (_unit_cost, unit_term) =
+                    egraph.extract(unit_symbol_value, &mut extracted_termdag, &unit_sort);
+                let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
+                let mut sig = Signature::new();
+                let _in1 = sig.add_input(llhd::int_ty(1));
+                let _in2 = sig.add_input(llhd::int_ty(1));
+                let _in3 = sig.add_input(llhd::int_ty(1));
+                // let _in4 = sig.add_input(llhd::int_ty(1));
+                let _out1 = sig.add_output(llhd::signal_ty(llhd::int_ty(1)));
+                let unit_data = to_unit(
+                    extracted_expr,
+                    UnitKind::Entity,
+                    UnitName::Anonymous(0),
+                    sig,
+                );
+                let _unit_id = module.add_unit(unit_data);
+            }
+            module
         }
     }
 
@@ -151,18 +193,39 @@ mod tests {
     #[test]
     fn monad_lift() {
         let init_module = |module: Module| SynthesisContext::load(module);
-        let add_div_extract_unit = |mut module: Module| {
-            let new_unit = utilities::build_entity_2and_1or_common(UnitName::anonymous(0));
-            let _new_unit_id = module.add_unit(new_unit);
-            SynthesisContext::load(module)
+        let add_div_extract_unit = |module: Module| {
+            // let new_unit = utilities::build_entity_2and_1or_common(UnitName::anonymous(0));
+            // let _new_unit_id = module.add_unit(new_unit);
+            let llhd_facts = LLHDEgglogFacts::from_module(&module);
+            let llhd_egglog_program = LLHDEgglogProgram::builder()
+                .facts(llhd_facts)
+                .rules(
+                    LLHDEgglogRules::from_str(&utilities::get_egglog_commands(
+                        "llhd_div_extract_schedule.egg",
+                    ))
+                    .unwrap(),
+                )
+                .build();
+            let egglog_program = EgglogProgramBuilder::<InitState>::new()
+                .sorts(EgglogSorts::default())
+                .facts(EgglogFacts::default())
+                .rules(llhd_egglog_program.rules().clone().into())
+                .schedules(EgglogSchedules::default())
+                .program();
+            SynthesisContext {
+                program: egglog_program,
+                design: module,
+            }
         };
         let composed_fn = compose(init_module, add_div_extract_unit);
-        let _compose_result = composed_fn(utilities::load_llhd_module("2and_1or.llhd"));
+        let compose_result = composed_fn(utilities::load_llhd_module("2and_1or_common.llhd"));
+        let new_module = compose_result.resolve();
 
-        let monad_a = SynthesisContext::load(utilities::load_llhd_module("2and_1or.llhd"));
-        let _bind_result =
-            monad_a.bind(|_x| SynthesisContext::load(utilities::load_llhd_module("2and_1or.llhd")));
-
+        assert_eq!(
+            1,
+            new_module.units().collect_vec().len(),
+            "New Module should have Unit added(2and_1or_common)."
+        );
         // assert_eq!(
         //     compose_result, bind_result,
         //     "Compose and bind should produce the same result."

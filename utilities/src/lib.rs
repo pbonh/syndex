@@ -76,6 +76,7 @@ pub fn build_entity_2and_1or_common(name: UnitName) -> UnitData {
     let in1 = sig.add_input(llhd::int_ty(1));
     let in2 = sig.add_input(llhd::int_ty(1));
     let in3 = sig.add_input(llhd::int_ty(1));
+    let _in4 = sig.add_input(llhd::int_ty(1));
     let out1 = sig.add_output(llhd::signal_ty(llhd::int_ty(1)));
     let mut ent = UnitData::new(UnitKind::Entity, name, sig);
     {
