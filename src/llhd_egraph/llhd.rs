@@ -246,7 +246,6 @@ mod tests {
     // }
 
     #[test]
-    #[should_panic]
     fn llhd_unit_sort_valid_egglog_program() {
         static LLHD_UNIT_SORT_EGGLOG_RESOURCES_STR: &str = include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
