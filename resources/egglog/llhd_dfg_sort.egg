@@ -87,5 +87,7 @@
     (BrCond u64 LLHDTy LLHDDFG LLHDBlock LLHDBlock)
     (Wait u64 LLHDBlock LLHDVecValue)
     (WaitTime u64 LLHDBlock LLHDVecValue)
-    (LLHDUnit LLHDUnitKind String LLHDVecValue LLHDVecValue LLHDDFG)
 )
+(datatype LLHDUnitDFG
+    (LLHDUnit u64 LLHDUnitKind String LLHDVecValue LLHDVecValue LLHDDFG)
+    (LLHDUnitDecl u64 LLHDUnitKind String LLHDVecValue LLHDVecValue))
