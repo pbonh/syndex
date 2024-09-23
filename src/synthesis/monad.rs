@@ -138,38 +138,35 @@ mod tests {
             if let Err(err_msg) = egraph.run_program(program.into()) {
                 panic!("Failure to run EgglogProgram. Err: {:?}", err_msg);
             }
-            for idx in 0..2 {
-                let unit_symbol = Symbol::new("unit_".to_owned() + idx.to_string().as_str());
-                let extract_cmd = GenericCommand::QueryExtract {
-                    span: DUMMY_SPAN.clone(),
-                    variants: 0,
-                    expr: GenericExpr::Var(DUMMY_SPAN.clone(), unit_symbol),
-                };
-                if let Err(egraph_extract_err) = egraph.run_program(vec![extract_cmd]) {
-                    println!("Cannot extract expression: {:?}", egraph_extract_err);
-                    continue;
-                }
-                let mut extracted_termdag = TermDag::default();
-                let (unit_sort, unit_symbol_value) = egraph
-                    .eval_expr(&GenericExpr::Var(DUMMY_SPAN.clone(), unit_symbol))
-                    .unwrap();
-                let (_unit_cost, unit_term) =
-                    egraph.extract(unit_symbol_value, &mut extracted_termdag, &unit_sort);
-                let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
-                let mut sig = Signature::new();
-                let _in1 = sig.add_input(llhd::int_ty(1));
-                let _in2 = sig.add_input(llhd::int_ty(1));
-                let _in3 = sig.add_input(llhd::int_ty(1));
-                // let _in4 = sig.add_input(llhd::int_ty(1));
-                let _out1 = sig.add_output(llhd::signal_ty(llhd::int_ty(1)));
-                let unit_data = to_unit(
-                    extracted_expr,
-                    UnitKind::Entity,
-                    UnitName::Anonymous(0),
-                    sig,
-                );
-                let _unit_id = module.add_unit(unit_data);
+            let unit_symbol = Symbol::new("unit_test_entity");
+            let extract_cmd = GenericCommand::QueryExtract {
+                span: DUMMY_SPAN.clone(),
+                variants: 0,
+                expr: GenericExpr::Var(DUMMY_SPAN.clone(), unit_symbol),
+            };
+            if let Err(egraph_extract_err) = egraph.run_program(vec![extract_cmd]) {
+                println!("Cannot extract expression: {:?}", egraph_extract_err);
             }
+            let mut extracted_termdag = TermDag::default();
+            let (unit_sort, unit_symbol_value) = egraph
+                .eval_expr(&GenericExpr::Var(DUMMY_SPAN.clone(), unit_symbol))
+                .unwrap();
+            let (_unit_cost, unit_term) =
+                egraph.extract(unit_symbol_value, &mut extracted_termdag, &unit_sort);
+            let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
+            let mut sig = Signature::new();
+            let _in1 = sig.add_input(llhd::int_ty(1));
+            let _in2 = sig.add_input(llhd::int_ty(1));
+            let _in3 = sig.add_input(llhd::int_ty(1));
+            // let _in4 = sig.add_input(llhd::int_ty(1));
+            let _out1 = sig.add_output(llhd::signal_ty(llhd::int_ty(1)));
+            let unit_data = to_unit(
+                extracted_expr,
+                UnitKind::Entity,
+                UnitName::Anonymous(0),
+                sig,
+            );
+            let _unit_id = module.add_unit(unit_data);
             module
         }
     }

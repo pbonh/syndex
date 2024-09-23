@@ -3,7 +3,6 @@ use std::collections::VecDeque;
 use egglog::ast::{Action, Expr, GenericCommand, GenericExpr, Literal, Symbol, DUMMY_SPAN};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
-use llhd::table::TableKey;
 use llhd::{IntValue, TimeValue};
 use rayon::iter::ParallelIterator;
 
@@ -43,14 +42,13 @@ type TimeValueStack = VecDeque<TimeValue>;
 
 const UNIT_LET_STMT_PREFIX: &str = "unit_";
 
-pub(crate) fn unit_symbol(unit: &Unit<'_>) -> Symbol {
-    // let mut unit_name = unit.name().to_string().replace(&['@', '%', ','][..], "");
-    let mut unit_name = unit.id().index().to_string();
+fn unit_symbol(unit: &Unit<'_>) -> Symbol {
+    let mut unit_name = unit.name().to_string().replace(&['@', '%', ','][..], "");
     unit_name.insert_str(0, UNIT_LET_STMT_PREFIX);
     Symbol::new(unit_name)
 }
 
-pub(crate) fn from_unit(unit: &Unit<'_>) -> Action {
+fn from_unit(unit: &Unit<'_>) -> Action {
     let insts = LLHDUtils::iterate_unit_insts(unit).collect_vec();
     let root_inst_data = &unit[insts
         .last()
@@ -287,7 +285,7 @@ mod tests {
 
         let egglog_expr = from_unit(&unit);
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
-            (let unit_0 (LLHDUnit (Drv
+            (let unit_test_entity (LLHDUnit (Drv
                 (ValueRef _4) (Or
                     (And (ValueRef _0) (ValueRef _1))
                     (And (ValueRef _2) (ValueRef _3)))
@@ -370,17 +368,18 @@ mod tests {
                     "There should be 1 match for divisor extraction rewrite rule."
                 );
 
-                let test_entity_symbol = Symbol::new("unit_0");
+                let test_entity_symbol = Symbol::new("unit_test_entity");
                 let extract_cmd = GenericCommand::QueryExtract {
                     span: DUMMY_SPAN.clone(),
                     variants: 0,
                     expr: GenericExpr::Var(DUMMY_SPAN.clone(), test_entity_symbol),
                 };
-                let egraph_extract_expr = egraph.run_program(vec![extract_cmd]);
-                assert!(
-                    egraph_extract_expr.is_ok(),
-                    "EGraph failed to extract expression."
-                );
+                if let Err(egraph_extract_expr_msg) = egraph.run_program(vec![extract_cmd]) {
+                    panic!(
+                        "EGraph failed to extract expression. ERROR: {:?}",
+                        egraph_extract_expr_msg
+                    );
+                }
 
                 let mut extracted_termdag = TermDag::default();
                 let (unit_sort, test_unit_symbol_value) = egraph
