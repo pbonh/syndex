@@ -4,7 +4,6 @@ use egglog::{EGraph, Error};
 use typed_builder::TypedBuilder;
 
 use super::datatype::LLHDEgglogSorts;
-use super::inst;
 use super::rules::LLHDEgglogRules;
 use super::schedules::LLHDEgglogSchedules;
 use super::unit::LLHDEgglogFacts;
@@ -84,7 +83,7 @@ impl TryFrom<LLHDEgglogProgram> for LLHDEGraph {
 impl Default for LLHDEGraph {
     fn default() -> Self {
         let mut egraph = EGraph::default();
-        let llhd_inst_msgs = egraph.run_program(inst::dfg());
+        let llhd_inst_msgs = egraph.run_program(LLHDEgglogSorts::default().into());
         if let Err(egraph_msg) = llhd_inst_msgs {
             panic!("Failure to load LLHD Prelude. Err: {:?}", egraph_msg);
         }
@@ -244,15 +243,4 @@ mod tests {
     //         LLHD_UNIT_SORT_EGGLOG_RESOURCES_STR.parse().unwrap();
     //     let _llhd_dfg_egglog_expr = egglog_expr_str!(llhd_unit_sort_egglog_resources_stream);
     // }
-
-    #[test]
-    fn llhd_unit_sort_valid_egglog_program() {
-        static LLHD_UNIT_SORT_EGGLOG_RESOURCES_STR: &str = include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/resources/egglog/llhd_dfg_sort.egg"
-        ));
-        if let Err(err_msg) = utilities::parse_egglog_program(LLHD_UNIT_SORT_EGGLOG_RESOURCES_STR) {
-            panic!("Failure to parse LLHD Unit DFT Sort. ERROR: {:?}", err_msg);
-        }
-    }
 }

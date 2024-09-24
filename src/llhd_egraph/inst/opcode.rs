@@ -123,7 +123,7 @@ mod tests {
     fn all_opcodes_available_in_egglog() {
         assert_eq!(
             LLHD_DFG_VARIANTS_COUNT.to_owned(),
-            OPCODESYMBOLMAP_COUNT.to_owned() + 2,
+            OPCODESYMBOLMAP_COUNT.to_owned() + 1,
             "Not all LLHD Inst Opcodes are available in Egglog."
         );
     }

@@ -1,14 +1,19 @@
 use std::collections::VecDeque;
 
-use egglog::ast::{Action, Expr, GenericCommand, GenericExpr, Literal, Symbol, DUMMY_SPAN};
+use egglog::ast::{
+    Action, Command, Expr, GenericCommand, GenericExpr, Literal, Symbol, Variant, DUMMY_SPAN,
+};
+use egglog::sort::{Sort, StringSort, U64Sort};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
 use llhd::{IntValue, TimeValue};
 use rayon::iter::ParallelIterator;
 
+use crate::egraph::egglog_names::*;
 use crate::egraph::EgglogCommandList;
 use crate::llhd::LLHDUtils;
 use crate::llhd_egraph::datatype::*;
+use crate::llhd_egraph::egglog_names::*;
 use crate::llhd_egraph::inst::*;
 
 #[derive(Debug, Clone, Default)]
@@ -175,6 +180,339 @@ pub(crate) fn to_unit(
     );
 
     unit_data
+}
+
+fn ty() -> Command {
+    let void_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_TYPE_VOID_FIELD),
+        types: vec![],
+        cost: None,
+    };
+    let time_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_TYPE_TIME_FIELD),
+        types: vec![],
+        cost: None,
+    };
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
+    let int_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_TYPE_INT_FIELD),
+        types: vec![u64_sort.name()],
+        cost: None,
+    };
+    let enum_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_TYPE_ENUM_FIELD),
+        types: vec![u64_sort.name()],
+        cost: None,
+    };
+    let pointer_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_TYPE_POINTER_FIELD),
+        types: vec![LLHD_TYPE_DATATYPE.into()],
+        cost: None,
+    };
+    let signal_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_TYPE_SIGNAL_FIELD),
+        types: vec![LLHD_TYPE_DATATYPE.into()],
+        cost: None,
+    };
+    let array_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_TYPE_ARRAY_FIELD),
+        types: vec![u64_sort.name(), LLHD_TYPE_DATATYPE.into()],
+        cost: None,
+    };
+    let struct_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_TYPE_STRUCT_FIELD),
+        types: vec![],
+        cost: None,
+    };
+    let func_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_TYPE_FUNC_FIELD),
+        types: vec![LLHD_TYPE_DATATYPE.into()],
+        cost: None,
+    };
+    let entity_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_TYPE_ENTITY_FIELD),
+        types: vec![],
+        cost: None,
+    };
+    let symbol = Symbol::new(LLHD_TYPE_DATATYPE);
+    Command::Datatype {
+        span: DUMMY_SPAN.clone(),
+        name: symbol,
+        variants: vec![
+            void_variant,
+            time_variant,
+            int_variant,
+            enum_variant,
+            pointer_variant,
+            signal_variant,
+            array_variant,
+            struct_variant,
+            func_variant,
+            entity_variant,
+        ],
+    }
+}
+
+fn vec_ty_sort() -> Command {
+    let ty_sort_symbol = Symbol::new(LLHD_VEC_TYPE_DATATYPE);
+    let symbol_vec = Symbol::new(EGGLOG_VEC_SORT);
+    let ty_sort = Symbol::new(LLHD_TYPE_DATATYPE);
+    let ty_expr = Expr::Var(DUMMY_SPAN.clone(), ty_sort);
+    Command::Sort(
+        DUMMY_SPAN.clone(),
+        ty_sort_symbol,
+        Some((symbol_vec, vec![ty_expr])),
+    )
+}
+
+fn unit_kind_sort() -> Command {
+    let entity_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_UNIT_ENTITY_FIELD),
+        types: vec![],
+        cost: None,
+    };
+    let function_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_UNIT_FUNCTION_FIELD),
+        types: vec![],
+        cost: None,
+    };
+    let process_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_UNIT_PROCESS_FIELD),
+        types: vec![],
+        cost: None,
+    };
+    let symbol = Symbol::new(LLHD_UNIT_KIND_DATATYPE);
+    Command::Datatype {
+        span: DUMMY_SPAN.clone(),
+        name: symbol,
+        variants: vec![entity_variant, function_variant, process_variant],
+    }
+}
+
+fn value() -> Command {
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
+    let ty_datatype = Symbol::new(LLHD_TYPE_DATATYPE);
+    let value_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_VALUE_FIELD),
+        types: vec![ty_datatype, u64_sort.name()],
+        cost: None,
+    };
+    let symbol = Symbol::new(LLHD_VALUE_DATATYPE);
+    Command::Datatype {
+        span: DUMMY_SPAN.clone(),
+        name: symbol,
+        variants: vec![value_variant],
+    }
+}
+
+fn int_value() -> Command {
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
+    let int_value_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_INT_VALUE_FIELD),
+        types: vec![u64_sort.name()],
+        cost: None,
+    };
+    let symbol = Symbol::new(LLHD_INT_VALUE_DATATYPE);
+    Command::Datatype {
+        span: DUMMY_SPAN.clone(),
+        name: symbol,
+        variants: vec![int_value_variant],
+    }
+}
+
+fn time_value() -> Command {
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
+    let time_value_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_TIME_VALUE_FIELD),
+        types: vec![u64_sort.name()],
+        cost: None,
+    };
+    let symbol = Symbol::new(LLHD_TIME_VALUE_DATATYPE);
+    Command::Datatype {
+        span: DUMMY_SPAN.clone(),
+        name: symbol,
+        variants: vec![time_value_variant],
+    }
+}
+
+fn reg_mode() -> Command {
+    let symbol = Symbol::new(LLHD_REGMODE_DATATYPE);
+    Command::Datatype {
+        span: DUMMY_SPAN.clone(),
+        name: symbol,
+        variants: vec![
+            Variant {
+                span: DUMMY_SPAN.clone(),
+                name: Symbol::new(LLHD_REGMODE_FIELD_LOW),
+                types: vec![],
+                cost: None,
+            },
+            Variant {
+                span: DUMMY_SPAN.clone(),
+                name: Symbol::new(LLHD_REGMODE_FIELD_HIGH),
+                types: vec![],
+                cost: None,
+            },
+            Variant {
+                span: DUMMY_SPAN.clone(),
+                name: Symbol::new(LLHD_REGMODE_FIELD_RISE),
+                types: vec![],
+                cost: None,
+            },
+            Variant {
+                span: DUMMY_SPAN.clone(),
+                name: Symbol::new(LLHD_REGMODE_FIELD_FALL),
+                types: vec![],
+                cost: None,
+            },
+            Variant {
+                span: DUMMY_SPAN.clone(),
+                name: Symbol::new(LLHD_REGMODE_FIELD_BOTH),
+                types: vec![],
+                cost: None,
+            },
+        ],
+    }
+}
+
+fn vec_value_sort() -> Command {
+    let vec_sort_symbol = Symbol::new(LLHD_VEC_VALUE_DATATYPE);
+    let symbol_vec = Symbol::new(EGGLOG_VEC_SORT);
+    let value_sort = Symbol::new(LLHD_VALUE_DATATYPE);
+    let value_expr = Expr::Var(DUMMY_SPAN.clone(), value_sort);
+    Command::Sort(
+        DUMMY_SPAN.clone(),
+        vec_sort_symbol,
+        Some((symbol_vec, vec![value_expr])),
+    )
+}
+
+fn vec_regmode_sort() -> Command {
+    let vec_sort_symbol = Symbol::new(LLHD_VEC_REGMODE_DATATYPE);
+    let symbol_vec = Symbol::new(EGGLOG_VEC_SORT);
+    let regmode_datatype = Symbol::new(LLHD_REGMODE_DATATYPE);
+    let regmode_expr = Expr::Var(DUMMY_SPAN.clone(), regmode_datatype);
+    Command::Sort(
+        DUMMY_SPAN.clone(),
+        vec_sort_symbol,
+        Some((symbol_vec, vec![regmode_expr])),
+    )
+}
+
+fn block() -> Command {
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
+    let block_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_BLOCK_FIELD),
+        types: vec![u64_sort.name()],
+        cost: None,
+    };
+    let symbol = Symbol::new(LLHD_BLOCK_DATATYPE);
+    Command::Datatype {
+        span: DUMMY_SPAN.clone(),
+        name: symbol,
+        variants: vec![block_variant],
+    }
+}
+
+fn vec_block() -> Command {
+    let vec_sort_symbol = Symbol::new(LLHD_VEC_BLOCK_DATATYPE);
+    let symbol_vec = Symbol::new(EGGLOG_VEC_SORT);
+    let vec_block_datatype = U64Sort::new(LLHD_BLOCK_DATATYPE.into());
+    let vec_block_expr = Expr::Var(DUMMY_SPAN.clone(), vec_block_datatype.name());
+    Command::Sort(
+        DUMMY_SPAN.clone(),
+        vec_sort_symbol,
+        Some((symbol_vec, vec![vec_block_expr])),
+    )
+}
+
+fn ext_unit() -> Command {
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
+    let ext_unit_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_EXT_UNIT_FIELD),
+        types: vec![u64_sort.name()],
+        cost: None,
+    };
+    let symbol = Symbol::new(LLHD_EXT_UNIT_DATATYPE);
+    Command::Datatype {
+        span: DUMMY_SPAN.clone(),
+        name: symbol,
+        variants: vec![ext_unit_variant],
+    }
+}
+
+fn unit() -> Command {
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
+    let string_sort = StringSort::new(EGGLOG_STRING_SORT.into());
+    let unit_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_UNIT_FIELD),
+        types: vec![
+            u64_sort.name(),
+            LLHD_UNIT_KIND_DATATYPE.into(),
+            string_sort.name(),
+            LLHD_VEC_VALUE_DATATYPE.into(),
+            LLHD_VEC_VALUE_DATATYPE.into(),
+            LLHD_DFG_DATATYPE.into(),
+        ],
+        cost: None,
+    };
+    let unit_decl_variant = Variant {
+        span: DUMMY_SPAN.clone(),
+        name: Symbol::new(LLHD_UNIT_DECL_FIELD),
+        types: vec![
+            u64_sort.name(),
+            LLHD_UNIT_KIND_DATATYPE.into(),
+            string_sort.name(),
+            LLHD_VEC_VALUE_DATATYPE.into(),
+            LLHD_VEC_VALUE_DATATYPE.into(),
+        ],
+        cost: None,
+    };
+    let symbol = Symbol::new(LLHD_UNIT_DFG_DATATYPE);
+    Command::Datatype {
+        span: DUMMY_SPAN.clone(),
+        name: symbol,
+        variants: vec![unit_variant, unit_decl_variant],
+    }
+}
+
+pub(in crate::llhd_egraph) fn unit_types() -> EgglogCommandList {
+    vec![
+        ty(),
+        vec_ty_sort(),
+        unit_kind_sort(),
+        value(),
+        vec_value_sort(),
+        block(),
+        vec_block(),
+        ext_unit(),
+        time_value(),
+        reg_mode(),
+        vec_regmode_sort(),
+    ]
+}
+
+pub(in crate::llhd_egraph) fn dfg() -> EgglogCommandList {
+    vec![unit()]
 }
 
 #[cfg(test)]
@@ -441,6 +779,99 @@ mod tests {
         assert!(
             matches!(inst_null_data, InstData::Nullary { .. }),
             "Fifth Inst should be Null instruction(doesn't actually exist)."
+        );
+    }
+
+    #[test]
+    fn llhd_egglog_value_datatypes() {
+        let value_datatype = value();
+        let expected_str = "(datatype LLHDValue (Value LLHDTy u64))".to_owned();
+        assert_eq!(
+            expected_str,
+            value_datatype.to_string(),
+            "Datatype should be named 'LLHDValue' and should have 1 field named (Value u64)."
+        );
+        let int_value_datatype = int_value();
+        let int_expected_str = "(datatype LLHDIntValue (IntValue u64))".to_owned();
+        assert_eq!(
+            int_expected_str,
+            int_value_datatype.to_string(),
+            "Datatype should be named 'LLHDIntValue' and should have 1 field named (IntValue u64)."
+        );
+        let time_value_datatype = time_value();
+        let time_expected_str = "(datatype LLHDTimeValue (TimeValue u64))".to_owned();
+        assert_eq!(
+            time_expected_str,
+            time_value_datatype.to_string(),
+            "Datatype should be named 'LLHDTimeValue' and should have 1 field named (TimeValue \
+             u64)."
+        );
+        let reg_mode_datatype = reg_mode();
+        let reg_mode_expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
+            (datatype LLHDRegMode
+                (Low)
+                (High)
+                (Rise)
+                (Fall)
+                (Both))
+        "});
+        assert_eq!(
+            reg_mode_expected_str,
+            reg_mode_datatype.to_string(),
+            "Datatype should be named 'LLHDRegMode' and should have 5 field names."
+        );
+    }
+
+    #[test]
+    fn llhd_egglog_vec_sort() {
+        let vec_sort = vec_value_sort();
+        let expected_str = "(sort LLHDVecValue (Vec LLHDValue))".to_owned();
+        assert_eq!(
+            expected_str,
+            vec_sort.to_string(),
+            "Sort should be named 'LLHDVecValue' and should have 1 field named (Vec u64)."
+        );
+        let vec_regmode_sort = vec_regmode_sort();
+        let vec_regmode_expected_str = "(sort LLHDVecRegMode (Vec LLHDRegMode))".to_owned();
+        assert_eq!(
+            vec_regmode_expected_str,
+            vec_regmode_sort.to_string(),
+            "Sort should be named 'LLHDVecRegMode' and should have 1 field named (Vec \
+             LLHDRegMode)."
+        );
+    }
+
+    #[test]
+    fn llhd_egglog_block_datatypes() {
+        let block_datatype = block();
+        let expected_str = "(datatype LLHDBlock (Block u64))".to_owned();
+        assert_eq!(
+            expected_str,
+            block_datatype.to_string(),
+            "Datatype should be named 'LLHDBlock' and should have 1 field named (Block u64)."
+        );
+    }
+
+    #[test]
+    fn llhd_egglog_vec_block_sort() {
+        let block_datatype = vec_block();
+        let expected_str = "(sort LLHDVecBlock (Vec LLHDBlock))".to_owned();
+        assert_eq!(
+            expected_str,
+            block_datatype.to_string(),
+            "Datatype should be named 'LLHDVecBlock' and should have 1 field named (Vec \
+             LLHDBlock)."
+        );
+    }
+
+    #[test]
+    fn llhd_egglog_ext_unit_datatypes() {
+        let ext_unit_datatype = ext_unit();
+        let expected_str = "(datatype LLHDExtUnit (ExtUnit u64))".to_owned();
+        assert_eq!(
+            expected_str,
+            ext_unit_datatype.to_string(),
+            "Datatype should be named 'LLHDExtUnit' and should have 1 field named (ExtUnit u64)."
         );
     }
 }

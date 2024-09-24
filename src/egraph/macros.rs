@@ -114,6 +114,15 @@ macro_rules! schedule {
     };
 }
 
+macro_rules! sort {
+    ($symbol:expr, $option:expr) => {
+        Sort(DUMMY_SPAN.clone(), $symbol, Some($option))
+    };
+    ($symbol:expr) => {
+        Sort(DUMMY_SPAN.clone(), $symbol, None)
+    };
+}
+
 macro_rules! function_decl {
     ($name:expr, inputs = [$($inputs:expr),*], output = $output:expr $(, $field_name:ident = $field_value:expr )* ) => {
         GenericFunctionDecl {
@@ -186,6 +195,10 @@ macro_rules! cmd_helper {
     };
     // Fields that are Schema
     (schema, $val:expr) => {
+        $val
+    };
+    // Fields that are a Sort
+    (sort, $val:expr) => {
         $val
     };
     // For other fields, pass the value as is

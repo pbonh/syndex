@@ -9,7 +9,7 @@ pub mod sorts;
 pub use builder::*;
 use egglog::ast::Command;
 
-pub(crate) type EgglogCommandList = Vec<Command>;
+pub type EgglogCommandList = Vec<Command>;
 
 #[cfg(test)]
 mod tests {
@@ -23,7 +23,18 @@ mod tests {
         //     value: 1000,
         // });
 
-        let _datatype_cmd: Command = cmd!(Datatype {
+        // let vec_symbol = Symbol::new("Vec");
+        // let int_vec_symbol = Symbol::new("IntVec");
+        // let i64_symbol = Symbol::new("i64");
+        // let sort_cmd: Command = cmd!(Sort(
+        //     span!(),
+        //     int_vec_symbol,
+        //     Some((vec_symbol, vec![expr!(i64_symbol)])),
+        // ));
+        // utilities::check_egglog_program(vec![sort_cmd.clone()]);
+        // assert_eq!("(sort IntVec (Vec i64))", sort_cmd.to_string());
+
+        let datatype_cmd: Command = cmd!(Datatype {
             span: span!(),
             name: "Math",
             variants: vec![
@@ -33,6 +44,11 @@ mod tests {
                 variant!("Mul", ["Math", "Math"]),
             ],
         });
+        utilities::check_egglog_program(vec![datatype_cmd.clone()]);
+        assert_eq!(
+            "(datatype Math (Num i64) (Var String) (Add Math Math) (Mul Math Math))",
+            datatype_cmd.to_string()
+        );
 
         // let function_cmd = cmd!(
         //     Function(function_decl!(

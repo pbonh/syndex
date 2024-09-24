@@ -1,10 +1,18 @@
 use std::fs;
 use std::path::PathBuf;
 
+use egglog::ast::Command;
 use egglog::{EGraph, Error};
 use itertools::Itertools;
 use llhd::ir::prelude::*;
 use llhd::TimeValue;
+
+pub fn check_egglog_program(program: Vec<Command>) {
+    let mut egraph = EGraph::default();
+    if let Err(program_msg) = egraph.run_program(program) {
+        panic!("Error loading egglog program. ERROR: {:?}", program_msg);
+    }
+}
 
 pub fn parse_egglog_program(program: &str) -> Result<Vec<String>, Error> {
     let mut egraph = EGraph::default();

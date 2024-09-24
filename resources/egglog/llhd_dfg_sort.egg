@@ -1,4 +1,3 @@
-; LLHD DataFlowGraph Sort
 (datatype LLHDTy
     (Void)
     (Time)
@@ -20,6 +19,7 @@
 (datatype LLHDBlock (Block u64))
 (sort LLHDVecBlock (Vec LLHDBlock))
 (datatype LLHDExtUnit (ExtUnit u64))
+(datatype LLHDTimeValue (TimeValue u64))
 (datatype LLHDRegMode
     (Low)
     (High)
@@ -63,7 +63,7 @@
     (Shl u64 LLHDTy LLHDDFG LLHDDFG LLHDDFG)
     (Shr u64 LLHDTy LLHDDFG LLHDDFG LLHDDFG)
     (Mux u64 LLHDTy LLHDDFG LLHDDFG)
-    (Reg u64 LLHDVecValue LLHDVecRegMode)
+    (Reg u64 LLHDTy LLHDVecValue LLHDVecRegMode)
     (InsField u64 LLHDTy LLHDDFG LLHDDFG u64 u64)
     (InsSlice u64 LLHDTy LLHDDFG LLHDDFG u64 u64)
     (ExtField u64 LLHDTy LLHDDFG LLHDDFG u64 u64)
