@@ -3,11 +3,11 @@ use lazy_static::lazy_static;
 use llhd::ir::prelude::*;
 use llhd::ir::{InstData, ValueData};
 use llhd::table::TableKey;
-use llhd::{IntValue, TimeValue};
+use llhd::{IntValue, TimeValue, Type};
 
-use crate::egraph::egglog_names::*;
+use crate::egraph::egglog_names::{EGGLOG_STRING_SORT, EGGLOG_U64_SORT};
 use crate::egraph::EgglogCommandList;
-use crate::llhd_egraph::datatype::*;
+use crate::llhd_egraph::datatype::{value_ref_variant, variant};
 use crate::llhd_egraph::egglog_names::*;
 
 pub(in crate::llhd_egraph) mod opcode;
@@ -484,30 +484,96 @@ pub(in crate::llhd_egraph) fn cfg() -> EgglogCommandList {
     todo!()
 }
 
-fn value_def_expr(table_key: impl TableKey) -> Expr {
+pub(in crate::llhd_egraph) fn ty_expr(llhd_ty: &Type) -> Expr {
+    if llhd_ty.is_void() {
+        GenericExpr::Call(
+            DUMMY_SPAN.clone(),
+            Symbol::new(LLHD_TYPE_VOID_FIELD),
+            vec![],
+        )
+    } else if llhd_ty.is_time() {
+        GenericExpr::Call(
+            DUMMY_SPAN.clone(),
+            Symbol::new(LLHD_TYPE_TIME_FIELD),
+            vec![],
+        )
+    } else if llhd_ty.is_int() {
+        let int_value = Literal::UInt(
+            u64::try_from(llhd_ty.unwrap_int())
+                .expect("Out-of-bound value for usize -> u64 conversion."),
+        );
+        let literal_value = GenericExpr::Lit(DUMMY_SPAN.clone(), int_value);
+        GenericExpr::Call(
+            DUMMY_SPAN.clone(),
+            Symbol::new(LLHD_TYPE_INT_FIELD),
+            vec![literal_value],
+        )
+    } else if llhd_ty.is_enum() {
+        panic!("Cant handle EnumType yet.");
+    } else if llhd_ty.is_pointer() {
+        let inner_expr = ty_expr(llhd_ty.unwrap_pointer());
+        GenericExpr::Call(
+            DUMMY_SPAN.clone(),
+            Symbol::new(LLHD_TYPE_POINTER_FIELD),
+            vec![inner_expr],
+        )
+    } else if llhd_ty.is_signal() {
+        let inner_expr = ty_expr(llhd_ty.unwrap_signal());
+        GenericExpr::Call(
+            DUMMY_SPAN.clone(),
+            Symbol::new(LLHD_TYPE_SIGNAL_FIELD),
+            vec![inner_expr],
+        )
+    } else if llhd_ty.is_array() {
+        panic!("Cant handle ArrayType yet.");
+    } else if llhd_ty.is_struct() {
+        panic!("Cant handle StructType yet.");
+    } else if llhd_ty.is_func() {
+        panic!("Cant handle FuncType yet.");
+    } else if llhd_ty.is_enum() {
+        panic!("Cant handle EnumType yet.");
+    } else {
+        panic!("Unknown type.");
+    }
+}
+
+fn value_def_expr(value_ty: Type, table_key: impl TableKey) -> Expr {
+    let value_ty_expr = ty_expr(&value_ty);
+
     let converted_u64_num =
         u64::try_from(table_key.index()).expect("Out-of-bound value for usize -> u64 conversion.");
     let converted_literal = Literal::UInt(converted_u64_num);
     let literal_value = GenericExpr::Lit(DUMMY_SPAN.clone(), converted_literal);
-    let llhd_value_datatype_symbol = Symbol::new(LLHD_VALUE_REF_FIELD);
-    GenericExpr::Call(
+
+    let llhd_value_datatype_symbol = Symbol::new(LLHD_VALUE_FIELD);
+    let value_stmt = GenericExpr::Call(
         DUMMY_SPAN.clone(),
         llhd_value_datatype_symbol,
-        [literal_value].to_vec(),
+        vec![value_ty_expr, literal_value],
+    );
+
+    let llhd_value_ref_datatype_symbol = Symbol::new(LLHD_VALUE_REF_FIELD);
+    GenericExpr::Call(
+        DUMMY_SPAN.clone(),
+        llhd_value_ref_datatype_symbol,
+        vec![value_stmt],
     )
 }
 
 fn value_data_expr(unit: &Unit<'_>, value_data: &ValueData) -> Expr {
     match value_data {
-        ValueData::Inst { inst, .. } => inst_expr(unit, &unit[inst.to_owned()]),
-        ValueData::Arg { arg, .. } => value_def_expr(arg.to_owned()),
+        ValueData::Inst { ty, inst } => inst_expr(unit, ty.clone(), &unit[inst.to_owned()]),
+        ValueData::Arg { ty, arg } => value_def_expr(ty.clone(), arg.to_owned()),
         _ => panic!("Value type not supported."),
     }
 }
 
-pub(in crate::llhd_egraph) fn expr_value_data(literal: &Literal) -> Value {
+pub(in crate::llhd_egraph) fn literal_llhd_value(literal: &Literal) -> Value {
     match literal {
         Literal::Int(value) => {
+            Value::new(usize::try_from(*value).expect("Failure to convert from u64 to usize."))
+        }
+        Literal::UInt(value) => {
             Value::new(usize::try_from(*value).expect("Failure to convert from u64 to usize."))
         }
         _ => panic!("Non-Int Literal"),
@@ -538,31 +604,36 @@ pub(in crate::llhd_egraph) fn expr_time_value(_literal: &Literal) -> TimeValue {
     TimeValue::zero()
 }
 
-pub(in crate::llhd_egraph) fn inst_expr(unit: &Unit<'_>, inst_data: &InstData) -> Expr {
+pub(in crate::llhd_egraph) fn inst_expr(
+    unit: &Unit<'_>,
+    inst_ty: Type,
+    inst_data: &InstData,
+) -> Expr {
     let inst_symbol = opcode_symbol(inst_data.opcode());
-    let mut children: Vec<Expr> = vec![];
+    let inst_ty_expr = ty_expr(&inst_ty);
+    let mut children: Vec<Expr> = vec![inst_ty_expr];
     match inst_data {
         InstData::Binary { args, .. } => {
-            let expr_left = value_data_expr(&unit, &unit[args[0]]);
-            let expr_right = value_data_expr(&unit, &unit[args[1]]);
-            children = vec![expr_left, expr_right];
+            let expr_left = value_data_expr(unit, &unit[args[0]]);
+            let expr_right = value_data_expr(unit, &unit[args[1]]);
+            children.append(&mut vec![expr_left, expr_right]);
         }
         InstData::Unary { args, .. } => {
             let value_data = &unit[args[0]];
-            let expr_left = value_data_expr(&unit, value_data);
-            children = vec![expr_left];
+            let expr_left = value_data_expr(unit, value_data);
+            children.append(&mut vec![expr_left]);
         }
         InstData::ConstInt { imm, .. } => {
-            children = vec![int_value_expr(imm.clone())];
+            children.append(&mut vec![int_value_expr(imm.clone())]);
         }
         InstData::ConstTime { imm, .. } => {
-            children = vec![time_value_expr(imm.clone())];
+            children.append(&mut vec![time_value_expr(imm.clone())]);
         }
         InstData::Ternary { args, .. } => {
-            let expr_x = value_data_expr(&unit, &unit[args[0]]);
-            let expr_y = value_data_expr(&unit, &unit[args[1]]);
-            let expr_z = value_data_expr(&unit, &unit[args[2]]);
-            children = vec![expr_x, expr_y, expr_z];
+            let expr_x = value_data_expr(unit, &unit[args[0]]);
+            let expr_y = value_data_expr(unit, &unit[args[1]]);
+            let expr_z = value_data_expr(unit, &unit[args[2]]);
+            children.append(&mut vec![expr_x, expr_y, expr_z]);
         }
         InstData::Nullary { .. } => {}
         _ => {
@@ -587,7 +658,7 @@ mod tests {
         let dfg_datatype = dfg();
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
             (datatype LLHDDFG
-                (ValueRef u64 LLHDValue)
+                (ValueRef LLHDValue)
                 (ConstInt u64 String)
                 (ConstTime u64 String)
                 (Alias u64 LLHDTy LLHDDFG)
@@ -657,9 +728,13 @@ mod tests {
 
     #[test]
     fn llhd_value_egglog_expr() {
+        let unit_data = utilities::build_entity_alpha(UnitName::anonymous(0));
+        let unit = Unit::new(UnitId::new(0), &unit_data);
         let value1 = Value::new(1);
-        let value1_expr = value_def_expr(value1);
-        let expected_str = "(ValueRef _1)";
+        let unit_sig = unit.sig();
+        let value1_ty = unit_sig.arg_type(Arg::new(1));
+        let value1_expr = value_def_expr(value1_ty, value1);
+        let expected_str = "(ValueRef (Value (Signal (Int _1)) _1))";
         assert_eq!(
             expected_str,
             value1_expr.to_string(),
@@ -675,18 +750,27 @@ mod tests {
         let add2_inst = insts[4];
         let add2_inst_data = &unit[add2_inst.1];
         assert_eq!(Opcode::Add, add2_inst_data.opcode(), "Inst should be Add.");
-        let add2_expr = inst_expr(&unit, add2_inst_data);
-        let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
-            (Add
-                (Add
-                    (ConstInt \"i1 0\")
-                    (ConstInt \"i1 1\"))
-                (Prb (ValueRef _2)))
+        if let Some(add2_value) = unit.get_inst_result(add2_inst.1) {
+            let add2_value_data = &unit[add2_value];
+            if let ValueData::Inst { ty, .. } = add2_value_data {
+                let add2_expr = inst_expr(&unit, ty.clone(), add2_inst_data);
+                let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
+            (Add (Int _1)
+                (Add (Int _1)
+                    (ConstInt (Int _1) \"i1 0\")
+                    (ConstInt (Int _1) \"i1 1\"))
+                (Prb (Int _1) (ValueRef (Value (Signal (Int _1)) _2))))
         "});
-        assert_eq!(
-            expected_str,
-            add2_expr.to_string(),
-            "Expr should match nested Add expr."
-        );
+                assert_eq!(
+                    expected_str,
+                    add2_expr.to_string(),
+                    "Expr should match nested Add expr."
+                );
+            } else {
+                panic!("add2 inst value data should be of type ValueData::Inst.");
+            }
+        } else {
+            panic!("add2 inst value is not available.");
+        }
     }
 }

@@ -1,12 +1,13 @@
 use std::collections::VecDeque;
+use std::sync::Arc;
 
 use egglog::ast::{
     Action, Command, Expr, GenericCommand, GenericExpr, Literal, Symbol, Variant, DUMMY_SPAN,
 };
 use egglog::sort::{Sort, StringSort, U64Sort};
-use itertools::Itertools;
 use llhd::ir::prelude::*;
-use llhd::{IntValue, TimeValue};
+use llhd::ir::ValueData;
+use llhd::{IntValue, TimeValue, TypeKind};
 use rayon::iter::ParallelIterator;
 
 use crate::egraph::egglog_names::*;
@@ -54,12 +55,22 @@ fn unit_symbol(unit: &Unit<'_>) -> Symbol {
 }
 
 fn from_unit(unit: &Unit<'_>) -> Action {
-    let insts = LLHDUtils::iterate_unit_insts(unit).collect_vec();
-    let root_inst_data = &unit[insts
-        .last()
-        .expect("Empty Unit can't construct a valid Egglog Expr.")
-        .1];
-    let root_inst_expr = inst_expr(unit, root_inst_data);
+    let root_inst_id = LLHDUtils::last_unit_inst(unit).1;
+    let mut root_inst_ty = Arc::<TypeKind>::new(TypeKind::VoidType);
+    if let Some(root_inst_value) = unit.get_inst_result(root_inst_id) {
+        if let ValueData::Inst { ty, .. } = &unit[root_inst_value] {
+            root_inst_ty = ty.clone();
+        }
+        match &unit[root_inst_value] {
+            ValueData::Inst { ty, .. } => root_inst_ty = ty.clone(),
+            ValueData::Arg { ty, .. } => root_inst_ty = ty.clone(),
+            ValueData::Placeholder { ty } => root_inst_ty = ty.clone(),
+            ValueData::Invalid => {}
+        }
+    }
+
+    let root_inst_data = &unit[root_inst_id];
+    let root_inst_expr = inst_expr(unit, root_inst_ty, root_inst_data);
     let unit_expr = GenericExpr::Call(
         DUMMY_SPAN.clone(),
         unit_root_variant_symbol(),
@@ -98,7 +109,10 @@ fn process_expr_fifo(
         match expr {
             GenericExpr::Lit(_span, literal) => match literal {
                 Literal::Int(_value) => {
-                    value_stack.push_back(expr_value_data(&literal));
+                    value_stack.push_back(literal_llhd_value(&literal));
+                }
+                Literal::UInt(_value) => {
+                    value_stack.push_back(literal_llhd_value(&literal));
                 }
                 Literal::String(_value) => {
                     time_value_stack.push_back(expr_time_value(&literal));
@@ -521,6 +535,7 @@ mod tests {
         GenericAction, GenericCommand, GenericExpr, GenericRunConfig, GenericSchedule, Symbol,
     };
     use egglog::{EGraph, TermDag};
+    use itertools::Itertools;
     use llhd::ir::InstData;
     use llhd::table::TableKey;
 
@@ -580,11 +595,11 @@ mod tests {
 
         let egglog_expr = from_unit(&unit);
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
-            (let unit_0 (LLHDUnit (Add
-                (Add
-                    (ConstInt \"i1 0\")
-                    (ConstInt \"i1 1\"))
-                (Prb (ValueRef _2)))))
+            (let unit_0 (LLHDUnit (Add (Int _1) 
+                (Add (Int _1)
+                    (ConstInt (Int _1) \"i1 0\")
+                    (ConstInt (Int _1) \"i1 1\"))
+                (Prb (Int _1) (ValueRef (Value (Signal (Int _1)) _2))))))
         "});
         assert_eq!(
             expected_str,
@@ -657,8 +672,12 @@ mod tests {
                 );
 
                 let module_facts = LLHDEgglogFacts::from_module(module);
-                let egraph_run_facts = egraph.run_program(module_facts.into());
-                assert!(egraph_run_facts.is_ok(), "EGraph failed to add facts.");
+                if let Err(egraph_run_facts_err) = egraph.run_program(module_facts.into()) {
+                    panic!(
+                        "EGraph failed to add facts. ERROR: {:?}",
+                        egraph_run_facts_err
+                    );
+                }
                 assert!(
                     egraph
                         .get_overall_run_report()

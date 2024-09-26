@@ -1,9 +1,9 @@
 ; DeMorgan's Theorem
 (ruleset demorgan-theorem)
-(rewrite (Or
-  (And a b)
-  (And c d)
-)(And
-  (Or a b)
-  (Or c d)
+(rewrite (Or or_id ty
+  (And and_id1 ty a b)
+  (And and_id2 ty c d)
+)(And or_id ty
+  (Or and_id1 ty a b)
+  (Or and_id2 ty c d)
 ):ruleset demorgan-theorem)

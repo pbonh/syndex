@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use llhd::ir::prelude::*;
 use llhd::ir::InstData;
 
@@ -19,15 +18,23 @@ impl LLHDUtils {
         })
     }
 
-    pub(super) fn last_unit_inst<'unit>(unit: &'unit Unit) -> LLHDInst {
-        let blocks = unit.blocks().collect_vec();
-        let last_block = blocks.last().expect("Unit empty.");
-        (
-            unit.id(),
-            unit.last_inst(*last_block).expect("Empty Unit Block."),
-        )
-        // let last_block = unit.last_block().expect("Unit empty.");
-        // (unit.id(), unit.last_inst(last_block).expect("Empty Unit Block."))
+    pub(crate) fn last_unit_inst<'unit>(unit: &'unit Unit) -> LLHDInst {
+        let last_block = unit
+            .last_block()
+            .expect("Unit empty, unit.last_block() returned empty.");
+        let last_inst = unit
+            .last_inst(last_block)
+            .expect("Empty Unit Block, unit.last_inst(block) returned empty.");
+        let last_llhd_inst = (unit.id(), last_inst);
+        if let InstData::Nullary { .. } = unit[last_inst] {
+            if let Some(second_last_inst) = unit.prev_inst(last_inst) {
+                (unit.id(), second_last_inst)
+            } else {
+                last_llhd_inst
+            }
+        } else {
+            last_llhd_inst
+        }
     }
 
     pub(crate) fn iterate_unit_value_defs<'unit>(
@@ -44,6 +51,7 @@ impl LLHDUtils {
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
     use llhd::table::TableKey;
 
     use super::*;
@@ -75,7 +83,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn get_last_llhd_unit_inst() {
         let unit_data = utilities::build_entity_alpha(UnitName::anonymous(0));
         let unit = Unit::new(UnitId::new(0), &unit_data);

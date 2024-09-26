@@ -1,9 +1,9 @@
 ; Divisor Extraction
 (ruleset div-ext)
-(rewrite (Or
-  (And a c)
-  (And b c)
-)(And
-  (Or a b)
+(rewrite (Or or_id or_ty
+  (And and_id1 and_ty a c)
+  (And and_id2 and_ty b c)
+)(And or_id and_ty
+  (Or and_id1 or_ty a b)
   c
 ):ruleset div-ext)

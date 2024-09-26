@@ -28,7 +28,7 @@
     (Both))
 (sort LLHDVecRegMode (Vec LLHDRegMode))
 (datatype LLHDDFG
-    (ValueRef u64 LLHDValue)
+    (ValueRef LLHDValue)
     (ConstInt u64 String)
     (ConstTime u64 String)
     (Alias u64 LLHDTy LLHDDFG)

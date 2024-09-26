@@ -2,10 +2,9 @@ use egglog::ast::{Symbol, Variant, DUMMY_SPAN};
 use itertools::Itertools;
 use llhd::ir::Opcode;
 
-use super::egglog_names::*;
-use super::inst::opcode::*;
+use super::egglog_names::{LLHD_UNIT_FIELD, LLHD_VALUE_DATATYPE, LLHD_VALUE_REF_FIELD};
+use super::inst::opcode::opcode_symbol;
 use super::{inst, unit};
-use crate::egraph::egglog_names::EGGLOG_U64_SORT;
 use crate::egraph::EgglogCommandList;
 
 #[derive(Debug, Clone)]
@@ -48,7 +47,7 @@ pub(in crate::llhd_egraph) fn value_ref_variant() -> Variant {
     Variant {
         span: DUMMY_SPAN.clone(),
         name: Symbol::new(LLHD_VALUE_REF_FIELD),
-        types: vec![Symbol::new(EGGLOG_U64_SORT), value_sort],
+        types: vec![value_sort],
         cost: None,
     }
 }
