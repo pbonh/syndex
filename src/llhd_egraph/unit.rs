@@ -5,8 +5,10 @@ use egglog::ast::{
     Action, Command, Expr, GenericCommand, GenericExpr, Literal, Symbol, Variant, DUMMY_SPAN,
 };
 use egglog::sort::{Sort, StringSort, U64Sort};
+use itertools::Itertools;
 use llhd::ir::prelude::*;
 use llhd::ir::ValueData;
+use llhd::table::TableKey;
 use llhd::{IntValue, TimeValue, TypeKind};
 use rayon::iter::ParallelIterator;
 
@@ -55,6 +57,52 @@ fn unit_symbol(unit: &Unit<'_>) -> Symbol {
 }
 
 fn from_unit(unit: &Unit<'_>) -> Action {
+    let unit_id = unit.id();
+    let unit_kind = unit.kind();
+    let unit_name = unit.name();
+    let unit_sig = unit.sig().clone();
+    let unit_id_expr = Expr::Lit(
+        DUMMY_SPAN.clone(),
+        Literal::UInt(
+            u64::try_from(unit_id.index())
+                .expect("Out-of-bound value for usize -> u64 conversion."),
+        ),
+    );
+    let unit_kind_symbol = match unit_kind {
+        UnitKind::Entity => Symbol::new(LLHD_UNIT_ENTITY_FIELD),
+        UnitKind::Function => Symbol::new(LLHD_UNIT_FUNCTION_FIELD),
+        UnitKind::Process => Symbol::new(LLHD_UNIT_PROCESS_FIELD),
+    };
+    let unit_kind_expr = GenericExpr::Var(DUMMY_SPAN.clone(), unit_kind_symbol);
+    let unit_name_expr = Expr::Lit(
+        DUMMY_SPAN.clone(),
+        Literal::String(Symbol::new(unit_name.to_string())),
+    );
+    let unit_input_args_expr = unit_sig
+        .inputs()
+        .map(|arg_id| {
+            let arg_ty = unit_sig.arg_type(arg_id);
+            value_def_expr(arg_ty, arg_id)
+        })
+        .collect_vec();
+    let unit_output_args_expr = unit_sig
+        .outputs()
+        .map(|arg_id| {
+            let arg_ty = unit_sig.arg_type(arg_id);
+            value_def_expr(arg_ty, arg_id)
+        })
+        .collect_vec();
+    let unit_input_sig_expr = Expr::Call(
+        DUMMY_SPAN.clone(),
+        Symbol::new(EGGLOG_VEC_OF_OP),
+        unit_input_args_expr,
+    );
+    let unit_output_sig_expr = Expr::Call(
+        DUMMY_SPAN.clone(),
+        Symbol::new(EGGLOG_VEC_OF_OP),
+        unit_output_args_expr,
+    );
+
     let root_inst_id = LLHDUtils::last_unit_inst(unit).1;
     let mut root_inst_ty = Arc::<TypeKind>::new(TypeKind::VoidType);
     if let Some(root_inst_value) = unit.get_inst_result(root_inst_id) {
@@ -70,11 +118,18 @@ fn from_unit(unit: &Unit<'_>) -> Action {
     }
 
     let root_inst_data = &unit[root_inst_id];
-    let root_inst_expr = inst_expr(unit, root_inst_ty, root_inst_data);
+    let root_inst_expr = inst_expr(unit, root_inst_id, root_inst_ty, root_inst_data);
     let unit_expr = GenericExpr::Call(
         DUMMY_SPAN.clone(),
         unit_root_variant_symbol(),
-        vec![root_inst_expr],
+        vec![
+            unit_id_expr,
+            unit_kind_expr,
+            unit_name_expr,
+            unit_input_sig_expr,
+            unit_output_sig_expr,
+            root_inst_expr,
+        ],
     );
     Action::Let(DUMMY_SPAN.clone(), unit_symbol(unit), unit_expr)
 }
@@ -595,11 +650,11 @@ mod tests {
 
         let egglog_expr = from_unit(&unit);
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
-            (let unit_0 (LLHDUnit (Add (Int _1) 
-                (Add (Int _1)
-                    (ConstInt (Int _1) \"i1 0\")
-                    (ConstInt (Int _1) \"i1 1\"))
-                (Prb (Int _1) (ValueRef (Value (Signal (Int _1)) _2))))))
+            (let unit_0 (LLHDUnit (Add _5 (Int _1)
+                (Add _3 (Int _1)
+                    (ConstInt _1 (Int _1) \"i1 0\")
+                    (ConstInt _2 (Int _1) \"i1 1\"))
+                (Prb _4 (Int _1) (ValueRef (Value (Signal (Int _1)) _2))))))
         "});
         assert_eq!(
             expected_str,
@@ -638,11 +693,22 @@ mod tests {
 
         let egglog_expr = from_unit(&unit);
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
-            (let unit_test_entity (LLHDUnit (Drv
-                (ValueRef _4) (Or
-                    (And (ValueRef _0) (ValueRef _1))
-                    (And (ValueRef _2) (ValueRef _3)))
-                (ConstTime \"0s 1e\"))))
+            (let unit_test_entity (LLHDUnit
+                _0
+                Entity
+                \"@test_entity\"
+                (vec-of (Value (Int _1) _0) (Value (Int _1) _1) (Value (Int _1) _2) (Value (Int _1) _3))
+                (vec-of (Value (Signal (Int _1)) _4))
+                (Drv _5 (Void)
+                    (ValueRef (Value (Signal (Int _1)) _4))
+                    (Or _4 (Int _1)
+                        (And _2 (Int _1)
+                            (ValueRef (Value (Int _1) _0))
+                            (ValueRef (Value (Int _1) _1)))
+                        (And _3 (Int _1)
+                            (ValueRef (Value (Int _1) _2))
+                            (ValueRef (Value (Int _1) _3))))
+                    (ConstTime _1 (Time) \"0s 1e\"))))
         "});
         assert_eq!(
             expected_str,
