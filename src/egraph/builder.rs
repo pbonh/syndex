@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::marker::PhantomData;
 use std::ops::Add;
 
@@ -203,6 +204,13 @@ impl From<EgglogProgram> for EgglogCommandList {
                 ),
             )
             .collect_vec()
+    }
+}
+
+impl Display for EgglogProgram {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let command_list: EgglogCommandList = EgglogCommandList::from(self.clone());
+        write!(f, "EgglogProgram Commands: {:?}", command_list)
     }
 }
 
@@ -448,5 +456,27 @@ mod tests {
         if let Err(err_msg) = EGraph::default().run_program(updated_egglog_program_cmds) {
             panic!("Failure to run program: {:?}", err_msg);
         }
+    }
+
+    #[test]
+    fn display_egglog_program() {
+        let sort_str = utilities::get_egglog_commands("llhd_dfg_example2_sorts.egg");
+        let input_sorts = EgglogSorts::default().add_sort_str(&sort_str);
+        let facts_str = utilities::get_egglog_commands("llhd_dfg_example2_facts.egg");
+        let input_facts = EgglogFacts::default().add_facts_str(&facts_str);
+
+        let rules_str = utilities::get_egglog_commands("llhd_dfg_example2_rules.egg");
+        let rules1 = EgglogRules::default().add_rule_str(&rules_str);
+        let schedule1_str = utilities::get_egglog_commands("llhd_dfg_example2_schedule.egg");
+        let schedule1 = EgglogSchedules::default().add_schedule_str(&schedule1_str);
+        let symbols1: EgglogSymbols = [Symbol::new("foo")].into();
+        let egglog_program = EgglogProgramBuilder::<InitState>::new()
+            .sorts(input_sorts)
+            .facts(input_facts)
+            .rules(rules1)
+            .schedules(schedule1)
+            .bindings(symbols1)
+            .program();
+        let _egglog_program_str = egglog_program.to_string();
     }
 }
