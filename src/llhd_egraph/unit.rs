@@ -73,7 +73,7 @@ fn from_unit(unit: &Unit<'_>) -> Action {
         UnitKind::Function => Symbol::new(LLHD_UNIT_FUNCTION_FIELD),
         UnitKind::Process => Symbol::new(LLHD_UNIT_PROCESS_FIELD),
     };
-    let unit_kind_expr = GenericExpr::Var(DUMMY_SPAN.clone(), unit_kind_symbol);
+    let unit_kind_expr = Expr::Call(DUMMY_SPAN.clone(), unit_kind_symbol, vec![]);
     let unit_name_expr = Expr::Lit(
         DUMMY_SPAN.clone(),
         Literal::String(Symbol::new(unit_name.to_string())),
@@ -650,11 +650,17 @@ mod tests {
 
         let egglog_expr = from_unit(&unit);
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
-            (let unit_0 (LLHDUnit (Add _5 (Int _1)
-                (Add _3 (Int _1)
-                    (ConstInt _1 (Int _1) \"i1 0\")
-                    (ConstInt _2 (Int _1) \"i1 1\"))
-                (Prb _4 (Int _1) (ValueRef (Value (Signal (Int _1)) _2))))))
+            (let unit_0 (LLHDUnit 
+                _0
+                (Entity)
+                \"%0\"
+                (vec-of (Value (Signal (Int _1)) _0) (Value (Signal (Int _1)) _1) (Value (Signal (Int _1)) _2))
+                (vec-of (Value (Signal (Int _32)) _3))
+                (Add _5 (Int _1)
+                    (Add _3 (Int _1)
+                        (ConstInt _1 (Int _1) \"i1 0\")
+                        (ConstInt _2 (Int _1) \"i1 1\"))
+                    (Prb _4 (Int _1) (ValueRef (Value (Signal (Int _1)) _2))))))
         "});
         assert_eq!(
             expected_str,
@@ -695,7 +701,7 @@ mod tests {
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
             (let unit_test_entity (LLHDUnit
                 _0
-                Entity
+                (Entity)
                 \"@test_entity\"
                 (vec-of (Value (Int _1) _0) (Value (Int _1) _1) (Value (Int _1) _2) (Value (Int _1) _3))
                 (vec-of (Value (Signal (Int _1)) _4))
@@ -755,9 +761,9 @@ mod tests {
                 );
 
                 assert_eq!(
-                    11,
+                    20,
                     egraph.num_tuples(),
-                    "There should be 11 facts remaining in the egraph."
+                    "There should be 20 facts remaining in the egraph."
                 );
 
                 let div_extract_ruleset_symbol = Symbol::new("div-ext");
@@ -775,9 +781,9 @@ mod tests {
                     "EGraph failed to run schedule."
                 );
                 assert_eq!(
-                    13,
+                    22,
                     egraph.num_tuples(),
-                    "There should be 13 facts remaining in the egraph(new 'And', new 'Or' nodes)."
+                    "There should be 22 facts remaining in the egraph(new 'And', new 'Or' nodes)."
                 );
 
                 let egraph_run_rules_matches = egraph
@@ -815,11 +821,20 @@ mod tests {
                     matches!(extracted_expr, GenericExpr::Call { .. }),
                     "Top level expression should be a call."
                 );
-                assert_eq!(
-                    extracted_expr.to_string(),
-                    "(LLHDUnit (Drv (ValueRef 3) (And (Or (ValueRef 0) (ValueRef 2)) (ValueRef \
-                     1)) (ConstTime \"0s 1e\")))"
-                );
+                let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
+                    (LLHDUnit 0 (Entity) \"@test_entity\"
+                        (vec-of (Value (Int 1) 0) (Value (Int 1) 1) (Value (Int 1) 2))
+                        (vec-of (Value (Signal (Int 1)) 3))
+                        (Drv 5 (Void)
+                            (ValueRef (Value (Signal (Int 1)) 3))
+                            (And 4 (Int 1)
+                                (Or 2 (Int 1)
+                                    (ValueRef (Value (Int 1) 0))
+                                    (ValueRef (Value (Int 1) 2)))
+                                (ValueRef (Value (Int 1) 1)))
+                            (ConstTime 1 (Time) \"0s 1e\")))
+                "});
+                assert_eq!(extracted_expr.to_string(), expected_str);
                 to_unit(extracted_expr, unit_kind, unit_name, unit_sig)
             };
         test_module[test_unit_id] =

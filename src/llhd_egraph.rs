@@ -31,8 +31,10 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/resources/egglog/llhd_dfg_sort.egg"
         ));
-        let llhd_dfg_sort: EgglogCommandList = LLHDEgglogSorts::llhd_dfg().into();
         let expected_str = utilities::trim_expr_whitespace(LLHD_UNIT_SORT_EGGLOG_RESOURCES_STR);
+
+        let llhd_dfg_sort: EgglogCommandList = LLHDEgglogSorts::llhd_dfg().into();
+
         assert_eq!(
             expected_str,
             llhd_dfg_sort.into_iter().join(""),

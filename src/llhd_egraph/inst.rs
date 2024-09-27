@@ -16,8 +16,14 @@ use opcode::opcode_symbol;
 lazy_static! {
     static ref LLHD_DFG_VARIANTS: Vec<Variant> = vec![
         value_ref_variant(),
-        variant(Opcode::ConstInt, vec![EGGLOG_U64_SORT, EGGLOG_STRING_SORT]),
-        variant(Opcode::ConstTime, vec![EGGLOG_U64_SORT, EGGLOG_STRING_SORT]),
+        variant(
+            Opcode::ConstInt,
+            vec![EGGLOG_U64_SORT, LLHD_TYPE_DATATYPE, EGGLOG_STRING_SORT]
+        ),
+        variant(
+            Opcode::ConstTime,
+            vec![EGGLOG_U64_SORT, LLHD_TYPE_DATATYPE, EGGLOG_STRING_SORT]
+        ),
         variant(
             Opcode::Alias,
             vec![EGGLOG_U64_SORT, LLHD_TYPE_DATATYPE, LLHD_DFG_DATATYPE]
@@ -683,8 +689,8 @@ mod tests {
         let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
             (datatype LLHDDFG
                 (ValueRef LLHDValue)
-                (ConstInt u64 String)
-                (ConstTime u64 String)
+                (ConstInt u64 LLHDTy String)
+                (ConstTime u64 LLHDTy String)
                 (Alias u64 LLHDTy LLHDDFG)
                 (ArrayUniform u64 LLHDTy u64 LLHDDFG)
                 (Array u64 LLHDVecValue)
