@@ -960,18 +960,18 @@ mod tests {
                 "Top level expression should be a call."
             );
             let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
-                    (LLHDUnit 0 (Entity) \"@test_entity\"
-                        (vec-of (Value (Int 1) 0) (Value (Int 1) 1) (Value (Int 1) 2))
-                        (vec-of (Value (Signal (Int 1)) 3))
-                        (Drv 5 (Void)
-                            (ValueRef (Value (Signal (Int 1)) 3))
-                            (And 4 (Int 1)
-                                (Or 2 (Int 1)
-                                    (ValueRef (Value (Int 1) 0))
-                                    (ValueRef (Value (Int 1) 2)))
-                                (ValueRef (Value (Int 1) 1)))
-                            (ConstTime 1 (Time) \"0s 1e\")))
-                "});
+                (LLHDUnit 0 (Entity) \"@test_entity\"
+                    (vec-of (Value (Int 1) 0) (Value (Int 1) 1) (Value (Int 1) 2))
+                    (vec-of (Value (Signal (Int 1)) 3))
+                    (Drv 5 (Void)
+                        (ValueRef (Value (Signal (Int 1)) 3))
+                        (And 4 (Int 1)
+                            (Or 2 (Int 1)
+                                (ValueRef (Value (Int 1) 0))
+                                (ValueRef (Value (Int 1) 2)))
+                            (ValueRef (Value (Int 1) 1)))
+                        (ConstTime 1 (Time) \"0s 1e\")))
+            "});
             assert_eq!(extracted_expr.to_string(), expected_str);
             let (unit_kind_extract, unit_name_extract, unit_sig_extract) =
                 expr_to_unit_info(extracted_expr.clone());
@@ -981,8 +981,18 @@ mod tests {
             } else {
                 panic!("UnitName is of incorrect type, should be UnitName::Global");
             }
-            assert_eq!(3, unit_sig_extract.inputs().collect_vec().len());
-            assert_eq!(1, unit_sig_extract.outputs().collect_vec().len());
+            let unit_sig_extract_inputs = unit_sig_extract.inputs().collect_vec();
+            assert_eq!(3, unit_sig_extract_inputs.len());
+            let input_arg1_ty = unit_sig_extract.arg_type(unit_sig_extract_inputs[0]);
+            let input_arg2_ty = unit_sig_extract.arg_type(unit_sig_extract_inputs[1]);
+            let input_arg3_ty = unit_sig_extract.arg_type(unit_sig_extract_inputs[2]);
+            assert_eq!(*input_arg1_ty, *llhd::ty::int_ty(1));
+            assert_eq!(*input_arg2_ty, *llhd::ty::int_ty(1));
+            assert_eq!(*input_arg3_ty, *llhd::ty::int_ty(1));
+            let unit_sig_extract_outputs = unit_sig_extract.outputs().collect_vec();
+            assert_eq!(1, unit_sig_extract_outputs.len());
+            let output_arg1_ty = unit_sig_extract.arg_type(unit_sig_extract_outputs[0]);
+            assert_eq!(*output_arg1_ty, *llhd::ty::signal_ty(llhd::ty::int_ty(1)));
             expr_to_unit_data(
                 extracted_expr,
                 unit_kind_extract,
