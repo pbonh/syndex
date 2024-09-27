@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 use std::ops::Add;
 
+use derive_getters::Getters;
 use frunk::monoid::Monoid;
 use frunk::semigroup::Semigroup;
 use itertools::Itertools;
@@ -9,19 +10,20 @@ use super::facts::EgglogFacts;
 use super::rules::EgglogRules;
 use super::schedule::EgglogSchedules;
 use super::sorts::EgglogSorts;
-use super::EgglogCommandList;
+use super::{EgglogCommandList, EgglogSymbols};
 
 type EgglogSortList = Vec<EgglogSorts>;
 type EgglogFactList = Vec<EgglogFacts>;
 type EgglogRuleList = Vec<EgglogRules>;
 type EgglogScheduleList = Vec<EgglogSchedules>;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Getters)]
 pub struct EgglogProgram {
     sorts: EgglogSortList,
     facts: EgglogFactList,
     rules: EgglogRuleList,
     schedules: EgglogScheduleList,
+    bindings: EgglogSymbols,
 }
 
 pub struct EgglogProgramBuilder<State> {
@@ -29,6 +31,7 @@ pub struct EgglogProgramBuilder<State> {
     facts: Option<EgglogFactList>,
     rules: Option<EgglogRuleList>,
     schedules: Option<EgglogScheduleList>,
+    bindings: Option<EgglogSymbols>,
     _state: PhantomData<State>,
 }
 
@@ -37,18 +40,21 @@ trait InitSorts {}
 trait InitFacts {}
 trait InitRules {}
 trait InitSchedules {}
+trait InitBindings {}
 
 pub struct InitState;
 pub struct SortsState;
 pub struct FactsState;
 pub struct RulesState;
 pub struct SchedulesState;
+pub struct BindingsState;
 
 impl InitProgram for InitState {}
 impl InitSorts for SortsState {}
 impl InitFacts for FactsState {}
 impl InitRules for RulesState {}
 impl InitSchedules for SchedulesState {}
+impl InitBindings for BindingsState {}
 
 impl EgglogProgramBuilder<InitState> {
     pub const fn new() -> Self {
@@ -57,6 +63,7 @@ impl EgglogProgramBuilder<InitState> {
             facts: None,
             rules: None,
             schedules: None,
+            bindings: None,
             _state: PhantomData,
         }
     }
@@ -67,6 +74,7 @@ impl EgglogProgramBuilder<InitState> {
             facts: self.facts,
             rules: self.rules,
             schedules: None,
+            bindings: None,
             _state: PhantomData,
         }
     }
@@ -79,6 +87,7 @@ impl EgglogProgramBuilder<SortsState> {
             facts: Some(vec![facts]),
             rules: self.rules,
             schedules: None,
+            bindings: None,
             _state: PhantomData,
         }
     }
@@ -91,6 +100,7 @@ impl EgglogProgramBuilder<FactsState> {
             facts: self.facts,
             rules: Some(vec![rules]),
             schedules: None,
+            bindings: None,
             _state: PhantomData,
         }
     }
@@ -103,12 +113,26 @@ impl EgglogProgramBuilder<RulesState> {
             facts: self.facts,
             rules: self.rules,
             schedules: Some(vec![schedules]),
+            bindings: None,
             _state: PhantomData,
         }
     }
 }
 
 impl EgglogProgramBuilder<SchedulesState> {
+    pub fn bindings(self, bindings: EgglogSymbols) -> EgglogProgramBuilder<BindingsState> {
+        EgglogProgramBuilder {
+            sorts: self.sorts,
+            facts: self.facts,
+            rules: self.rules,
+            schedules: self.schedules,
+            bindings: Some(bindings),
+            _state: PhantomData,
+        }
+    }
+}
+
+impl EgglogProgramBuilder<BindingsState> {
     pub fn program(self) -> EgglogProgram {
         EgglogProgram {
             sorts: self.sorts.expect("Sorts Guaranteed at compile-time."),
@@ -117,6 +141,7 @@ impl EgglogProgramBuilder<SchedulesState> {
             schedules: self
                 .schedules
                 .expect("Schedules Guaranteed at compile-time."),
+            bindings: self.bindings.expect("Bindings Guaranteed at compile-time."),
         }
     }
 }
@@ -131,11 +156,14 @@ impl Semigroup for EgglogProgram {
         combined_rules.append(&mut program_update.rules.clone());
         let mut combined_schedules = self.schedules.clone();
         combined_schedules.append(&mut program_update.schedules.clone());
+        let mut combined_bindings = self.bindings.clone();
+        combined_bindings.extend(program_update.bindings.clone());
         Self {
             sorts: combined_sorts,
             facts: combined_facts,
             rules: combined_rules,
             schedules: combined_schedules,
+            bindings: combined_bindings,
         }
     }
 }
@@ -154,6 +182,7 @@ impl Add for EgglogProgram {
         self.facts.append(&mut rhs.facts);
         self.rules.append(&mut rhs.rules);
         self.schedules.append(&mut rhs.schedules);
+        self.bindings.extend(rhs.bindings);
         self
     }
 }
@@ -179,7 +208,7 @@ impl From<EgglogProgram> for EgglogCommandList {
 
 #[cfg(test)]
 mod tests {
-    use egglog::ast::Command;
+    use egglog::ast::{Command, Symbol};
     use egglog::EGraph;
 
     use super::*;
@@ -195,12 +224,14 @@ mod tests {
         let facts_data = EgglogFacts::default();
         let rules_data = EgglogRules::default();
         let schedules_data = EgglogSchedules::default();
+        let symbols = EgglogSymbols::default();
 
         let _egglog_program = EgglogProgramBuilder::<InitState>::new()
             .sorts(sorts_data)
             .facts(facts_data)
             .rules(rules_data)
             .schedules(schedules_data)
+            .bindings(symbols)
             .program();
     }
 
@@ -215,17 +246,20 @@ mod tests {
         let rules1 = EgglogRules::default().add_rule_str(&rules_str);
         let schedule1_str = utilities::get_egglog_commands("llhd_dfg_example2_schedule.egg");
         let schedule1 = EgglogSchedules::default().add_schedule_str(&schedule1_str);
+        let symbols1: EgglogSymbols = [Symbol::new("foo")].into();
         let egglog_program = EgglogProgramBuilder::<InitState>::new()
             .sorts(input_sorts)
             .facts(input_facts)
             .rules(rules1)
             .schedules(schedule1)
+            .bindings(symbols1)
             .program();
 
         let sort2_str = utilities::get_egglog_commands("llhd_dfg_example2_sorts_updated.egg");
         let sorts2 = EgglogSorts::default().add_sort_str(&sort2_str);
         let rules2_str = utilities::get_egglog_commands("llhd_dfg_example2_rules_updated.egg");
         let rules2 = EgglogRules::default().add_rule_str(&rules2_str);
+        let symbols2: EgglogSymbols = [Symbol::new("foobar"), Symbol::new("bar")].into();
         let schedule2_str =
             utilities::get_egglog_commands("llhd_dfg_example2_schedule_updated.egg");
         let schedule2 = EgglogSchedules::default().add_schedule_str(&schedule2_str);
@@ -234,12 +268,14 @@ mod tests {
             .facts(EgglogFacts::default())
             .rules(rules2)
             .schedules(schedule2)
+            .bindings(symbols2)
             .program();
         let updated_egglog_program = egglog_program.combine(&egglog_program_update);
         assert_eq!(2, updated_egglog_program.sorts.len());
         assert_eq!(2, updated_egglog_program.facts.len());
         assert_eq!(2, updated_egglog_program.rules.len());
         assert_eq!(2, updated_egglog_program.schedules.len());
+        assert_eq!(3, updated_egglog_program.bindings.len());
         let updated_egglog_program_cmds: EgglogCommandList = updated_egglog_program.into();
         assert_eq!(18, updated_egglog_program_cmds.len());
         assert!(matches!(
@@ -318,11 +354,13 @@ mod tests {
         let rules1 = EgglogRules::default().add_rule_str(&rules_str);
         let schedule1_str = utilities::get_egglog_commands("llhd_dfg_example2_schedule.egg");
         let schedule1 = EgglogSchedules::default().add_schedule_str(&schedule1_str);
+        let symbols1: EgglogSymbols = [Symbol::new("foo")].into();
         let egglog_program = EgglogProgramBuilder::<InitState>::new()
             .sorts(input_sorts)
             .facts(input_facts)
             .rules(rules1)
             .schedules(schedule1)
+            .bindings(symbols1)
             .program();
 
         let sort2_str = utilities::get_egglog_commands("llhd_dfg_example2_sorts_updated.egg");
@@ -332,11 +370,13 @@ mod tests {
         let schedule2_str =
             utilities::get_egglog_commands("llhd_dfg_example2_schedule_updated.egg");
         let schedule2 = EgglogSchedules::default().add_schedule_str(&schedule2_str);
+        let symbols2: EgglogSymbols = [Symbol::new("foobar"), Symbol::new("bar")].into();
         let egglog_program_update = EgglogProgramBuilder::<InitState>::new()
             .sorts(sorts2)
             .facts(EgglogFacts::default())
             .rules(rules2)
             .schedules(schedule2)
+            .bindings(symbols2)
             .program();
         let updated_egglog_program = egglog_program + egglog_program_update;
         assert_eq!(2, updated_egglog_program.sorts.len());

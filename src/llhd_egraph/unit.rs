@@ -50,7 +50,7 @@ type TimeValueStack = VecDeque<TimeValue>;
 
 const UNIT_LET_STMT_PREFIX: &str = "unit_";
 
-fn unit_symbol(unit: &Unit<'_>) -> Symbol {
+pub(crate) fn unit_symbol(unit: &Unit<'_>) -> Symbol {
     let mut unit_name = unit.name().to_string().replace(&['@', '%', ','][..], "");
     unit_name.insert_str(0, UNIT_LET_STMT_PREFIX);
     Symbol::new(unit_name)
@@ -224,7 +224,7 @@ fn process_expr_fifo(
     }
 }
 
-pub(crate) fn to_unit(
+pub(crate) fn expr_to_unit_data(
     unit_expr: Expr,
     unit_kind: UnitKind,
     unit_name: UnitName,
@@ -835,7 +835,7 @@ mod tests {
                             (ConstTime 1 (Time) \"0s 1e\")))
                 "});
                 assert_eq!(extracted_expr.to_string(), expected_str);
-                to_unit(extracted_expr, unit_kind, unit_name, unit_sig)
+                expr_to_unit_data(extracted_expr, unit_kind, unit_name, unit_sig)
             };
         test_module[test_unit_id] =
             rewrite_unit(&test_module, test_unit_kind, test_unit_name, test_unit_sig);

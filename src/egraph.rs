@@ -6,10 +6,13 @@ pub mod builder;
 pub mod rules;
 pub mod schedule;
 pub mod sorts;
+use std::collections::HashSet;
+
 pub use builder::*;
-use egglog::ast::Command;
+use egglog::ast::{Command, Symbol};
 
 pub type EgglogCommandList = Vec<Command>;
+pub type EgglogSymbols = HashSet<Symbol>;
 
 #[cfg(test)]
 mod tests {

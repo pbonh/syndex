@@ -88,7 +88,7 @@ mod tests {
     use crate::llhd_egraph::datatype::LLHDEgglogSorts;
     use crate::llhd_egraph::llhd::LLHDEgglogProgram;
     use crate::llhd_egraph::rules::LLHDEgglogRules;
-    use crate::llhd_egraph::unit::to_unit;
+    use crate::llhd_egraph::unit::{expr_to_unit_data, unit_symbol};
     use crate::llhd_egraph::LLHDEgglogFacts;
 
     impl From<LLHDEgglogSorts> for EgglogSorts {
@@ -117,56 +117,62 @@ mod tests {
 
     impl From<&Module> for EgglogProgram {
         fn from(module: &Module) -> Self {
+            let llhd_unit_symbols: EgglogSymbols =
+                module.units().map(|unit| unit_symbol(&unit)).collect();
             let llhd_facts = LLHDEgglogFacts::from_module(module);
             let llhd_egglog_program = LLHDEgglogProgram::builder()
                 .facts(llhd_facts)
                 .rules(LLHDEgglogRules::default())
                 .build();
+
             EgglogProgramBuilder::<InitState>::new()
                 .sorts(llhd_egglog_program.sorts().clone().into())
                 .facts(llhd_egglog_program.facts().clone().into())
                 .rules(EgglogRules::default())
                 .schedules(EgglogSchedules::default())
+                .bindings(llhd_unit_symbols)
                 .program()
         }
     }
 
     impl From<EgglogProgram> for Module {
         fn from(program: EgglogProgram) -> Self {
+            let unit_symbols = program.bindings().to_owned();
             let mut module = Self::new();
             let mut egraph = EGraph::default();
             if let Err(err_msg) = egraph.run_program(program.into()) {
                 panic!("Failure to run EgglogProgram. Err: {:?}", err_msg);
             }
-            let unit_symbol = Symbol::new("unit_test_entity");
-            let extract_cmd = GenericCommand::QueryExtract {
-                span: DUMMY_SPAN.clone(),
-                variants: 0,
-                expr: GenericExpr::Var(DUMMY_SPAN.clone(), unit_symbol),
-            };
-            if let Err(egraph_extract_err) = egraph.run_program(vec![extract_cmd]) {
-                println!("Cannot extract expression: {:?}", egraph_extract_err);
+            for unit_symbol in unit_symbols.into_iter() {
+                let extract_cmd = GenericCommand::QueryExtract {
+                    span: DUMMY_SPAN.clone(),
+                    variants: 0,
+                    expr: GenericExpr::Var(DUMMY_SPAN.clone(), unit_symbol.clone()),
+                };
+                if let Err(egraph_extract_err) = egraph.run_program(vec![extract_cmd]) {
+                    println!("Cannot extract expression: {:?}", egraph_extract_err);
+                }
+                let mut extracted_termdag = TermDag::default();
+                let (unit_sort, unit_symbol_value) = egraph
+                    .eval_expr(&GenericExpr::Var(DUMMY_SPAN.clone(), unit_symbol))
+                    .unwrap();
+                let (_unit_cost, unit_term) =
+                    egraph.extract(unit_symbol_value, &mut extracted_termdag, &unit_sort);
+                let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
+                let mut sig = Signature::new();
+                let _in1 = sig.add_input(llhd::int_ty(1));
+                let _in2 = sig.add_input(llhd::int_ty(1));
+                let _in3 = sig.add_input(llhd::int_ty(1));
+                // let _in4 = sig.add_input(llhd::int_ty(1));
+                let _out1 = sig.add_output(llhd::signal_ty(llhd::int_ty(1)));
+                let unit_data = expr_to_unit_data(
+                    extracted_expr,
+                    UnitKind::Entity,
+                    UnitName::Anonymous(0),
+                    sig,
+                );
+                let _unit_id = module.add_unit(unit_data);
             }
-            let mut extracted_termdag = TermDag::default();
-            let (unit_sort, unit_symbol_value) = egraph
-                .eval_expr(&GenericExpr::Var(DUMMY_SPAN.clone(), unit_symbol))
-                .unwrap();
-            let (_unit_cost, unit_term) =
-                egraph.extract(unit_symbol_value, &mut extracted_termdag, &unit_sort);
-            let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
-            let mut sig = Signature::new();
-            let _in1 = sig.add_input(llhd::int_ty(1));
-            let _in2 = sig.add_input(llhd::int_ty(1));
-            let _in3 = sig.add_input(llhd::int_ty(1));
-            // let _in4 = sig.add_input(llhd::int_ty(1));
-            let _out1 = sig.add_output(llhd::signal_ty(llhd::int_ty(1)));
-            let unit_data = to_unit(
-                extracted_expr,
-                UnitKind::Entity,
-                UnitName::Anonymous(0),
-                sig,
-            );
-            let _unit_id = module.add_unit(unit_data);
             module
         }
     }
@@ -208,6 +214,7 @@ mod tests {
                 .facts(EgglogFacts::default())
                 .rules(llhd_egglog_program.rules().clone().into())
                 .schedules(EgglogSchedules::default())
+                .bindings(EgglogSymbols::default())
                 .program();
             SynthesisContext {
                 program: egglog_program,
