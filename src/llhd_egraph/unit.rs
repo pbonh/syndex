@@ -9,13 +9,13 @@ use itertools::Itertools;
 use llhd::ir::prelude::*;
 use llhd::ir::ValueData;
 use llhd::table::TableKey;
-use llhd::{IntValue, TimeValue, TypeKind};
+use llhd::{IntValue, TimeValue, Type, TypeKind};
 use rayon::iter::ParallelIterator;
 
 use crate::egraph::egglog_names::*;
 use crate::egraph::EgglogCommandList;
 use crate::llhd::LLHDUtils;
-use crate::llhd_egraph::datatype::*;
+use crate::llhd_egraph::datatype::unit_root_variant_symbol;
 use crate::llhd_egraph::egglog_names::*;
 use crate::llhd_egraph::inst::*;
 
@@ -47,6 +47,7 @@ type ExprFIFO = VecDeque<Expr>;
 type ValueStack = VecDeque<Value>;
 type IntValueStack = VecDeque<IntValue>;
 type TimeValueStack = VecDeque<TimeValue>;
+type LLHDTypeFIFO = VecDeque<Type>;
 
 const UNIT_LET_STMT_PREFIX: &str = "unit_";
 
@@ -219,6 +220,145 @@ fn process_expr_fifo(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+fn process_arg_expr(expr: &Expr, type_expr_fifo: &mut LLHDTypeFIFO) {
+    match expr {
+        GenericExpr::Call(_, type_symbol, type_args) => {
+            if *type_symbol == Symbol::new(LLHD_TYPE_VOID_FIELD) {
+                type_expr_fifo.push_back(llhd::void_ty());
+            } else if *type_symbol == Symbol::new(LLHD_TYPE_INT_FIELD) {
+                if let GenericExpr::Lit(_, int_literal_value) = &type_args[0] {
+                    match int_literal_value {
+                        Literal::Int(iid) => {
+                            type_expr_fifo.push_back(llhd::int_ty(
+                                usize::try_from(*iid)
+                                    .expect("Failure to convert egglog Int to usize."),
+                            ));
+                        }
+                        _ => {}
+                    }
+                };
+            } else if *type_symbol == Symbol::new(LLHD_TYPE_SIGNAL_FIELD) {
+                process_arg_expr(&type_args[0], type_expr_fifo);
+                let signal_info_expr = type_expr_fifo
+                    .pop_back()
+                    .expect("Stack empty despite still trying to process operation.");
+                type_expr_fifo.push_back(llhd::signal_ty(signal_info_expr));
+            }
+        }
+        _ => {}
+    }
+}
+
+pub(crate) fn expr_to_unit_info(unit_expr: Expr) -> (UnitKind, UnitName, Signature) {
+    let default_unit_info = (UnitKind::Entity, UnitName::Anonymous(0), Signature::new());
+    let mut unit_info = default_unit_info.clone();
+    match unit_expr {
+        GenericExpr::Lit(_span, literal) => match literal {
+            Literal::Int(iid) => (
+                default_unit_info.0,
+                UnitName::anonymous(
+                    iid.try_into()
+                        .expect("Failure to convert egglog Int to u32."),
+                ),
+                default_unit_info.2,
+            ),
+            Literal::UInt(uid) => (
+                default_unit_info.0,
+                UnitName::anonymous(
+                    uid.try_into()
+                        .expect("Failure to convert egglog UInt to u32."),
+                ),
+                default_unit_info.2,
+            ),
+            Literal::F64(_fid) => default_unit_info,
+            Literal::String(uname) => (
+                default_unit_info.0,
+                UnitName::Global(uname.to_string()),
+                default_unit_info.2,
+            ),
+            Literal::Bool(_bid) => default_unit_info,
+            Literal::Unit => default_unit_info,
+        },
+        GenericExpr::Var(_span, symbol) => (
+            default_unit_info.0,
+            UnitName::Global(symbol.to_string()),
+            default_unit_info.2,
+        ),
+        GenericExpr::Call(_, symbol, info_exprs) => {
+            if symbol == Symbol::new(LLHD_UNIT_FIELD) {
+                if 5 < info_exprs.len() {
+                    if let GenericExpr::Call(_, unit_sort_name, unit_kind_func) = &info_exprs[1] {
+                        if *unit_sort_name == Symbol::new(LLHD_UNIT_KIND_DATATYPE) {
+                            if let GenericExpr::Var(_, unit_kind_symbol) = &unit_kind_func[0] {
+                                if *unit_kind_symbol == Symbol::new(LLHD_UNIT_ENTITY_FIELD) {
+                                    unit_info.0 = UnitKind::Entity;
+                                } else if *unit_kind_symbol == Symbol::new(LLHD_UNIT_FUNCTION_FIELD)
+                                {
+                                    unit_info.0 = UnitKind::Function;
+                                } else if *unit_kind_symbol == Symbol::new(LLHD_UNIT_PROCESS_FIELD)
+                                {
+                                    unit_info.0 = UnitKind::Process;
+                                }
+                            };
+                        }
+                    };
+                    if let GenericExpr::Lit(_, unit_name) = &info_exprs[2] {
+                        let unit_name_no_prefix =
+                            unit_name.to_string().replace(&['@', '%', ','][..], "");
+                        unit_info.1 = UnitName::global(unit_name_no_prefix);
+                    };
+
+                    let mut input_args_expr_fifo: LLHDTypeFIFO = Default::default();
+                    if let GenericExpr::Call(_, vec_of_sort_symbol, vec_args) = &info_exprs[3] {
+                        if *vec_of_sort_symbol == Symbol::new(EGGLOG_VEC_OF_OP) {
+                            for vec_arg in vec_args {
+                                if let GenericExpr::Call(_, value_decl_symbol, arg_info) = vec_arg {
+                                    if *value_decl_symbol == Symbol::new(LLHD_VALUE_FIELD) {
+                                        if 2 == arg_info.len() {
+                                            process_arg_expr(
+                                                &arg_info[0],
+                                                &mut input_args_expr_fifo,
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    let mut output_args_expr_fifo: LLHDTypeFIFO = Default::default();
+                    if let GenericExpr::Call(_, vec_of_sort_symbol, vec_args) = &info_exprs[4] {
+                        if *vec_of_sort_symbol == Symbol::new(EGGLOG_VEC_OF_OP) {
+                            for vec_arg in vec_args {
+                                if let GenericExpr::Call(_, value_decl_symbol, arg_info) = vec_arg {
+                                    if *value_decl_symbol == Symbol::new(LLHD_VALUE_FIELD) {
+                                        if 2 == arg_info.len() {
+                                            process_arg_expr(
+                                                &arg_info[0],
+                                                &mut output_args_expr_fifo,
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    for unit_arg_expr in input_args_expr_fifo {
+                        unit_info.2.add_input(unit_arg_expr);
+                    }
+                    for unit_arg_expr in output_args_expr_fifo {
+                        unit_info.2.add_output(unit_arg_expr);
+                    }
+                    unit_info
+                } else {
+                    default_unit_info
+                }
+            } else {
+                default_unit_info
             }
         }
     }
@@ -593,8 +733,10 @@ mod tests {
     use itertools::Itertools;
     use llhd::ir::InstData;
     use llhd::table::TableKey;
+    use pretty_assertions::assert_eq;
 
     use super::*;
+    use crate::llhd_egraph::datatype::LLHDEgglogSorts;
 
     #[test]
     fn build_egglog_program_from_unit() {
@@ -727,101 +869,97 @@ mod tests {
     fn llhd_rewrite_egglog_program() {
         let mut test_module = utilities::load_llhd_module("2and_1or_common.llhd");
         let test_unit_id = LLHDUtils::iterate_unit_ids(&test_module).collect_vec()[0];
-        let test_unit_kind = test_module.unit(test_unit_id).kind();
-        let test_unit_name = test_module.unit(test_unit_id).name().to_owned();
-        let test_unit_sig = test_module.unit(test_unit_id).sig().to_owned();
-        let rewrite_unit =
-            |module: &Module, unit_kind: UnitKind, unit_name: UnitName, unit_sig: Signature| {
-                let llhd_dfg_sort = LLHDEgglogSorts::llhd_dfg();
-                let mut egraph = EGraph::default();
-                let _egraph_msgs_datatypes = egraph.run_program(llhd_dfg_sort.into());
-                let _egraph_msgs_rules =
-                    utilities::load_egraph_rewrite_rules("llhd_div_extract.egg", &mut egraph);
-                assert_eq!(
-                    0,
-                    egraph.num_tuples(),
-                    "There should be 0 facts initially in the egraph."
-                );
+        let rewrite_module = |module: &Module| {
+            let llhd_dfg_sort = LLHDEgglogSorts::llhd_dfg();
+            let mut egraph = EGraph::default();
+            let _egraph_msgs_datatypes = egraph.run_program(llhd_dfg_sort.into());
+            let _egraph_msgs_rules =
+                utilities::load_egraph_rewrite_rules("llhd_div_extract.egg", &mut egraph);
+            assert_eq!(
+                0,
+                egraph.num_tuples(),
+                "There should be 0 facts initially in the egraph."
+            );
 
-                let module_facts = LLHDEgglogFacts::from_module(module);
-                if let Err(egraph_run_facts_err) = egraph.run_program(module_facts.into()) {
-                    panic!(
-                        "EGraph failed to add facts. ERROR: {:?}",
-                        egraph_run_facts_err
-                    );
-                }
-                assert!(
-                    egraph
-                        .get_overall_run_report()
-                        .num_matches_per_rule
-                        .values()
-                        .next()
-                        .is_none(),
-                    "There should be no matches yet, as the rule schedule hasn't run yet."
+            let module_facts = LLHDEgglogFacts::from_module(module);
+            if let Err(egraph_run_facts_err) = egraph.run_program(module_facts.into()) {
+                panic!(
+                    "EGraph failed to add facts. ERROR: {:?}",
+                    egraph_run_facts_err
                 );
-
-                assert_eq!(
-                    20,
-                    egraph.num_tuples(),
-                    "There should be 20 facts remaining in the egraph."
-                );
-
-                let div_extract_ruleset_symbol = Symbol::new("div-ext");
-                let div_extract_schedule = GenericRunConfig::<Symbol, Symbol> {
-                    ruleset: div_extract_ruleset_symbol,
-                    until: None,
-                };
-                let schedule_cmd = GenericCommand::RunSchedule(GenericSchedule::Run(
-                    DUMMY_SPAN.clone(),
-                    div_extract_schedule,
-                ));
-                let egraph_run_schedule = egraph.run_program(vec![schedule_cmd]);
-                assert!(
-                    egraph_run_schedule.is_ok(),
-                    "EGraph failed to run schedule."
-                );
-                assert_eq!(
-                    22,
-                    egraph.num_tuples(),
-                    "There should be 22 facts remaining in the egraph(new 'And', new 'Or' nodes)."
-                );
-
-                let egraph_run_rules_matches = egraph
+            }
+            assert!(
+                egraph
                     .get_overall_run_report()
                     .num_matches_per_rule
                     .values()
                     .next()
-                    .unwrap();
-                assert_eq!(
-                    1, *egraph_run_rules_matches,
-                    "There should be 1 match for divisor extraction rewrite rule."
-                );
+                    .is_none(),
+                "There should be no matches yet, as the rule schedule hasn't run yet."
+            );
 
-                let test_entity_symbol = Symbol::new("unit_test_entity");
-                let extract_cmd = GenericCommand::QueryExtract {
-                    span: DUMMY_SPAN.clone(),
-                    variants: 0,
-                    expr: GenericExpr::Var(DUMMY_SPAN.clone(), test_entity_symbol),
-                };
-                if let Err(egraph_extract_expr_msg) = egraph.run_program(vec![extract_cmd]) {
-                    panic!(
-                        "EGraph failed to extract expression. ERROR: {:?}",
-                        egraph_extract_expr_msg
-                    );
-                }
+            assert_eq!(
+                20,
+                egraph.num_tuples(),
+                "There should be 20 facts remaining in the egraph."
+            );
 
-                let mut extracted_termdag = TermDag::default();
-                let (unit_sort, test_unit_symbol_value) = egraph
-                    .eval_expr(&GenericExpr::Var(DUMMY_SPAN.clone(), test_entity_symbol))
-                    .unwrap();
-                let (_unit_cost, unit_term) =
-                    egraph.extract(test_unit_symbol_value, &mut extracted_termdag, &unit_sort);
-                let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
-                assert!(
-                    matches!(extracted_expr, GenericExpr::Call { .. }),
-                    "Top level expression should be a call."
+            let div_extract_ruleset_symbol = Symbol::new("div-ext");
+            let div_extract_schedule = GenericRunConfig::<Symbol, Symbol> {
+                ruleset: div_extract_ruleset_symbol,
+                until: None,
+            };
+            let schedule_cmd = GenericCommand::RunSchedule(GenericSchedule::Run(
+                DUMMY_SPAN.clone(),
+                div_extract_schedule,
+            ));
+            let egraph_run_schedule = egraph.run_program(vec![schedule_cmd]);
+            assert!(
+                egraph_run_schedule.is_ok(),
+                "EGraph failed to run schedule."
+            );
+            assert_eq!(
+                22,
+                egraph.num_tuples(),
+                "There should be 22 facts remaining in the egraph(new 'And', new 'Or' nodes)."
+            );
+
+            let egraph_run_rules_matches = egraph
+                .get_overall_run_report()
+                .num_matches_per_rule
+                .values()
+                .next()
+                .unwrap();
+            assert_eq!(
+                1, *egraph_run_rules_matches,
+                "There should be 1 match for divisor extraction rewrite rule."
+            );
+
+            let test_entity_symbol = Symbol::new("unit_test_entity");
+            let extract_cmd = GenericCommand::QueryExtract {
+                span: DUMMY_SPAN.clone(),
+                variants: 0,
+                expr: GenericExpr::Var(DUMMY_SPAN.clone(), test_entity_symbol),
+            };
+            if let Err(egraph_extract_expr_msg) = egraph.run_program(vec![extract_cmd]) {
+                panic!(
+                    "EGraph failed to extract expression. ERROR: {:?}",
+                    egraph_extract_expr_msg
                 );
-                let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
+            }
+
+            let mut extracted_termdag = TermDag::default();
+            let (unit_sort, test_unit_symbol_value) = egraph
+                .eval_expr(&GenericExpr::Var(DUMMY_SPAN.clone(), test_entity_symbol))
+                .unwrap();
+            let (_unit_cost, unit_term) =
+                egraph.extract(test_unit_symbol_value, &mut extracted_termdag, &unit_sort);
+            let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
+            assert!(
+                matches!(extracted_expr, GenericExpr::Call { .. }),
+                "Top level expression should be a call."
+            );
+            let expected_str = utilities::trim_expr_whitespace(indoc::indoc! {"
                     (LLHDUnit 0 (Entity) \"@test_entity\"
                         (vec-of (Value (Int 1) 0) (Value (Int 1) 1) (Value (Int 1) 2))
                         (vec-of (Value (Signal (Int 1)) 3))
@@ -834,11 +972,25 @@ mod tests {
                                 (ValueRef (Value (Int 1) 1)))
                             (ConstTime 1 (Time) \"0s 1e\")))
                 "});
-                assert_eq!(extracted_expr.to_string(), expected_str);
-                expr_to_unit_data(extracted_expr, unit_kind, unit_name, unit_sig)
-            };
-        test_module[test_unit_id] =
-            rewrite_unit(&test_module, test_unit_kind, test_unit_name, test_unit_sig);
+            assert_eq!(extracted_expr.to_string(), expected_str);
+            let (unit_kind_extract, unit_name_extract, unit_sig_extract) =
+                expr_to_unit_info(extracted_expr.clone());
+            assert!(matches!(unit_kind_extract, UnitKind::Entity));
+            if let UnitName::Global(uname) = unit_name_extract.clone() {
+                assert_eq!(uname, "\"test_entity\"");
+            } else {
+                panic!("UnitName is of incorrect type, should be UnitName::Global");
+            }
+            assert_eq!(3, unit_sig_extract.inputs().collect_vec().len());
+            assert_eq!(1, unit_sig_extract.outputs().collect_vec().len());
+            expr_to_unit_data(
+                extracted_expr,
+                unit_kind_extract,
+                unit_name_extract,
+                unit_sig_extract,
+            )
+        };
+        test_module[test_unit_id] = rewrite_module(&test_module);
         let new_unit_data = test_module.unit(test_unit_id);
         let new_unit_insts = new_unit_data.all_insts().collect_vec();
         assert_eq!(
