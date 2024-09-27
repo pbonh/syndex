@@ -239,6 +239,12 @@ fn process_arg_expr(expr: &Expr, type_expr_fifo: &mut LLHDTypeFIFO) {
                                     .expect("Failure to convert egglog Int to usize."),
                             ));
                         }
+                        Literal::UInt(uid) => {
+                            type_expr_fifo.push_back(llhd::int_ty(
+                                usize::try_from(*uid)
+                                    .expect("Failure to convert egglog UInt to usize."),
+                            ));
+                        }
                         _ => {}
                     }
                 };
