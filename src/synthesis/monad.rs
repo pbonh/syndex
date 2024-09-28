@@ -125,7 +125,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "not yet implemented")]
     fn monad_lift() {
         let init_module = |module: Module| SynthesisContext::load(module);
         let add_div_extract_unit = |module: Module| {

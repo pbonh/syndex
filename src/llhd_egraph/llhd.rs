@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use egglog::ast::{GenericCommand, GenericExpr, DUMMY_SPAN};
 use egglog::{EGraph, Error, TermDag};
-use llhd::ir::{Module, Signature, UnitKind, UnitName};
+use llhd::ir::Module;
 use typed_builder::TypedBuilder;
 
 use super::datatype::LLHDEgglogSorts;
@@ -12,7 +12,7 @@ use super::unit::LLHDEgglogFacts;
 use crate::egraph::rules::EgglogRules;
 use crate::egraph::schedule::EgglogSchedules;
 use crate::egraph::{EgglogProgram, EgglogProgramBuilder, EgglogSymbols, InitState};
-use crate::llhd_egraph::unit::{expr_to_unit_data, unit_symbol};
+use crate::llhd_egraph::unit::{expr_to_unit_data, expr_to_unit_info, unit_symbol};
 
 #[derive(Debug, Clone, Default, TypedBuilder)]
 pub struct LLHDEgglogProgram {
@@ -171,21 +171,17 @@ impl From<EgglogProgram> for Module {
             let (_unit_cost, unit_term) =
                 egraph.extract(unit_symbol_value, &mut extracted_termdag, &unit_sort);
             let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
-            let mut sig = Signature::new();
-            let _in1 = sig.add_input(llhd::int_ty(1));
-            let _in2 = sig.add_input(llhd::int_ty(1));
-            let _in3 = sig.add_input(llhd::int_ty(1));
-            // let _in4 = sig.add_input(llhd::int_ty(1));
-            let _out1 = sig.add_output(llhd::signal_ty(llhd::int_ty(1)));
+            let (unit_kind_extract, unit_name_extract, unit_sig_extract) =
+                expr_to_unit_info(extracted_expr.clone());
             let unit_data = expr_to_unit_data(
                 extracted_expr,
-                UnitKind::Entity,
-                UnitName::Anonymous(0),
-                sig,
+                unit_kind_extract,
+                unit_name_extract,
+                unit_sig_extract,
             );
             let _unit_id = module.add_unit(unit_data);
         }
-        todo!()
+        module
     }
 }
 
@@ -194,6 +190,7 @@ mod tests {
     use std::str::FromStr;
 
     use itertools::Itertools;
+    use llhd::ir::{UnitKind, UnitName};
     use pretty_assertions::assert_eq;
 
     use super::*;
@@ -313,7 +310,6 @@ mod tests {
     // }
 
     #[test]
-    #[should_panic(expected = "not yet implemented")]
     fn egglog_program_from_llhd_module() {
         let test_module = utilities::load_llhd_module("2and_1or_common.llhd");
 
@@ -330,5 +326,13 @@ mod tests {
             .map(|unit| unit.id())
             .collect_vec();
         assert_eq!(1, unit_ids.len());
+        let round_trip_test_entity = round_trip_test_module.unit(unit_ids[0]);
+        assert!(matches!(round_trip_test_entity.kind(), UnitKind::Entity));
+        if let UnitName::Global(unit_name) = round_trip_test_entity.name() {
+            let unit_name_str = unit_name.to_string();
+            assert_eq!("\"test_entity\"", unit_name_str);
+        } else {
+            panic!("UnitName is not Global type.");
+        }
     }
 }
