@@ -13,6 +13,7 @@ use llhd::{IntValue, TimeValue, Type, TypeKind};
 use rayon::iter::ParallelIterator;
 
 use crate::egraph::egglog_names::*;
+use crate::egraph::facts::EgglogFacts;
 use crate::egraph::EgglogCommandList;
 use crate::llhd::LLHDUtils;
 use crate::llhd_egraph::datatype::unit_root_variant_symbol;
@@ -20,7 +21,7 @@ use crate::llhd_egraph::egglog_names::*;
 use crate::llhd_egraph::inst::*;
 
 #[derive(Debug, Clone, Default)]
-pub struct LLHDEgglogFacts(pub(in crate::llhd_egraph) EgglogCommandList);
+pub struct LLHDEgglogFacts(EgglogCommandList);
 
 impl LLHDEgglogFacts {
     pub fn from_module(module: &Module) -> Self {
@@ -43,6 +44,14 @@ impl From<LLHDEgglogFacts> for EgglogCommandList {
     }
 }
 
+impl From<LLHDEgglogFacts> for EgglogFacts {
+    fn from(llhd_facts: LLHDEgglogFacts) -> Self {
+        Self::default().add_facts(<LLHDEgglogFacts as Into<EgglogCommandList>>::into(
+            llhd_facts,
+        ))
+    }
+}
+
 type ExprFIFO = VecDeque<Expr>;
 type ValueStack = VecDeque<Value>;
 type IntValueStack = VecDeque<IntValue>;
@@ -51,7 +60,7 @@ type LLHDTypeFIFO = VecDeque<Type>;
 
 const UNIT_LET_STMT_PREFIX: &str = "unit_";
 
-pub(crate) fn unit_symbol(unit: &Unit<'_>) -> Symbol {
+pub(crate) fn unit_symbol(unit: Unit<'_>) -> Symbol {
     let mut unit_name = unit.name().to_string().replace(&['@', '%', ','][..], "");
     unit_name.insert_str(0, UNIT_LET_STMT_PREFIX);
     Symbol::new(unit_name)
@@ -132,7 +141,7 @@ fn from_unit(unit: &Unit<'_>) -> Action {
             root_inst_expr,
         ],
     );
-    Action::Let(DUMMY_SPAN.clone(), unit_symbol(unit), unit_expr)
+    Action::Let(DUMMY_SPAN.clone(), unit_symbol(*unit), unit_expr)
 }
 
 fn process_expr(expr: &Expr, expr_fifo: &mut ExprFIFO) {

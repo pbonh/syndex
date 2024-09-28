@@ -5,10 +5,11 @@ use llhd::ir::Opcode;
 use super::egglog_names::{LLHD_UNIT_FIELD, LLHD_VALUE_DATATYPE, LLHD_VALUE_REF_FIELD};
 use super::inst::opcode::opcode_symbol;
 use super::{inst, unit};
+use crate::egraph::sorts::EgglogSorts;
 use crate::egraph::EgglogCommandList;
 
 #[derive(Debug, Clone)]
-pub struct LLHDEgglogSorts(pub(in crate::llhd_egraph) EgglogCommandList);
+pub struct LLHDEgglogSorts(EgglogCommandList);
 
 impl LLHDEgglogSorts {
     pub fn llhd_dfg() -> Self {
@@ -30,6 +31,14 @@ impl Default for LLHDEgglogSorts {
 impl From<LLHDEgglogSorts> for EgglogCommandList {
     fn from(llhd_sorts: LLHDEgglogSorts) -> Self {
         llhd_sorts.0
+    }
+}
+
+impl From<LLHDEgglogSorts> for EgglogSorts {
+    fn from(llhd_sorts: LLHDEgglogSorts) -> Self {
+        Self::default().add_sorts(<LLHDEgglogSorts as Into<EgglogCommandList>>::into(
+            llhd_sorts,
+        ))
     }
 }
 

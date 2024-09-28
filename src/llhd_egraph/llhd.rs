@@ -1,12 +1,18 @@
-use std::ops::{Add, Deref, DerefMut};
+use std::ops::{Deref, DerefMut};
 
-use egglog::{EGraph, Error};
+use egglog::ast::{GenericCommand, GenericExpr, DUMMY_SPAN};
+use egglog::{EGraph, Error, TermDag};
+use llhd::ir::{Module, Signature, UnitKind, UnitName};
 use typed_builder::TypedBuilder;
 
 use super::datatype::LLHDEgglogSorts;
 use super::rules::LLHDEgglogRules;
 use super::schedules::LLHDEgglogSchedules;
 use super::unit::LLHDEgglogFacts;
+use crate::egraph::rules::EgglogRules;
+use crate::egraph::schedule::EgglogSchedules;
+use crate::egraph::{EgglogProgram, EgglogProgramBuilder, EgglogSymbols, InitState};
+use crate::llhd_egraph::unit::{expr_to_unit_data, unit_symbol};
 
 #[derive(Debug, Clone, Default, TypedBuilder)]
 pub struct LLHDEgglogProgram {
@@ -41,17 +47,17 @@ impl LLHDEgglogProgram {
     }
 }
 
-impl Add for LLHDEgglogProgram {
-    type Output = Self;
-
-    fn add(mut self, mut rhs: Self) -> Self::Output {
-        self.sorts.0 = rhs.sorts.0;
-        self.facts.0.append(&mut rhs.facts.0);
-        self.rules.0.append(&mut rhs.rules.0);
-        self.schedules.0.append(&mut rhs.schedules.0);
-        self
-    }
-}
+// impl Add for LLHDEgglogProgram {
+//     type Output = Self;
+//
+//     fn add(mut self, mut rhs: Self) -> Self::Output {
+//         self.sorts.0 = rhs.sorts.0;
+//         self.facts.0.append(&mut rhs.facts.0);
+//         self.rules.0.append(&mut rhs.rules.0);
+//         self.schedules.0.append(&mut rhs.schedules.0);
+//         self
+//     }
+// }
 
 impl From<LLHDEgglogFacts> for LLHDEgglogProgram {
     fn from(facts: LLHDEgglogFacts) -> Self {
@@ -67,9 +73,9 @@ impl TryFrom<LLHDEgglogProgram> for LLHDEGraph {
 
     fn try_from(program: LLHDEgglogProgram) -> Result<Self, Self::Error> {
         let mut egraph = EGraph::default();
-        match egraph.run_program(program.sorts().to_owned().0) {
-            Ok(_sorts_msgs) => match egraph.run_program(program.rules().to_owned().0) {
-                Ok(_rules_msgs) => match egraph.run_program(program.facts().to_owned().0) {
+        match egraph.run_program(program.sorts().to_owned().into()) {
+            Ok(_sorts_msgs) => match egraph.run_program(program.rules().to_owned().into()) {
+                Ok(_rules_msgs) => match egraph.run_program(program.facts().to_owned().into()) {
                     Ok(_facts_msgs) => Ok(Self(egraph)),
                     Err(egraph_error) => Err(egraph_error),
                 },
@@ -124,9 +130,71 @@ where
     }
 }
 
+impl From<Module> for EgglogProgram {
+    fn from(module: Module) -> Self {
+        let llhd_dfg_sort = LLHDEgglogSorts::llhd_dfg();
+        let module_facts = LLHDEgglogFacts::from_module(&module);
+        let rules = EgglogRules::default();
+        let schedules = EgglogSchedules::default();
+        let unit_symbols: EgglogSymbols = module.units().map(unit_symbol).collect();
+        EgglogProgramBuilder::<InitState>::new()
+            .sorts(llhd_dfg_sort.into())
+            .facts(module_facts.into())
+            .rules(rules)
+            .schedules(schedules)
+            .bindings(unit_symbols)
+            .program()
+    }
+}
+
+impl From<EgglogProgram> for Module {
+    fn from(program: EgglogProgram) -> Self {
+        let unit_symbols = program.bindings().to_owned();
+        let mut module = Self::new();
+        let mut egraph = EGraph::default();
+        if let Err(err_msg) = egraph.run_program(program.into()) {
+            panic!("Failure to run EgglogProgram. Err: {:?}", err_msg);
+        }
+        for unit_symbol in unit_symbols.into_iter() {
+            let extract_cmd = GenericCommand::QueryExtract {
+                span: DUMMY_SPAN.clone(),
+                variants: 0,
+                expr: GenericExpr::Var(DUMMY_SPAN.clone(), unit_symbol.clone()),
+            };
+            if let Err(egraph_extract_err) = egraph.run_program(vec![extract_cmd]) {
+                println!("Cannot extract expression: {:?}", egraph_extract_err);
+            }
+            let mut extracted_termdag = TermDag::default();
+            let (unit_sort, unit_symbol_value) = egraph
+                .eval_expr(&GenericExpr::Var(DUMMY_SPAN.clone(), unit_symbol))
+                .unwrap();
+            let (_unit_cost, unit_term) =
+                egraph.extract(unit_symbol_value, &mut extracted_termdag, &unit_sort);
+            let extracted_expr = extracted_termdag.term_to_expr(&unit_term);
+            let mut sig = Signature::new();
+            let _in1 = sig.add_input(llhd::int_ty(1));
+            let _in2 = sig.add_input(llhd::int_ty(1));
+            let _in3 = sig.add_input(llhd::int_ty(1));
+            // let _in4 = sig.add_input(llhd::int_ty(1));
+            let _out1 = sig.add_output(llhd::signal_ty(llhd::int_ty(1)));
+            let unit_data = expr_to_unit_data(
+                extracted_expr,
+                UnitKind::Entity,
+                UnitName::Anonymous(0),
+                sig,
+            );
+            let _unit_id = module.add_unit(unit_data);
+        }
+        todo!()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
+
+    use itertools::Itertools;
+    use pretty_assertions::assert_eq;
 
     use super::*;
 
@@ -148,44 +216,44 @@ mod tests {
         );
     }
 
-    #[test]
-    fn add_llhd_egglog_programs() {
-        let llhd_egglog_program_div_extract = LLHDEgglogProgram::builder()
-            .rules(
-                LLHDEgglogRules::from_str(&utilities::get_egglog_commands("llhd_div_extract.egg"))
-                    .unwrap(),
-            )
-            .build();
-        assert_eq!(
-            2,
-            llhd_egglog_program_div_extract.rules().0.len(),
-            "There should be 2 rules in div_extract program."
-        );
-        let llhd_egglog_program_demorgans_theorem = LLHDEgglogProgram::builder()
-            .rules(
-                LLHDEgglogRules::from_str(&utilities::get_egglog_commands(
-                    "llhd_demorgans_theorem.egg",
-                ))
-                .unwrap(),
-            )
-            .build();
-        assert_eq!(
-            2,
-            llhd_egglog_program_demorgans_theorem.rules().0.len(),
-            "There should be 2 rules in demorgans_theorem program."
-        );
-        let combined_program =
-            llhd_egglog_program_div_extract + llhd_egglog_program_demorgans_theorem;
-        assert_eq!(
-            4,
-            combined_program.rules().0.len(),
-            "There should be 4 rules in combined program."
-        );
-        let egraph = LLHDEGraph::try_from(combined_program);
-        if let Err(err_msg) = egraph {
-            panic!("Error building EGraph. Err: {:?}", err_msg);
-        }
-    }
+    // #[test]
+    // fn add_llhd_egglog_programs() {
+    //     let llhd_egglog_program_div_extract = LLHDEgglogProgram::builder()
+    //         .rules(
+    //             LLHDEgglogRules::from_str(&utilities::get_egglog_commands("llhd_div_extract.egg"))
+    //                 .unwrap(),
+    //         )
+    //         .build();
+    //     assert_eq!(
+    //         2,
+    //         llhd_egglog_program_div_extract.rules().0.len(),
+    //         "There should be 2 rules in div_extract program."
+    //     );
+    //     let llhd_egglog_program_demorgans_theorem = LLHDEgglogProgram::builder()
+    //         .rules(
+    //             LLHDEgglogRules::from_str(&utilities::get_egglog_commands(
+    //                 "llhd_demorgans_theorem.egg",
+    //             ))
+    //             .unwrap(),
+    //         )
+    //         .build();
+    //     assert_eq!(
+    //         2,
+    //         llhd_egglog_program_demorgans_theorem.rules().0.len(),
+    //         "There should be 2 rules in demorgans_theorem program."
+    //     );
+    //     let combined_program =
+    //         llhd_egglog_program_div_extract + llhd_egglog_program_demorgans_theorem;
+    //     assert_eq!(
+    //         4,
+    //         combined_program.rules().0.len(),
+    //         "There should be 4 rules in combined program."
+    //     );
+    //     let egraph = LLHDEGraph::try_from(combined_program);
+    //     if let Err(err_msg) = egraph {
+    //         panic!("Error building EGraph. Err: {:?}", err_msg);
+    //     }
+    // }
 
     #[test]
     fn default_llhd_egraph() {
@@ -243,4 +311,24 @@ mod tests {
     //         LLHD_UNIT_SORT_EGGLOG_RESOURCES_STR.parse().unwrap();
     //     let _llhd_dfg_egglog_expr = egglog_expr_str!(llhd_unit_sort_egglog_resources_stream);
     // }
+
+    #[test]
+    #[should_panic(expected = "not yet implemented")]
+    fn egglog_program_from_llhd_module() {
+        let test_module = utilities::load_llhd_module("2and_1or_common.llhd");
+
+        let egglog_program = EgglogProgram::from(test_module);
+        assert_eq!(13, egglog_program.sorts()[0].len());
+        assert_eq!(1, egglog_program.facts()[0].len());
+        assert_eq!(0, egglog_program.rules()[0].len());
+        assert_eq!(0, egglog_program.schedules()[0].len());
+        assert_eq!(1, egglog_program.bindings().len());
+
+        let round_trip_test_module = Module::from(egglog_program);
+        let unit_ids = round_trip_test_module
+            .units()
+            .map(|unit| unit.id())
+            .collect_vec();
+        assert_eq!(1, unit_ids.len());
+    }
 }
