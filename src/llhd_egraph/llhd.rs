@@ -147,6 +147,23 @@ impl From<Module> for EgglogProgram {
     }
 }
 
+impl From<&Module> for EgglogProgram {
+    fn from(module: &Module) -> Self {
+        let llhd_dfg_sort = LLHDEgglogSorts::llhd_dfg();
+        let module_facts = LLHDEgglogFacts::from_module(module);
+        let rules = EgglogRules::default();
+        let schedules = EgglogSchedules::default();
+        let unit_symbols: EgglogSymbols = module.units().map(unit_symbol).collect();
+        EgglogProgramBuilder::<InitState>::new()
+            .sorts(llhd_dfg_sort.into())
+            .facts(module_facts.into())
+            .rules(rules)
+            .schedules(schedules)
+            .bindings(unit_symbols)
+            .program()
+    }
+}
+
 impl From<EgglogProgram> for Module {
     fn from(program: EgglogProgram) -> Self {
         let unit_symbols = program.bindings().to_owned();

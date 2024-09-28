@@ -74,39 +74,17 @@ macro_rules! compose_chain {
 mod tests {
     use std::str::FromStr;
 
+    use egglog::ast::Symbol;
     use itertools::Itertools;
     use llhd::ir::prelude::*;
 
     use super::*;
-    use crate::egraph::facts::EgglogFacts;
-    use crate::egraph::rules::EgglogRules;
     use crate::egraph::schedule::EgglogSchedules;
     use crate::egraph::sorts::EgglogSorts;
     use crate::egraph::*;
     use crate::llhd_egraph::llhd::LLHDEgglogProgram;
     use crate::llhd_egraph::rules::LLHDEgglogRules;
-    use crate::llhd_egraph::unit::unit_symbol;
     use crate::llhd_egraph::LLHDEgglogFacts;
-
-    impl From<&Module> for EgglogProgram {
-        fn from(module: &Module) -> Self {
-            let llhd_unit_symbols: EgglogSymbols =
-                module.units().map(|unit| unit_symbol(unit)).collect();
-            let llhd_facts = LLHDEgglogFacts::from_module(module);
-            let llhd_egglog_program = LLHDEgglogProgram::builder()
-                .facts(llhd_facts)
-                .rules(LLHDEgglogRules::default())
-                .build();
-
-            EgglogProgramBuilder::<InitState>::new()
-                .sorts(llhd_egglog_program.sorts().clone().into())
-                .facts(llhd_egglog_program.facts().clone().into())
-                .rules(EgglogRules::default())
-                .schedules(EgglogSchedules::default())
-                .bindings(llhd_unit_symbols)
-                .program()
-        }
-    }
 
     #[test]
     fn monad_composition() {
@@ -128,9 +106,10 @@ mod tests {
     fn monad_lift() {
         let init_module = |module: Module| SynthesisContext::load(module);
         let add_div_extract_unit = |module: Module| {
-            // let new_unit = utilities::build_entity_2and_1or_common(UnitName::anonymous(0));
-            // let _new_unit_id = module.add_unit(new_unit);
-            let llhd_facts = LLHDEgglogFacts::from_module(&module);
+            let new_unit = utilities::build_entity_alpha(UnitName::Global("adder".to_owned()));
+            let mut new_module = Module::new();
+            let _new_unit_id = new_module.add_unit(new_unit);
+            let llhd_facts = LLHDEgglogFacts::from_module(&new_module);
             let llhd_egglog_program = LLHDEgglogProgram::builder()
                 .facts(llhd_facts)
                 .rules(
@@ -140,12 +119,14 @@ mod tests {
                     .unwrap(),
                 )
                 .build();
+            let unit_symbols: EgglogSymbols =
+                [Symbol::new("unit_adder"), Symbol::new("unit_test_entity")].into();
             let egglog_program = EgglogProgramBuilder::<InitState>::new()
                 .sorts(EgglogSorts::default())
-                .facts(EgglogFacts::default())
+                .facts(llhd_egglog_program.facts().clone().into())
                 .rules(llhd_egglog_program.rules().clone().into())
                 .schedules(EgglogSchedules::default())
-                .bindings(EgglogSymbols::default())
+                .bindings(unit_symbols)
                 .program();
             SynthesisContext {
                 program: egglog_program,
@@ -157,7 +138,7 @@ mod tests {
         let new_module = compose_result.resolve();
 
         assert_eq!(
-            1,
+            2,
             new_module.units().collect_vec().len(),
             "New Module should have Unit added(2and_1or_common)."
         );
