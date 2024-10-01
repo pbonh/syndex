@@ -2,7 +2,8 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 
 use egglog::ast::{
-    Action, Command, Expr, GenericCommand, GenericExpr, Literal, Symbol, Variant, DUMMY_SPAN,
+    Action, Command, Expr, FunctionDecl, GenericActions, GenericCommand, GenericExpr, Literal,
+    Schema, Symbol, Variant, DUMMY_SPAN,
 };
 use egglog::sort::{Sort, StringSort, U64Sort};
 use itertools::Itertools;
@@ -406,85 +407,8 @@ pub(crate) fn expr_to_unit_data(
     unit_data
 }
 
-fn ty() -> Command {
-    let void_variant = Variant {
-        span: DUMMY_SPAN.clone(),
-        name: Symbol::new(LLHD_TYPE_VOID_FIELD),
-        types: vec![],
-        cost: None,
-    };
-    let time_variant = Variant {
-        span: DUMMY_SPAN.clone(),
-        name: Symbol::new(LLHD_TYPE_TIME_FIELD),
-        types: vec![],
-        cost: None,
-    };
-    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
-    let int_variant = Variant {
-        span: DUMMY_SPAN.clone(),
-        name: Symbol::new(LLHD_TYPE_INT_FIELD),
-        types: vec![u64_sort.name()],
-        cost: None,
-    };
-    let enum_variant = Variant {
-        span: DUMMY_SPAN.clone(),
-        name: Symbol::new(LLHD_TYPE_ENUM_FIELD),
-        types: vec![u64_sort.name()],
-        cost: None,
-    };
-    let pointer_variant = Variant {
-        span: DUMMY_SPAN.clone(),
-        name: Symbol::new(LLHD_TYPE_POINTER_FIELD),
-        types: vec![LLHD_TYPE_DATATYPE.into()],
-        cost: None,
-    };
-    let signal_variant = Variant {
-        span: DUMMY_SPAN.clone(),
-        name: Symbol::new(LLHD_TYPE_SIGNAL_FIELD),
-        types: vec![LLHD_TYPE_DATATYPE.into()],
-        cost: None,
-    };
-    let array_variant = Variant {
-        span: DUMMY_SPAN.clone(),
-        name: Symbol::new(LLHD_TYPE_ARRAY_FIELD),
-        types: vec![u64_sort.name(), LLHD_TYPE_DATATYPE.into()],
-        cost: None,
-    };
-    let struct_variant = Variant {
-        span: DUMMY_SPAN.clone(),
-        name: Symbol::new(LLHD_TYPE_STRUCT_FIELD),
-        types: vec![],
-        cost: None,
-    };
-    let func_variant = Variant {
-        span: DUMMY_SPAN.clone(),
-        name: Symbol::new(LLHD_TYPE_FUNC_FIELD),
-        types: vec![LLHD_TYPE_DATATYPE.into()],
-        cost: None,
-    };
-    let entity_variant = Variant {
-        span: DUMMY_SPAN.clone(),
-        name: Symbol::new(LLHD_TYPE_ENTITY_FIELD),
-        types: vec![],
-        cost: None,
-    };
-    let symbol = Symbol::new(LLHD_TYPE_DATATYPE);
-    Command::Datatype {
-        span: DUMMY_SPAN.clone(),
-        name: symbol,
-        variants: vec![
-            void_variant,
-            time_variant,
-            int_variant,
-            enum_variant,
-            pointer_variant,
-            signal_variant,
-            array_variant,
-            struct_variant,
-            func_variant,
-            entity_variant,
-        ],
-    }
+fn type_sort() -> Command {
+    Command::Sort(DUMMY_SPAN.clone(), Symbol::new(LLHD_TYPE_DATATYPE), None)
 }
 
 fn vec_ty_sort() -> Command {
@@ -497,6 +421,162 @@ fn vec_ty_sort() -> Command {
         ty_sort_symbol,
         Some((symbol_vec, vec![ty_expr])),
     )
+}
+
+fn type_functions() -> EgglogCommandList {
+    let void_function = GenericCommand::Function(FunctionDecl {
+        name: Symbol::new(LLHD_TYPE_VOID_FIELD),
+        schema: Schema {
+            input: vec![],
+            output: Symbol::new(LLHD_TYPE_DATATYPE),
+        },
+        default: None,
+        merge: None,
+        merge_action: GenericActions::default(),
+        cost: None,
+        unextractable: false,
+        ignore_viz: false,
+        span: DUMMY_SPAN.clone(),
+    });
+    let time_function = GenericCommand::Function(FunctionDecl {
+        name: Symbol::new(LLHD_TYPE_TIME_FIELD),
+        schema: Schema {
+            input: vec![],
+            output: Symbol::new(LLHD_TYPE_DATATYPE),
+        },
+        default: None,
+        merge: None,
+        merge_action: GenericActions::default(),
+        cost: None,
+        unextractable: false,
+        ignore_viz: false,
+        span: DUMMY_SPAN.clone(),
+    });
+    let u64_sort = U64Sort::new(EGGLOG_U64_SORT.into());
+    let int_function = GenericCommand::Function(FunctionDecl {
+        name: Symbol::new(LLHD_TYPE_INT_FIELD),
+        schema: Schema {
+            input: vec![u64_sort.name()],
+            output: Symbol::new(LLHD_TYPE_DATATYPE),
+        },
+        default: None,
+        merge: None,
+        merge_action: GenericActions::default(),
+        cost: None,
+        unextractable: false,
+        ignore_viz: false,
+        span: DUMMY_SPAN.clone(),
+    });
+    let enum_function = GenericCommand::Function(FunctionDecl {
+        name: Symbol::new(LLHD_TYPE_ENUM_FIELD),
+        schema: Schema {
+            input: vec![u64_sort.name()],
+            output: Symbol::new(LLHD_TYPE_DATATYPE),
+        },
+        default: None,
+        merge: None,
+        merge_action: GenericActions::default(),
+        cost: None,
+        unextractable: false,
+        ignore_viz: false,
+        span: DUMMY_SPAN.clone(),
+    });
+    let pointer_function = GenericCommand::Function(FunctionDecl {
+        name: Symbol::new(LLHD_TYPE_POINTER_FIELD),
+        schema: Schema {
+            input: vec![LLHD_TYPE_DATATYPE.into()],
+            output: Symbol::new(LLHD_TYPE_DATATYPE),
+        },
+        default: None,
+        merge: None,
+        merge_action: GenericActions::default(),
+        cost: None,
+        unextractable: false,
+        ignore_viz: false,
+        span: DUMMY_SPAN.clone(),
+    });
+    let signal_function = GenericCommand::Function(FunctionDecl {
+        name: Symbol::new(LLHD_TYPE_SIGNAL_FIELD),
+        schema: Schema {
+            input: vec![LLHD_TYPE_DATATYPE.into()],
+            output: Symbol::new(LLHD_TYPE_DATATYPE),
+        },
+        default: None,
+        merge: None,
+        merge_action: GenericActions::default(),
+        cost: None,
+        unextractable: false,
+        ignore_viz: false,
+        span: DUMMY_SPAN.clone(),
+    });
+    let array_function = GenericCommand::Function(FunctionDecl {
+        name: Symbol::new(LLHD_TYPE_ARRAY_FIELD),
+        schema: Schema {
+            input: vec![u64_sort.name(), LLHD_TYPE_DATATYPE.into()],
+            output: Symbol::new(LLHD_TYPE_DATATYPE),
+        },
+        default: None,
+        merge: None,
+        merge_action: GenericActions::default(),
+        cost: None,
+        unextractable: false,
+        ignore_viz: false,
+        span: DUMMY_SPAN.clone(),
+    });
+    let struct_function = GenericCommand::Function(FunctionDecl {
+        name: Symbol::new(LLHD_TYPE_STRUCT_FIELD),
+        schema: Schema {
+            input: vec![LLHD_VEC_TYPE_DATATYPE.into()],
+            output: Symbol::new(LLHD_TYPE_DATATYPE),
+        },
+        default: None,
+        merge: None,
+        merge_action: GenericActions::default(),
+        cost: None,
+        unextractable: false,
+        ignore_viz: false,
+        span: DUMMY_SPAN.clone(),
+    });
+    let func_function = GenericCommand::Function(FunctionDecl {
+        name: Symbol::new(LLHD_TYPE_FUNC_FIELD),
+        schema: Schema {
+            input: vec![LLHD_VEC_TYPE_DATATYPE.into(), LLHD_TYPE_DATATYPE.into()],
+            output: Symbol::new(LLHD_TYPE_DATATYPE),
+        },
+        default: None,
+        merge: None,
+        merge_action: GenericActions::default(),
+        cost: None,
+        unextractable: false,
+        ignore_viz: false,
+        span: DUMMY_SPAN.clone(),
+    });
+    let entity_function = GenericCommand::Function(FunctionDecl {
+        name: Symbol::new(LLHD_TYPE_ENTITY_FIELD),
+        schema: Schema {
+            input: vec![LLHD_VEC_TYPE_DATATYPE.into(), LLHD_VEC_TYPE_DATATYPE.into()],
+            output: Symbol::new(LLHD_TYPE_DATATYPE),
+        },
+        default: None,
+        merge: None,
+        merge_action: GenericActions::default(),
+        cost: None,
+        unextractable: false,
+        ignore_viz: false,
+        span: DUMMY_SPAN.clone(),
+    });
+    vec![
+        void_function,
+        time_function,
+        int_function,
+        enum_function,
+        pointer_function,
+        signal_function,
+        array_function,
+        struct_function,
+        func_function,
+        entity_function,
+    ]
 }
 
 fn unit_kind_sort() -> Command {
@@ -720,9 +800,9 @@ fn unit() -> Command {
 }
 
 pub(in crate::llhd_egraph) fn unit_types() -> EgglogCommandList {
-    vec![
-        ty(),
-        vec_ty_sort(),
+    let mut llhd_types = vec![type_sort(), vec_ty_sort()];
+    llhd_types.extend(type_functions().into_iter());
+    llhd_types.extend([
         unit_kind_sort(),
         value(),
         vec_value_sort(),
@@ -732,7 +812,8 @@ pub(in crate::llhd_egraph) fn unit_types() -> EgglogCommandList {
         time_value(),
         reg_mode(),
         vec_regmode_sort(),
-    ]
+    ]);
+    llhd_types
 }
 
 pub(in crate::llhd_egraph) fn dfg() -> EgglogCommandList {
